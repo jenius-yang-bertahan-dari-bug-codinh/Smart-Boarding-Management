@@ -1,36 +1,127 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Smart Boarding House Management System - Frontend 🏠
 
-## Getting Started
+Welcome to the **Frontend Repository** of the Smart Boarding House Management System! 
 
-First, run the development server:
+This web application serves as the user-facing landing page and tenant portal. It provides real-time room availability, highlights premium facilities, and presents an interactive location map. Our goal is to offer a highly responsive, modern, and premium web experience for prospective and current tenants.
 
+---
+
+## Tech Stack
+
+This project is built using modern frontend technologies to ensure performance, type safety, and rapid UI development:
+
+- **Framework:** [Next.js](https://nextjs.org/) (App Router)
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+- **Language:** [TypeScript](https://www.typescriptlang.org/)
+- **Icons:** [Lucide React](https://lucide.dev/)
+
+---
+
+## Prerequisites & Local Setup
+
+To run this project locally, ensure you have **Node.js** (v18+ recommended) installed.
+
+### Step-by-Step Setup:
+
+1. **Clone the repository:**
+   ```bash
+   git clone <REPOSITORY_URL>
+   cd ITPROJECTMANAGEMENTFINAL
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
+
+4. **View the app:**
+   Open your browser and navigate to [http://localhost:3000](http://localhost:3000). The page will auto-update as you edit files.
+
+---
+
+## Git Collaboration Workflow (CRITICAL)
+
+To ensure smooth collaboration among **Michael, Fathan, and Theodore**, and to maintain clear progress for **Alfadzri (PM)** and **Nofi (BA)**, everyone **MUST** follow these strict Git rules to prevent merge conflicts.
+
+> **CRITICAL RULE:** 🛑 **NEVER** push or commit directly to the `main` branch!
+
+### 1. Update your local `main` branch before starting work:
+Always make sure you are up to date with the latest code before creating a new branch.
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git checkout main
+git pull origin main
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Create a new Feature Branch:
+Branch names should be descriptive of the task you are working on.
+```bash
+git checkout -b feature/your-feature-name
+# Example: git checkout -b feature/room-card
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Work, Commit, and Push:
+Commit your changes with clear, descriptive messages.
+```bash
+git add .
+git commit -m "feat: add room card component"
+git push origin feature/your-feature-name
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Pull Request (PR) & Code Review:
+- Go to the repository on GitHub/GitLab and open a **Pull Request (PR)** against the `main` branch.
+- **DO NOT** merge your own PR immediately.
+- Require **at least one code review** and approval from another developer before merging.
+- Once approved, squash and merge into `main`.
 
-## Learn More
+### 5. Keeping your branch updated (Avoiding Conflicts):
+If someone else merges code into `main` while you are working, update your branch safely:
+```bash
+git checkout main
+git pull origin main
+git checkout feature/your-feature-name
+git merge main
+# Resolve any conflicts locally, then push again
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Folder Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This project follows the Next.js App Router conventions. All source code is located inside the `src/` directory.
 
-## Deploy on Vercel
+```text
+src/
+├── app/                  # Next.js App Router (pages, layouts, global styles)
+│   ├── globals.css       # Tailwind CSS and global styling configuration
+│   ├── layout.tsx        # Root layout HTML and Metadata
+│   └── page.tsx          # Main Landing Page
+├── components/           # Reusable React components (UI building blocks)
+│   ├── Facilities.tsx
+│   ├── Hero.tsx
+│   ├── LocationMap.tsx
+│   └── RoomCard.tsx
+├── data/                 # Mock data for frontend integration testing
+│   └── mockRooms.ts
+└── types/                # TypeScript interface and type definitions
+    └── index.ts
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Coding Standards
+
+To keep the codebase clean and consistent, please adhere to these simple rules:
+
+- **Components:** Use **PascalCase** for component files and function names (e.g., `RoomCard.tsx`, `const RoomCard = () => {}`).
+- **Variables & Functions:** Use **camelCase** (e.g., `const fetchRooms = () => {}`, `let isAvailable = true`).
+- **Types/Interfaces:** Use **PascalCase** (e.g., `interface RoomProps {}`).
+- **Styling:** Use standard Tailwind CSS utility classes. Avoid inline `style={{}}` unless dynamically calculating values.
+- **Responsiveness:** Always design mobile-first. Start with base classes and add `sm:`, `md:`, and `lg:` prefixes for larger screens.
+
+---
+*If you run into any issues, please reach out in the developer group chat!*
