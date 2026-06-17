@@ -1,4 +1,4 @@
-# Smart Boarding House Management System - Frontend 🏠
+# Smart Boarding House Management System - Frontend
 
 Welcome to the **Frontend Repository** of the Smart Boarding House Management System! 
 
@@ -125,3 +125,5 @@ To keep the codebase clean and consistent, please adhere to these simple rules:
 
 ---
 *If you run into any issues, please reach out in the developer group chat!*
+=======
+# Smart-Boarding-Management
