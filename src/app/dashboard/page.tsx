@@ -1,7 +1,8 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
   CreditCard, 
@@ -24,6 +25,30 @@ import Logo from '@/components/Logo';
 import RoleSwitcher from '@/components/RoleSwitcher';
 
 export default function MemberDashboard() {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then((res) => {
+        if (!res.ok) {
+          router.push('/login');
+          throw new Error('Not authenticated');
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setUser(data.user);
+        setLoading(false);
+      })
+      .catch((err) => console.error(err));
+  }, [router]);
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans font-semibold text-slate-500">Loading your dashboard...</div>;
+  }
+
   return (
     <main className="min-h-screen bg-slate-50/50 flex flex-col md:flex-row font-sans selection:bg-blue-500 selection:text-white">
       
@@ -46,7 +71,7 @@ export default function MemberDashboard() {
               className="w-16 h-16 rounded-full object-cover border-2 border-slate-100 shadow-sm mb-2"
             />
             <span className="text-xs font-semibold text-slate-400">Welcome back,</span>
-            <span className="text-sm font-bold text-blue-900 mt-0.5">Alex Johnson</span>
+            <span className="text-sm font-bold text-blue-900 mt-0.5">{user.name}</span>
             <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full mt-1.5 uppercase tracking-wider">
               Premium Member
             </span>
@@ -140,7 +165,7 @@ export default function MemberDashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-              Welcome back, Alex
+              Welcome back, {user.name.split(' ')[0]}
             </h1>
             <p className="text-slate-500 mt-1 text-sm sm:text-base font-medium">
               Here&apos;s what&apos;s happening at your property today.

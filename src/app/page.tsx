@@ -4,9 +4,22 @@ import Facilities from '@/components/Facilities';
 import RoomCard from '@/components/RoomCard';
 import LocationMap from '@/components/LocationMap';
 import Footer from '@/components/Footer';
-import { mockRooms } from '@/data/mockRooms';
+import { PrismaClient } from '@prisma/client';
 
-export default function Home() {
+const prisma = new PrismaClient();
+
+export default async function Home() {
+  const rooms = await prisma.room.findMany();
+  
+  const formattedRooms = rooms.map(room => ({
+    id: room.id.toString(),
+    name: `Room ${room.room_number} - ${room.type}`,
+    price: `$${room.price}/mo`,
+    status: room.status,
+    features: JSON.parse(room.features),
+    imageUrl: room.imageUrl,
+  }));
+
   return (
     <main className="bg-slate-50 min-h-screen font-sans selection:bg-blue-500 selection:text-white flex flex-col">
       {/* Sticky Navbar */}
@@ -29,8 +42,8 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {mockRooms.map((room) => (
-                <RoomCard key={room.id} room={room} />
+              {formattedRooms.map((room) => (
+                <RoomCard key={room.id} room={room as any} />
               ))}
             </div>
           </div>

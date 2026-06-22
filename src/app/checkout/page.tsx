@@ -4,18 +4,36 @@ import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Landmark, CreditCard, Wallet, QrCode, Lock } from 'lucide-react';
-import { mockRooms } from '@/data/mockRooms';
+import { Room } from '@/types';
 
 function CheckoutContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Find the selected room or default to Room 101 (id '1')
   const roomId = searchParams?.get('roomId') || '1';
-  const room = mockRooms.find((r) => r.id === roomId) || mockRooms[0];
+  
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [room, setRoom] = useState<Room | null>(null);
 
-  // Parse numerical price (e.g., "$250/mo" -> 250)
-  const pricePerMonth = parseInt(room.price.replace(/[^0-9]/g, '')) || 250;
+  React.useEffect(() => {
+    fetch('/api/rooms')
+      .then(res => res.json())
+      .then((data: any) => {
+        const mapped = data.map((r: any) => ({
+          id: r.id.toString(),
+          name: `Room ${r.room_number} - ${r.type}`,
+          price: `$${r.price}/mo`,
+          status: r.status,
+          features: r.features,
+          imageUrl: r.imageUrl
+        }));
+        setRooms(mapped);
+        const selected = mapped.find((r: Room) => r.id === roomId) || mapped[0];
+        setRoom(selected);
+      });
+  }, [roomId]);
+
+  const pricePerMonth = room ? parseInt(room.price.replace(/[^0-9]/g, '')) || 250 : 250;
   const serviceFee = 5;
   const totalCost = pricePerMonth + serviceFee;
 
@@ -30,15 +48,41 @@ function CheckoutContent() {
 
   const [loading, setLoading] = useState(false);
 
-  const handleConfirmAndPay = (e: React.FormEvent) => {
+  const handleConfirmAndPay = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!room) return;
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: room.id,
+          fullName,
+          email,
+          phone,
+          idNumber,
+          paymentMethod,
+          totalCost
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert(`Booking confirmed for ${room.name}! Total paid: $${totalCost}.`);
+        router.push('/');
+      } else {
+        alert(`Checkout failed: ${data.error}`);
+      }
+    } catch (error) {
+      alert('An error occurred during checkout.');
+    } finally {
       setLoading(false);
-      alert(`Booking confirmed for ${room.name}! Total paid: $${totalCost}.`);
-      router.push('/');
-    }, 1500);
+    }
   };
+
+  if (!room) {
+    return <div className="min-h-screen bg-slate-50 flex items-center justify-center">Loading room details...</div>;
+  }
 
   return (
     <main className="bg-slate-50 min-h-screen font-sans selection:bg-blue-500 selection:text-white pt-8 pb-16 px-4 sm:px-6 lg:px-8">
