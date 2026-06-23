@@ -21,7 +21,7 @@ export const mockRooms: Room[] = [
     id: '3',
     name: 'Room 205 - Standard',
     price: '$160/mo',
-    status: 'Available',
+    status: 'Booked',
     features: ['Single Bed', 'Workspace'],
     imageUrl: 'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
   }

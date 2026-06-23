@@ -19,23 +19,35 @@ const getFeatureIcon = (feature: string) => {
 };
 
 const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
-  const isAvailable = room.status === 'Available';
+  const currentStatus = room.status?.toLowerCase() || '';
+  const isAvailable = currentStatus === 'available';
+  const isBooked = currentStatus === 'booked' || currentStatus === 'pending';
+  const displayStatus = isAvailable ? 'Available' : isBooked ? 'Booked' : 'Full';
 
   return (
-    <article className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-slate-100 flex flex-col group">
+    <article className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-slate-100 dark:border-slate-700 flex flex-col group">
       {/* Image Block with Absolute Badge */}
-      <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-100">
+      <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-100 dark:bg-slate-900">
         <img
           src={room.imageUrl}
           alt={room.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        <span className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1.5 shadow-sm backdrop-blur-md ${isAvailable
-            ? 'bg-emerald-50/95 text-emerald-700 border border-emerald-100/50'
-            : 'bg-rose-50/95 text-rose-700 border border-rose-100/50'
+        <span className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1.5 shadow-sm backdrop-blur-md ${
+            isAvailable
+              ? 'bg-emerald-50/95 text-emerald-700 border border-emerald-100/50'
+              : isBooked
+              ? 'bg-amber-50/95 text-amber-700 border border-amber-100/50'
+              : 'bg-rose-50/95 text-rose-700 border border-rose-100/50'
           }`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${isAvailable ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
-          {room.status}
+          <span className={`w-1.5 h-1.5 rounded-full ${
+            isAvailable
+              ? 'bg-emerald-500 animate-pulse'
+              : isBooked
+              ? 'bg-amber-500 animate-pulse'
+              : 'bg-rose-500'
+          }`} />
+          {displayStatus}
         </span>
       </div>
 
@@ -44,10 +56,10 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
         <div>
           {/* Title and Price */}
           <div className="flex items-center justify-between gap-2">
-            <h4 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+            <h4 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
               {room.name}
             </h4>
-            <div className="text-blue-600 font-extrabold text-lg shrink-0">
+            <div className="text-blue-600 dark:text-blue-400 font-extrabold text-lg shrink-0">
               {room.price}
             </div>
           </div>
@@ -57,7 +69,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
             {room.features.map((feature, idx) => (
               <span
                 key={idx}
-                className="bg-slate-50 border border-slate-100 text-slate-600 text-xs px-2.5 py-1 rounded-lg flex items-center gap-1.5 font-medium"
+                className="bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-600/50 text-slate-600 dark:text-slate-300 text-xs px-2.5 py-1 rounded-lg flex items-center gap-1.5 font-medium"
               >
                 {getFeatureIcon(feature)}
                 {feature}
@@ -75,8 +87,8 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
               Book Now
             </Link>
           ) : (
-            <button className="w-full bg-white hover:bg-slate-50 border border-blue-600 text-blue-600 font-semibold py-2.5 rounded-xl text-sm transition-all duration-200 cursor-pointer text-center block">
-              Not Available
+            <button className="w-full bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-semibold py-2.5 rounded-xl text-sm transition-all duration-200 cursor-not-allowed text-center block">
+              {isBooked ? 'Waiting For Approval' : 'Full'}
             </button>
           )}
         </div>

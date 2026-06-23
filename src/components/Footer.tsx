@@ -28,7 +28,7 @@ const Footer: React.FC = () => {
   ];
 
   return (
-    <footer className="fixed bottom-0 left-0 right-0 bg-[#e2e8f0] py-6 md:py-8 border-t border-slate-300/40 z-50">
+    <footer className="fixed bottom-0 left-0 right-0 bg-[#e2e8f0] dark:bg-slate-950 transition-colors py-6 md:py-8 border-t border-slate-300/40 dark:border-slate-800 z-50">
       <div className="max-w-7xl mx-auto px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
 
         {/* Left Side: Logo (role-switch trigger) + brand text + copyright */}
@@ -41,15 +41,15 @@ const Footer: React.FC = () => {
                 type="button"
                 onClick={() => setIsOpen((prev) => !prev)}
                 title="Switch view"
-                className="p-1 rounded-xl hover:bg-slate-300/40 active:bg-slate-300/60 transition-all cursor-pointer focus:outline-none"
+                className="p-1 rounded-xl hover:bg-slate-300/40 dark:hover:bg-slate-800 active:bg-slate-300/60 transition-all cursor-pointer focus:outline-none"
               >
                 <Logo size={30} />
               </button>
 
               {/* Dropdown menu — pops upward */}
               {isOpen && (
-                <div className="absolute bottom-full left-0 mb-2 w-56 bg-white border border-slate-100 rounded-2xl shadow-lg ring-1 ring-black/5 p-1.5 z-50">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 pt-1.5 pb-1">
+                <div className="absolute bottom-full left-0 mb-2 w-56 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl shadow-lg ring-1 ring-black/5 p-1.5 z-50">
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-3 pt-1.5 pb-1">
                     Switch View
                   </p>
                   <div className="space-y-0.5">
@@ -71,13 +71,13 @@ const Footer: React.FC = () => {
                           }}
                           className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-xl text-left transition-all cursor-pointer ${
                             isActive
-                              ? 'bg-blue-50 text-blue-900 font-bold'
-                              : 'text-slate-600 hover:text-blue-900 hover:bg-slate-50 font-medium'
+                              ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-900 dark:text-blue-400 font-bold'
+                              : 'text-slate-600 dark:text-slate-300 hover:text-blue-900 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium'
                           }`}
                         >
-                          <role.Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-900' : 'text-slate-400'}`} />
+                          <role.Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-900 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`} />
                           <span className="flex-grow">{role.label}</span>
-                          {isActive && <Check className="w-4 h-4 text-blue-900 stroke-[2.5] ml-auto shrink-0" />}
+                          {isActive && <Check className="w-4 h-4 text-blue-900 dark:text-blue-400 stroke-[2.5] ml-auto shrink-0" />}
                         </button>
                       );
                     })}
@@ -86,29 +86,26 @@ const Footer: React.FC = () => {
               )}
             </div>
 
-            <span className="text-xl font-bold text-blue-900 tracking-tight">
+            <span className="text-xl font-bold text-blue-900 dark:text-blue-400 tracking-tight">
               SmartStay
             </span>
           </div>
 
-          <p className="text-sm text-slate-600 text-center md:text-left">
+          <p className="text-sm text-slate-600 dark:text-slate-400 text-center md:text-left">
             &copy; 2024 SmartStay Boarding House Management. All rights reserved.
           </p>
         </div>
 
         {/* Right Side: Links */}
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 md:gap-x-8">
-          <a href="#" className="text-sm font-semibold text-slate-600 hover:text-blue-900 transition-colors">
+          <a href="#" className="text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-400 transition-colors">
             Privacy Policy
           </a>
-          <a href="#" className="text-sm font-semibold text-slate-600 hover:text-blue-900 transition-colors">
+          <a href="#" className="text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-400 transition-colors">
             Terms of Service
           </a>
-          <a href="#" className="text-sm font-semibold text-slate-600 hover:text-blue-900 transition-colors">
+          <a href="#" className="text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-400 transition-colors">
             Contact Support
-          </a>
-          <a href="#" className="text-sm font-semibold text-slate-600 hover:text-blue-900 transition-colors">
-            Admin Portal
           </a>
         </div>
       </div>
