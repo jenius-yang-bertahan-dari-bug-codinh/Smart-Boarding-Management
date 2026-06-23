@@ -11,14 +11,25 @@ const prisma = new PrismaClient();
 export default async function Home() {
   const rooms = await prisma.room.findMany();
   
-  const formattedRooms = rooms.map(room => ({
-    id: room.id.toString(),
-    name: `Room ${room.room_number} - ${room.type}`,
-    price: `$${room.price}/mo`,
-    status: room.status,
-    features: JSON.parse(room.features),
-    imageUrl: room.imageUrl,
-  }));
+  const formattedRooms = rooms.map(room => {
+    let parsedFeatures: string[] = [];
+    try {
+      parsedFeatures = room.features ? JSON.parse(room.features) : [];
+    } catch (e) {
+      if (typeof room.features === 'string' && room.features.trim() !== '') {
+        parsedFeatures = room.features.split(',').map(f => f.trim());
+      }
+    }
+    
+    return {
+      id: room.id.toString(),
+      name: `Room ${room.room_number} - ${room.type}`,
+      price: `$${room.price}/mo`,
+      status: room.status,
+      features: parsedFeatures,
+      imageUrl: room.imageUrl || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800',
+    };
+  });
 
   return (
     <main className="bg-slate-50 dark:bg-slate-900 transition-colors min-h-screen font-sans selection:bg-blue-500 selection:text-white flex flex-col">
