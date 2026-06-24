@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { 
   LayoutDashboard, 
@@ -21,6 +21,28 @@ import Logo from '@/components/Logo';
 import RoleSwitcher from '@/components/RoleSwitcher';
 
 export default function AnnouncementsPage() {
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/announcements')
+      .then((res) => res.json())
+      .then((data) => {
+        setAnnouncements(data.announcements || []);
+        setUser(data.user);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans font-semibold text-slate-500">Loading announcements...</div>;
+  }
+
   return (
     <main className="min-h-screen bg-slate-50/50 flex flex-col md:flex-row font-sans selection:bg-blue-500 selection:text-white">
       
@@ -43,7 +65,7 @@ export default function AnnouncementsPage() {
               className="w-16 h-16 rounded-full object-cover border-2 border-slate-100 shadow-sm mb-2"
             />
             <span className="text-xs font-semibold text-slate-400">Welcome back,</span>
-            <span className="text-sm font-bold text-blue-900 mt-0.5">Alex Johnson</span>
+            <span className="text-sm font-bold text-blue-900 mt-0.5">{user?.name}</span>
             <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full mt-1.5 uppercase tracking-wider">
               Premium Member
             </span>
@@ -175,88 +197,38 @@ export default function AnnouncementsPage() {
               </h2>
             </div>
 
-            {/* 1. Urgent Announcement Card */}
-            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm border-l-4 border-l-rose-500 relative">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-[9px] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded uppercase tracking-wider">
-                    Urgent
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-semibold">
-                    Today, 09:00 AM
-                  </span>
+            {announcements.map((ann, idx) => (
+              <div key={ann.id} className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm relative">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-[9px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded uppercase tracking-wider">
+                      Notice
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-semibold">
+                      Valid until {new Date(ann.expiry_date).toLocaleDateString()}
+                    </span>
+                  </div>
                 </div>
-                <button 
-                  onClick={() => alert('Options menu...')}
-                  className="text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </button>
-              </div>
 
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 mt-3.5">
-                Emergency Water Shutoff
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mt-2.5">
-                Due to an unexpected main line issue, water will be shut off for floors 10-15 starting at 10:00 AM. Expected resolution by 2:00 PM. We apologize for the inconvenience.
-              </p>
-
-              {/* Management footer */}
-              <div className="mt-5 pt-3.5 border-t border-slate-100 flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 shrink-0">
-                  Mgmt
-                </div>
-                <span className="text-xs font-semibold text-slate-500">
-                  Building Management
-                </span>
-              </div>
-            </div>
-
-            {/* 2. Community Announcement Card */}
-            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm relative">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-[9px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded uppercase tracking-wider">
-                    Community
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-semibold">
-                    Yesterday
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 mt-3.5">
+                  {ann.title}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mt-2.5 mb-4 whitespace-pre-wrap">
+                  {ann.body}
+                </p>
+                <div className="pt-3.5 border-t border-slate-100 flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 shrink-0">
+                    Mgmt
+                  </div>
+                  <span className="text-xs font-semibold text-slate-500">
+                    Building Management
                   </span>
                 </div>
-                <button 
-                  onClick={() => alert('Options menu...')}
-                  className="text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </button>
               </div>
-
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 mt-3.5">
-                Rooftop Lounge Summer Opening
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mt-2.5 mb-4">
-                The newly renovated rooftop lounge and pool area will officially open this Friday. Join us for a resident mixer at 6:00 PM. RSVP via the portal.
-              </p>
-
-              {/* Night-time rooftop pool photo */}
-              <div className="w-full h-48 sm:h-64 rounded-xl overflow-hidden mb-5 border border-slate-100">
-                <img 
-                  src="https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
-                  alt="Rooftop lounge"
-                  className="w-full h-full object-cover" 
-                />
-              </div>
-
-              {/* Events Committee footer */}
-              <div className="pt-3.5 border-t border-slate-100 flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
-                  <Sparkles className="w-3.5 h-3.5" />
-                </div>
-                <span className="text-xs font-semibold text-slate-500">
-                  Events Committee
-                </span>
-              </div>
-            </div>
+            ))}
+            {announcements.length === 0 && (
+              <div className="py-6 text-center text-slate-500 text-sm font-medium">No announcements available.</div>
+            )}
 
           </div>
 

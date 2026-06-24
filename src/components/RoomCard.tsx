@@ -88,7 +88,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
             </Link>
           ) : (
             <button className="w-full bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-semibold py-2.5 rounded-xl text-sm transition-all duration-200 cursor-not-allowed text-center block">
-              {isBooked ? 'Waiting For Approval' : 'Full'}
+              Full
             </button>
           )}
         </div>

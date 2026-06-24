@@ -1,6 +1,7 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   LayoutDashboard, 
@@ -25,63 +26,33 @@ import Logo from '@/components/Logo';
 import RoleSwitcher from '@/components/RoleSwitcher';
 
 export default function FinancialHub() {
-  const transactions = [
-    {
-      id: 1,
-      name: 'Monthly Rent',
-      date: 'Sep 1, 2023',
-      type: 'Auto-pay',
-      amount: '-$1,400.00',
-      status: 'Paid',
-      positive: false,
-      Icon: HomeIcon,
-      bgIcon: 'bg-blue-50 text-blue-600'
-    },
-    {
-      id: 2,
-      name: 'Laundry Credit Addition',
-      date: 'Aug 28, 2023',
-      type: 'Manual',
-      amount: '+$25.00',
-      status: 'Completed',
-      positive: true,
-      Icon: Coins,
-      bgIcon: 'bg-orange-50 text-orange-600'
-    },
-    {
-      id: 3,
-      name: 'Maintenance: Sink Repair',
-      date: 'Aug 15, 2023',
-      type: 'Invoice #8821',
-      amount: '-$75.00',
-      status: 'Paid',
-      positive: false,
-      Icon: Wrench,
-      bgIcon: 'bg-slate-100 text-slate-600'
-    },
-    {
-      id: 4,
-      name: 'Monthly Rent',
-      date: 'Aug 1, 2023',
-      type: 'Auto-pay',
-      amount: '-$1,400.00',
-      status: 'Paid',
-      positive: false,
-      Icon: HomeIcon,
-      bgIcon: 'bg-blue-50 text-blue-600'
-    },
-    {
-      id: 5,
-      name: 'Community Amenities Fee',
-      date: 'Jul 25, 2023',
-      type: 'Annual',
-      amount: '-$150.00',
-      status: 'Paid',
-      positive: false,
-      Icon: Landmark,
-      bgIcon: 'bg-indigo-50 text-indigo-600'
-    }
-  ];
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [currentBalance, setCurrentBalance] = useState<number>(0);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    fetch('/api/payments')
+      .then((res) => {
+        if (!res.ok) {
+          router.push('/login');
+          throw new Error('Not authenticated');
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setTransactions(data.payments);
+        setCurrentBalance(data.currentBalance);
+        setUser(data.user);
+        setLoading(false);
+      })
+      .catch((err) => console.error(err));
+  }, [router]);
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans font-semibold text-slate-500">Loading payments...</div>;
+  }
 
   return (
     <main className="min-h-screen bg-slate-50/50 flex flex-col md:flex-row font-sans selection:bg-blue-500 selection:text-white">
@@ -105,7 +76,7 @@ export default function FinancialHub() {
               className="w-16 h-16 rounded-full object-cover border-2 border-slate-100 shadow-sm mb-2"
             />
             <span className="text-xs font-semibold text-slate-400">Welcome back,</span>
-            <span className="text-sm font-bold text-blue-900 mt-0.5">Alex Johnson</span>
+            <span className="text-sm font-bold text-blue-900 mt-0.5">{user?.name}</span>
             <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full mt-1.5 uppercase tracking-wider">
               Premium Member
             </span>
@@ -240,7 +211,7 @@ export default function FinancialHub() {
                     Current Balance
                   </span>
                   <span className="text-3xl font-black text-blue-900 block mt-1">
-                    $1,450.00
+                    ${currentBalance.toFixed(2)}
                   </span>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-900 flex items-center justify-center">
@@ -321,40 +292,40 @@ export default function FinancialHub() {
               {/* Transactions List */}
               <div className="divide-y divide-slate-100/70">
                 {transactions.map((tx) => {
-                  const TxIcon = tx.Icon;
                   return (
                     <div key={tx.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
                       {/* Left Block: Icon + Details */}
                       <div className="flex items-center gap-3.5">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${tx.bgIcon}`}>
-                          <TxIcon className="w-5 h-5 stroke-[1.8]" />
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${tx.status === 'pending' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'}`}>
+                          <CreditCard className="w-5 h-5 stroke-[1.8]" />
                         </div>
                         <div>
                           <h3 className="text-sm font-extrabold text-slate-800">
-                            {tx.name}
+                            Payment
                           </h3>
                           <p className="text-xs text-slate-400 font-semibold mt-0.5">
-                            {tx.date} &bull; <span className="text-slate-500">{tx.type}</span>
+                            {new Date(tx.payment_date).toLocaleDateString()} &bull; <span className="text-slate-500">{tx.payment_method}</span>
                           </p>
                         </div>
                       </div>
 
                       {/* Right Block: Amount + Status */}
                       <div className="text-right">
-                        <span className={`text-sm font-black block ${
-                          tx.positive ? 'text-orange-500' : 'text-slate-800'
-                        }`}>
-                          {tx.amount}
+                        <span className={`text-sm font-black block ${tx.status === 'pending' ? 'text-orange-500' : 'text-slate-800'}`}>
+                          ${tx.amount.toFixed(2)}
                         </span>
                         
                         <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          <CircleDot className="w-2.5 h-2.5 text-blue-900 fill-blue-900/10" />
+                          <CircleDot className={`w-2.5 h-2.5 ${tx.status === 'pending' ? 'text-orange-500 fill-orange-500/10' : 'text-emerald-500 fill-emerald-500/10'}`} />
                           {tx.status}
                         </span>
                       </div>
                     </div>
                   );
                 })}
+                {transactions.length === 0 && (
+                  <div className="py-6 text-center text-slate-500 text-sm font-medium">No transactions found.</div>
+                )}
               </div>
 
             </div>

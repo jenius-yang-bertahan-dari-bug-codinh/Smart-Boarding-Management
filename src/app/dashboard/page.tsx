@@ -30,7 +30,7 @@ export default function MemberDashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    fetch('/api/auth/me')
+    fetch('/api/dashboard/me')
       .then((res) => {
         if (!res.ok) {
           router.push('/login');
@@ -174,7 +174,7 @@ export default function MemberDashboard() {
           <div className="flex items-center gap-3">
             <RoleSwitcher currentRole="guest" />
             <span className="inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white text-slate-600 border border-slate-200/60 shadow-xs">
-              Unit 402 &bull; Skyline Residences
+              {user.memberProfile?.room ? `Room ${user.memberProfile.room.room_number} \u2022 ${user.memberProfile.room.type}` : "No Unit Assigned"}
             </span>
           </div>
         </div>
@@ -184,12 +184,12 @@ export default function MemberDashboard() {
           {/* Card 1: Unit status */}
           <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-xs flex items-center justify-between">
             <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Unit 402</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{user.memberProfile?.room ? `Room ${user.memberProfile.room.room_number}` : "N/A"}</span>
               <span className="text-base font-extrabold text-slate-800 block mt-0.5">Room Status</span>
             </div>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Paid
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${user.memberProfile?.pendingPayments?.length > 0 ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${user.memberProfile?.pendingPayments?.length > 0 ? 'bg-amber-500' : 'bg-emerald-500'} animate-pulse`} />
+              {user.memberProfile?.pendingPayments?.length > 0 ? 'Unpaid' : (user.memberProfile?.room ? 'Paid' : 'No Room')}
             </span>
           </div>
 
@@ -197,7 +197,7 @@ export default function MemberDashboard() {
           <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-xs flex items-center justify-between">
             <div>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Requests</span>
-              <span className="text-base font-extrabold text-slate-800 block mt-0.5">2 Pending</span>
+              <span className="text-base font-extrabold text-slate-800 block mt-0.5">{user.memberProfile?.pendingComplaints?.length || 0} Pending</span>
             </div>
             <div className="w-9 h-9 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
               <Clock className="w-4.5 h-4.5 stroke-[2]" />
@@ -234,7 +234,7 @@ export default function MemberDashboard() {
 
           <div className="mt-4">
             <span className="text-4xl font-black text-blue-900">
-              $250.00
+              ${user.memberProfile?.pendingPayments?.reduce((sum: number, p: any) => sum + p.amount, 0).toFixed(2) || '0.00'}
             </span>
             <span className="block text-xs text-slate-500 font-semibold mt-1">
               Monthly HOA Dues &amp; Utilities

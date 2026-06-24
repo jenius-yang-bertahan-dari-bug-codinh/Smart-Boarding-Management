@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   LayoutDashboard, 
@@ -28,7 +29,59 @@ import RoleSwitcher from '@/components/RoleSwitcher';
 export default function ServiceRequests() {
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
-  const [isDrawerOpen, setIsDrawerOpen] = useState(true);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  
+  const [complaints, setComplaints] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedComplaint, setSelectedComplaint] = useState<any>(null);
+  const router = useRouter();
+
+  const fetchComplaints = () => {
+    fetch('/api/complaints')
+      .then((res) => {
+        if (!res.ok) {
+          router.push('/login');
+          throw new Error('Not authenticated');
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setComplaints(data.complaints);
+        setUser(data.user);
+        setLoading(false);
+        if (data.complaints.length > 0 && !selectedComplaint) {
+          setSelectedComplaint(data.complaints[0]);
+          setIsDrawerOpen(true);
+        }
+      })
+      .catch((err) => console.error(err));
+  };
+
+  useEffect(() => {
+    fetchComplaints();
+  }, [router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await fetch('/api/complaints', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category, description })
+    });
+    if (res.ok) {
+      alert('Request submitted successfully!');
+      setCategory('');
+      setDescription('');
+      fetchComplaints();
+    } else {
+      alert('Failed to submit request');
+    }
+  };
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans font-semibold text-slate-500">Loading requests...</div>;
+  }
 
   return (
     <main className="min-h-screen bg-slate-50/50 flex flex-col md:flex-row font-sans selection:bg-blue-500 selection:text-white">
@@ -52,7 +105,7 @@ export default function ServiceRequests() {
               className="w-16 h-16 rounded-full object-cover border-2 border-slate-100 shadow-sm mb-2"
             />
             <span className="text-xs font-semibold text-slate-400">Welcome back,</span>
-            <span className="text-sm font-bold text-blue-900 mt-0.5">Alex Johnson</span>
+            <span className="text-sm font-bold text-blue-900 mt-0.5">{user?.name}</span>
             <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full mt-1.5 uppercase tracking-wider">
               Premium Member
             </span>
@@ -167,7 +220,7 @@ export default function ServiceRequests() {
                 New Request
               </h2>
 
-              <form onSubmit={(e) => { e.preventDefault(); alert('Request submitted successfully!'); }} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Category Selection */}
                 <div>
                   <label htmlFor="category" className="block text-slate-700 text-xs sm:text-sm font-semibold mb-1.5">
@@ -332,30 +385,36 @@ export default function ServiceRequests() {
               </h2>
 
               {/* History Item List */}
-              <div 
-                onClick={() => setIsDrawerOpen(true)}
-                className="flex items-center justify-between p-3.5 rounded-xl border border-slate-100/80 hover:border-slate-200 bg-slate-50/20 hover:bg-slate-50 transition-colors cursor-pointer group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                    <Droplet className="w-4.5 h-4.5 stroke-[1.8]" />
+              {complaints.map((c) => (
+                <div 
+                  key={c.id}
+                  onClick={() => { setSelectedComplaint(c); setIsDrawerOpen(true); }}
+                  className="flex items-center justify-between p-3.5 mt-2 rounded-xl border border-slate-100/80 hover:border-slate-200 bg-slate-50/20 hover:bg-slate-50 transition-colors cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${c.status === 'resolved' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'}`}>
+                      <WrenchIcon className="w-4.5 h-4.5 stroke-[1.8]" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-extrabold text-slate-800">
+                        {c.category}
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                        {c.tracking_id}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-xs sm:text-sm font-extrabold text-slate-800">
-                      Kitchen Sink Leak
-                    </h3>
-                    <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
-                      Sep 12, 2023
-                    </p>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[9px] font-bold uppercase tracking-wider ${c.status === 'resolved' ? 'text-emerald-600' : 'text-orange-600'}`}>
+                      {c.status}
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-900 transition-colors" />
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider">
-                    Resolved
-                  </span>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-900 transition-colors" />
-                </div>
-              </div>
+              ))}
+              {complaints.length === 0 && (
+                <div className="py-6 text-center text-slate-500 text-sm font-medium">No requests found.</div>
+              )}
 
               {/* Full History button */}
               <button 
@@ -369,17 +428,17 @@ export default function ServiceRequests() {
           </div>
 
           {/* Right Block: Slide-out Details Drawer (Drawer Column) */}
-          {isDrawerOpen && (
+          {isDrawerOpen && selectedComplaint && (
             <div className="xl:col-span-3 bg-white border border-slate-100 rounded-2xl shadow-md p-6 space-y-5 relative">
               <h2 className="text-sm font-bold text-slate-900 pr-6 block pb-3 border-b border-slate-100">
-                Request Details: Kitchen Sink Leak
+                Request Details: {selectedComplaint.category}
               </h2>
               
               {/* Resolved Badge */}
               <div>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${selectedComplaint.status === 'resolved' ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-50 text-orange-700'}`}>
                   <CheckCircle className="w-3.5 h-3.5" />
-                  RESOLVED
+                  {selectedComplaint.status.toUpperCase()}
                 </span>
               </div>
 
@@ -387,20 +446,16 @@ export default function ServiceRequests() {
               <div className="space-y-3.5 text-xs">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Request ID</span>
-                  <span className="font-bold text-slate-800 block mt-0.5">SS-REQ-2023-901</span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Submitted</span>
-                  <span className="font-bold text-slate-800 block mt-0.5">Sep 12, 2023, 10:15 AM</span>
+                  <span className="font-bold text-slate-800 block mt-0.5">{selectedComplaint.tracking_id}</span>
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Category</span>
-                  <span className="font-bold text-slate-800 block mt-0.5">Plumbing</span>
+                  <span className="font-bold text-slate-800 block mt-0.5">{selectedComplaint.category}</span>
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Description</span>
                   <p className="text-slate-600 font-medium leading-relaxed mt-0.5">
-                    Water is dripping slowly from the pipe under the kitchen sink in Unit 302. Creating a small puddle.
+                    {selectedComplaint.description}
                   </p>
                 </div>
               </div>
