@@ -33,7 +33,7 @@ import RoleSwitcher from '@/components/RoleSwitcher';
 export default function AdminPage() {
   const router = useRouter();
   // Navigation active tab state
-  const [activeTab, setActiveTab] = useState<'Dashboard' | 'Properties' | 'Reservations' | 'Billing' | 'Members' | 'Maintenance'>('Dashboard');
+  const [activeTab, setActiveTab] = useState<'Dashboard' | 'Properties' | 'Reservations' | 'Billing' | 'Members' | 'Landing Page'>('Dashboard');
 
   // Chart View State (Monthly vs Weekly)
   const [chartView, setChartView] = useState<'Monthly' | 'Weekly'>('Monthly');
@@ -132,14 +132,13 @@ export default function AdminPage() {
           {/* Left: Logo & Navigation Tabs */}
           <div className="flex items-center gap-8 lg:gap-10">
             <Link href="/" className="flex items-center gap-2.5">
-              <Logo size={32} />
               <span className="text-xl font-bold text-blue-900 tracking-tight">
-                SmartStay
+                SmartStay Admin
               </span>
             </Link>
             
-            <nav className="hidden md:flex items-center gap-1.5 lg:gap-2">
-              {(['Dashboard', 'Properties', 'Reservations', 'Billing', 'Members', 'Maintenance'] as const).map((tab) => {
+            <nav className="hidden md:flex items-center gap-4 lg:gap-6">
+              {(['Dashboard', 'Properties', 'Reservations', 'Billing', 'Members', 'Landing Page'] as const).map((tab) => {
                 const isActive = activeTab === tab;
                 return (
                   <button
@@ -151,13 +150,13 @@ export default function AdminPage() {
                       else if (tab === 'Reservations') router.push('/admin/reservations');
                       else if (tab === 'Billing')      router.push('/admin/billing');
                       else if (tab === 'Members')      router.push('/admin/members');
-                      else if (tab === 'Maintenance')  router.push('/admin/maintenance');
+                      else if (tab === 'Landing Page') router.push('/admin/landing-page');
                       else showToast(`Switched view to ${tab}`, 'info');
                     }}
-                    className={`px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                    className={`pb-1.5 pt-1 text-sm font-semibold transition-all cursor-pointer border-b-2 ${
                       isActive 
-                        ? 'bg-blue-900 text-white shadow-xs' 
-                        : 'text-slate-500 hover:text-blue-900 hover:bg-slate-50'
+                        ? 'border-blue-900 text-blue-900' 
+                        : 'border-transparent text-slate-500 hover:text-blue-900'
                     }`}
                   >
                     {tab}
@@ -170,23 +169,6 @@ export default function AdminPage() {
           {/* Right: Search, Icons, Profile & Role Switcher */}
           <div className="flex items-center gap-4">
             
-            {/* Search Input */}
-            <div className="relative hidden lg:block">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                <Search className="w-4 h-4 stroke-[2]" />
-              </span>
-              <input
-                type="text"
-                placeholder="Search data..."
-                className="w-48 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 focus:border-blue-900 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none transition-all placeholder:text-slate-400 text-slate-700"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    showToast(`Searching for "${(e.target as HTMLInputElement).value}"...`, 'info');
-                  }
-                }}
-              />
-            </div>
-
             {/* Icons Area */}
             <div className="flex items-center gap-3">
               {/* Notification Bell */}
@@ -209,8 +191,15 @@ export default function AdminPage() {
               </button>
             </div>
 
-            {/* User Profile Avatar */}
-            <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
+            {/* User Profile Avatar & Add Resident */}
+            <div className="flex items-center gap-4 border-l border-slate-200 pl-4">
+              <button
+                onClick={() => setActiveModal('addResident')}
+                className="hidden sm:flex items-center gap-1.5 bg-[#0f2852] hover:bg-[#0f2852]/90 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
+              >
+                <span className="text-lg leading-none mb-0.5">+</span> Add Resident
+              </button>
+              
               <img
                 src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
                 alt="Admin Profile"

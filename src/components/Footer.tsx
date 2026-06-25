@@ -107,6 +107,9 @@ const Footer: React.FC = () => {
           <a href="#" className="text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-400 transition-colors">
             Contact Support
           </a>
+          <a href="/admin" className="text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-400 transition-colors">
+            Admin Portal
+          </a>
         </div>
       </div>
     </footer>
