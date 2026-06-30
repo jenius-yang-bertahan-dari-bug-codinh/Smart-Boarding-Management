@@ -4,9 +4,7 @@ import Facilities from '@/components/Facilities';
 import RoomCard from '@/components/RoomCard';
 import LocationMap from '@/components/LocationMap';
 import Footer from '@/components/Footer';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '@/lib/prisma';
 
 export default async function Home() {
   const rooms = await prisma.room.findMany();
