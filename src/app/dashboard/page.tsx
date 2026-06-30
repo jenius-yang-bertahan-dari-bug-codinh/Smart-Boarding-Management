@@ -67,7 +67,7 @@ export default function MemberDashboard() {
           <div className="flex flex-col items-center mb-6 py-4 border-y border-slate-100/60">
             <img
               src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
-              alt="Alex Avatar"
+              alt={user.name || "Member Avatar"}
               className="w-16 h-16 rounded-full object-cover border-2 border-slate-100 shadow-sm mb-2"
             />
             <span className="text-xs font-semibold text-slate-400">Welcome back,</span>
@@ -147,13 +147,17 @@ export default function MemberDashboard() {
               <HelpCircle className="w-4 h-4 text-slate-400 stroke-[1.8]" />
               <span>Help Center</span>
             </a>
-            <Link 
-              href="/" 
-              className="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 hover:text-rose-600 hover:bg-rose-50/50 font-semibold text-xs sm:text-sm transition-all"
+            <button 
+              type="button"
+              onClick={async () => {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                window.location.href = '/login';
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 hover:text-rose-600 hover:bg-rose-50/50 font-semibold text-xs sm:text-sm transition-all cursor-pointer text-left"
             >
               <LogOut className="w-4 h-4 text-slate-400 stroke-[1.8]" />
               <span>Sign Out</span>
-            </Link>
+            </button>
           </div>
         </div>
       </aside>

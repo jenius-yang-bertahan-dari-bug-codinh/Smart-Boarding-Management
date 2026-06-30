@@ -29,6 +29,8 @@ import RoleSwitcher from '@/components/RoleSwitcher';
 export default function ServiceRequests() {
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   
   const [complaints, setComplaints] = useState<any[]>([]);
@@ -62,17 +64,39 @@ export default function ServiceRequests() {
     fetchComplaints();
   }, [router]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    const validExtensions = /\.(jpg|jpeg|png)$/i;
+    if (!validTypes.includes(file.type) && !validExtensions.test(file.name)) {
+      alert('Only JPG, JPEG, and PNG format images are allowed.');
+      e.target.value = '';
+      return;
+    }
+
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhotoUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const res = await fetch('/api/complaints', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ category, description })
+      body: JSON.stringify({ category, description, photo_url: photoUrl })
     });
     if (res.ok) {
       alert('Request submitted successfully!');
       setCategory('');
       setDescription('');
+      setPhotoUrl(null);
+      setFileName(null);
       fetchComplaints();
     } else {
       alert('Failed to submit request');
@@ -101,7 +125,7 @@ export default function ServiceRequests() {
           <div className="flex flex-col items-center mb-6 py-4 border-y border-slate-100/60">
             <img
               src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
-              alt="Alex Avatar"
+              alt={user?.name || "Member Avatar"}
               className="w-16 h-16 rounded-full object-cover border-2 border-slate-100 shadow-sm mb-2"
             />
             <span className="text-xs font-semibold text-slate-400">Welcome back,</span>
@@ -181,13 +205,17 @@ export default function ServiceRequests() {
               <HelpCircle className="w-4.5 h-4.5 text-slate-400 stroke-[1.8]" />
               <span>Help Center</span>
             </a>
-            <Link 
-              href="/" 
-              className="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 hover:text-rose-600 hover:bg-rose-50/50 font-semibold text-xs sm:text-sm transition-all"
+            <button 
+              type="button"
+              onClick={async () => {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                window.location.href = '/login';
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 hover:text-rose-600 hover:bg-rose-50/50 font-semibold text-xs sm:text-sm transition-all cursor-pointer text-left"
             >
               <LogOut className="w-4 h-4 text-slate-400 stroke-[1.8]" />
               <span>Sign Out</span>
-            </Link>
+            </button>
           </div>
         </div>
       </aside>
@@ -266,20 +294,49 @@ export default function ServiceRequests() {
                   <label className="block text-slate-700 text-xs sm:text-sm font-semibold mb-1.5">
                     Attachments (Optional)
                   </label>
-                  <div className="border-2 border-dashed border-slate-200 hover:border-slate-300 rounded-xl p-6 flex flex-col items-center justify-center bg-slate-50/50 hover:bg-slate-50 transition-colors cursor-pointer text-center group">
-                    <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                      <UploadCloud className="w-5.5 h-5.5" />
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                    id="attachment-input"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                  {photoUrl ? (
+                    <div className="border-2 border-slate-200 rounded-xl p-4 bg-white flex items-center justify-between shadow-sm">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <img src={photoUrl} alt="Preview" className="w-14 h-14 rounded-lg object-cover border border-slate-200 shrink-0" />
+                        <div className="min-w-0">
+                          <span className="text-xs font-bold text-slate-800 block truncate">{fileName || 'Attachment'}</span>
+                          <span className="text-[10px] text-emerald-600 font-bold block">Ready to upload</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setPhotoUrl(null); setFileName(null); }}
+                        className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                      >
+                        ✕
+                      </button>
                     </div>
-                    <span className="text-xs font-bold text-slate-700">Click to upload or drag and drop</span>
-                    <span className="text-[10px] text-slate-400 font-semibold mt-1">SVG, PNG, JPG or GIF (max. 10MB)</span>
-                  </div>
+                  ) : (
+                    <label
+                      htmlFor="attachment-input"
+                      className="border-2 border-dashed border-slate-200 hover:border-blue-500 rounded-xl p-6 flex flex-col items-center justify-center bg-slate-50/50 hover:bg-blue-50/30 transition-all cursor-pointer text-center group"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                        <UploadCloud className="w-5.5 h-5.5" />
+                      </div>
+                      <span className="text-xs font-bold text-slate-700 group-hover:text-blue-600 transition-colors">Click to upload image</span>
+                      <span className="text-[10px] text-slate-400 font-semibold mt-1">JPG, JPEG, or PNG only (optional attachment)</span>
+                    </label>
+                  )}
                 </div>
 
                 {/* Cancel & Submit Button */}
                 <div className="flex items-center justify-end gap-3.5 pt-3">
                   <button
                     type="button"
-                    onClick={() => { setCategory(''); setDescription(''); }}
+                    onClick={() => { setCategory(''); setDescription(''); setPhotoUrl(null); setFileName(null); }}
                     className="px-5 py-2.5 border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-600 text-sm font-bold transition-all cursor-pointer"
                   >
                     Cancel
@@ -481,23 +538,27 @@ export default function ServiceRequests() {
                 </div>
               </div>
 
-              {/* Photo Thumbnails */}
+              {/* Photo Attachment / Thumbnails */}
               <div className="space-y-2.5">
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                  Photos
+                  Attached Photo
                 </h4>
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Before Repair */}
-                  <div className="bg-rose-50/50 border border-rose-100 flex flex-col items-center justify-center p-3.5 rounded-xl text-center">
-                    <FileImage className="w-5 h-5 text-rose-500 mb-1" />
-                    <span className="text-[10px] font-bold text-rose-700">Before Repair</span>
+                {selectedComplaint.photo_url ? (
+                  <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 p-2">
+                    <img
+                      src={selectedComplaint.photo_url}
+                      alt="Uploaded Request Attachment"
+                      className="w-full max-h-56 object-contain rounded-lg bg-slate-900/5"
+                    />
                   </div>
-                  {/* After Repair */}
-                  <div className="bg-emerald-50/50 border border-emerald-100 flex flex-col items-center justify-center p-3.5 rounded-xl text-center">
-                    <FileImage className="w-5 h-5 text-emerald-500 mb-1" />
-                    <span className="text-[10px] font-bold text-emerald-700">After Repair</span>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-50 border border-slate-100 flex flex-col items-center justify-center p-3.5 rounded-xl text-center">
+                      <FileImage className="w-5 h-5 text-slate-400 mb-1" />
+                      <span className="text-[10px] font-bold text-slate-500">No photo uploaded</span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Close Button */}

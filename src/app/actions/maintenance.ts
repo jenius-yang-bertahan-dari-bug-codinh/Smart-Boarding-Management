@@ -27,6 +27,7 @@ export async function getAdminMaintenance() {
         unit: c.member?.room ? `Unit ${c.member.room.room_number}` : 'Unknown Unit',
         type: c.category,
         summary: c.description,
+        photo_url: c.photo_url,
         status: c.status === 'pending' ? 'In Progress' : (c.status === 'resolved' ? 'Resolved' : 'Pending'),
         priority: c.category.toLowerCase().includes('leak') || c.category.toLowerCase().includes('urgent') ? 'High' : 'Normal',
         initials,

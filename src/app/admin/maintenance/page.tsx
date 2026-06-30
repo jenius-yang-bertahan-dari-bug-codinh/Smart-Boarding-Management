@@ -203,6 +203,14 @@ export default function MaintenancePage() {
                 <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${STATUS_STYLES[selectedRow.status]}`}>{selectedRow.status}</span>
               </div>
               <p className="text-sm font-semibold text-slate-700 leading-relaxed">{selectedRow.summary}</p>
+              {selectedRow.photo_url && (
+                <div>
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1.5">Attached Photo</span>
+                  <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 p-2">
+                    <img src={selectedRow.photo_url} alt="Attachment" className="w-full max-h-52 object-contain rounded-lg" />
+                  </div>
+                </div>
+              )}
               <div className="space-y-3">
                 {[
                   { label: 'Date',       value: selectedRow.date },
