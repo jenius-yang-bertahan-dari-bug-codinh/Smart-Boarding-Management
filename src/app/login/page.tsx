@@ -19,25 +19,15 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Login failed');
-        setLoading(false);
+    // Mock Authentication Logic
+    setTimeout(() => {
+      setLoading(false);
+      if (email.toLowerCase().includes('admin')) {
+        router.push('/admin');
       } else {
         router.push('/dashboard');
       }
-    } catch (err) {
-      setError('Something went wrong. Please try again.');
-      setLoading(false);
-    }
+    }, 1000);
   };
 
   return (
@@ -72,6 +62,9 @@ export default function LoginPage() {
           </h2>
           <p className="text-sm font-medium text-slate-500 mt-1.5">
             Member Portal Access
+          </p>
+          <p className="text-[10px] font-bold text-orange-500 mt-3 bg-orange-50 px-3 py-1.5 rounded-full border border-orange-100">
+            Mock: Type "admin" in email to access Admin Panel
           </p>
         </div>
 

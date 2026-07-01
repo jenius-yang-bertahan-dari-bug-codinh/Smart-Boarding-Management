@@ -66,25 +66,25 @@ export default function LandingPageManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-sans flex flex-col">
       {/* Toast */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 animate-bounce bg-white shadow-xl rounded-2xl p-4 max-w-sm flex items-center gap-3.5 border-l-4 border-l-teal-500">
+        <div className="fixed bottom-6 right-6 z-50 animate-bounce bg-white dark:bg-slate-900 shadow-xl rounded-2xl p-4 max-w-sm flex items-center gap-3.5 border-l-4 border-l-teal-500">
           <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 shrink-0">
             <CheckCircle className="w-4.5 h-4.5" />
           </div>
           <div>
-            <p className="text-xs font-bold text-slate-900">Notification</p>
-            <p className="text-[11px] text-slate-500 font-semibold mt-0.5">{toastMessage}</p>
+            <p className="text-xs font-bold text-slate-900 dark:text-white">Notification</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 dark:text-slate-500 font-semibold mt-0.5">{toastMessage}</p>
           </div>
-          <button onClick={() => setToastMessage(null)} className="text-slate-400 hover:text-slate-600 ml-auto cursor-pointer">
+          <button onClick={() => setToastMessage(null)} className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:text-slate-500 ml-auto cursor-pointer">
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
       {/* Global Navigation Bar */}
-      <header className="fixed top-0 left-0 right-0 w-full bg-white border-b border-slate-100 shadow-xs z-40">
+      <header className="fixed top-0 left-0 right-0 w-full bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 shadow-xs z-40">
         <div className="max-w-7xl mx-auto px-6 h-18 flex items-center justify-between">
           <div className="flex items-center gap-8 lg:gap-10">
             <Link href="/" className="flex items-center gap-2.5">
@@ -108,7 +108,7 @@ export default function LandingPageManagement() {
                       else if (tab === 'Dashboard')    router.push('/admin');
                     }}
                     className={`pb-1.5 pt-1 text-sm font-semibold transition-all cursor-pointer border-b-2 ${
-                      isActive ? 'border-blue-900 text-blue-900' : 'border-transparent text-slate-500 hover:text-blue-900'
+                      isActive ? 'border-blue-900 text-blue-900' : 'border-transparent text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900'
                     }`}
                   >
                     {tab}
@@ -120,22 +120,22 @@ export default function LandingPageManagement() {
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
-              <button className="relative p-2 text-slate-500 hover:text-blue-900 hover:bg-slate-50 rounded-xl transition-all">
+              <button className="relative p-2 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 rounded-xl transition-all">
                 <Bell className="w-5 h-5 stroke-[2]" />
                 <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white" />
               </button>
-              <button className="p-2 text-slate-500 hover:text-blue-900 hover:bg-slate-50 rounded-xl transition-all">
+              <button className="p-2 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 rounded-xl transition-all">
                 <Settings className="w-5 h-5 stroke-[2]" />
               </button>
             </div>
-            <div className="flex items-center gap-4 border-l border-slate-200 pl-4">
+            <div className="flex items-center gap-4 border-l border-slate-200 dark:border-slate-700 pl-4">
               <button className="hidden sm:flex items-center gap-1.5 bg-[#0f2852] hover:bg-[#0f2852]/90 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm">
                 <span className="text-lg leading-none mb-0.5">+</span> Add Resident
               </button>
               <img
                 src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
                 alt="Admin Profile"
-                className="w-9 h-9 rounded-full object-cover border border-slate-200"
+                className="w-9 h-9 rounded-full object-cover border border-slate-200 dark:border-slate-700"
               />
             </div>
           </div>
@@ -146,15 +146,15 @@ export default function LandingPageManagement() {
       <main className="flex-grow pt-24 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
         {/* Header section matching Image 2 */}
         <div className="mb-6">
-          <div className="flex items-center text-sm text-slate-500 mb-2">
+          <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-2">
             Landing Page Management 
             {activeConfigTab === 'Rooms' && <span className="mx-2">&gt;</span>} 
-            {activeConfigTab === 'Rooms' && <span className="font-semibold text-slate-700">Rooms Configuration</span>}
+            {activeConfigTab === 'Rooms' && <span className="font-semibold text-slate-700 dark:text-slate-300">Rooms Configuration</span>}
           </div>
           <h1 className="text-3xl font-bold text-blue-900 mb-1">
             {activeConfigTab === 'Rooms' ? 'Website Content Manager' : 'Landing Page Management'}
           </h1>
-          <p className="text-slate-500 text-sm">
+          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm">
             {activeConfigTab === 'Rooms' 
               ? 'Manage the room availability catalog displayed on your public landing page.' 
               : 'Configure the public-facing content for your property landing page.'}
@@ -162,9 +162,9 @@ export default function LandingPageManagement() {
         </div>
 
         {/* Configuration Tabs container */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
           {/* Sub Navigation */}
-          <div className="flex items-center border-b border-slate-200 px-6 pt-4 gap-6 bg-slate-50/50">
+          <div className="flex items-center border-b border-slate-200 dark:border-slate-700 px-6 pt-4 gap-6 bg-slate-50/50">
             {(['Hero Section', 'Facilities', 'Rooms'] as const).map(tab => (
               <button
                 key={tab}
@@ -172,7 +172,7 @@ export default function LandingPageManagement() {
                 className={`pb-3 text-sm font-semibold border-b-2 transition-colors ${
                   activeConfigTab === tab 
                     ? 'border-blue-900 text-blue-900' 
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                    : 'border-transparent text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:text-slate-300'
                 }`}
               >
                 {tab}
@@ -187,29 +187,29 @@ export default function LandingPageManagement() {
                 
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Headline Title</label>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Headline Title</label>
                     <input 
                       type="text" 
                       defaultValue="Experience Luxury Living"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-slate-700 focus:outline-none focus:border-blue-900 focus:ring-1 focus:ring-blue-900 transition-colors"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 text-slate-700 dark:text-slate-300 focus:outline-none focus:border-blue-900 focus:ring-1 focus:ring-blue-900 transition-colors"
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Subtitle</label>
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Subtitle</label>
                     <textarea 
                       rows={3}
                       defaultValue="Discover the perfect blend of comfort and sophistication in our premium suites."
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-slate-700 focus:outline-none focus:border-blue-900 focus:ring-1 focus:ring-blue-900 transition-colors resize-none"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 text-slate-700 dark:text-slate-300 focus:outline-none focus:border-blue-900 focus:ring-1 focus:ring-blue-900 transition-colors resize-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Hero Background Image</label>
-                    <div className="border-2 border-dashed border-slate-300 bg-slate-50 rounded-xl p-10 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-100 transition-colors">
+                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Hero Background Image</label>
+                    <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-950 rounded-xl p-10 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">
                       <UploadCloud className="w-8 h-8 text-blue-900 mb-3" />
-                      <p className="text-sm font-semibold text-slate-700 mb-1">Drag and drop or click to upload</p>
-                      <p className="text-xs text-slate-500">PNG, JPG up to 10MB</p>
+                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Drag and drop or click to upload</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">PNG, JPG up to 10MB</p>
                     </div>
                   </div>
 
@@ -227,8 +227,8 @@ export default function LandingPageManagement() {
               <div>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                   <div>
-                    <h2 className="text-2xl font-bold text-slate-900">Facilities Configuration</h2>
-                    <p className="text-sm text-slate-500 mt-1">Manage the key features and amenities highlighted to potential residents.</p>
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Facilities Configuration</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Manage the key features and amenities highlighted to potential residents.</p>
                   </div>
                   <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors">
                     <Plus className="w-4 h-4" /> Add Facility
@@ -238,27 +238,27 @@ export default function LandingPageManagement() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-200">
-                        <th className="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Icon</th>
-                        <th className="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Facility Name</th>
-                        <th className="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Description</th>
-                        <th className="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                      <tr className="border-b border-slate-200 dark:border-slate-700">
+                        <th className="py-3 px-4 text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">Icon</th>
+                        <th className="py-3 px-4 text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">Facility Name</th>
+                        <th className="py-3 px-4 text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">Description</th>
+                        <th className="py-3 px-4 text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {facilities.map((facility) => (
-                        <tr key={facility.id} className="hover:bg-slate-50 transition-colors group">
+                        <tr key={facility.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 transition-colors group">
                           <td className="py-4 px-4">
                             <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
                               {getFacilityIcon(facility.icon)}
                             </div>
                           </td>
-                          <td className="py-4 px-4 text-sm font-semibold text-slate-800">{facility.name}</td>
-                          <td className="py-4 px-4 text-sm text-slate-500 max-w-xs truncate">{facility.description}</td>
+                          <td className="py-4 px-4 text-sm font-semibold text-slate-800 dark:text-slate-200">{facility.name}</td>
+                          <td className="py-4 px-4 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 max-w-xs truncate">{facility.description}</td>
                           <td className="py-4 px-4 text-right">
                             <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button className="p-1.5 text-slate-400 hover:text-blue-600 rounded transition-colors"><Edit2 className="w-4 h-4" /></button>
-                              <button className="p-1.5 text-slate-400 hover:text-rose-600 rounded transition-colors"><Trash2 className="w-4 h-4" /></button>
+                              <button className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-blue-600 rounded transition-colors"><Edit2 className="w-4 h-4" /></button>
+                              <button className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 rounded transition-colors"><Trash2 className="w-4 h-4" /></button>
                             </div>
                           </td>
                         </tr>
@@ -267,13 +267,13 @@ export default function LandingPageManagement() {
                   </table>
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600">
                     <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
                     Page Live & Syncing
                   </div>
                   <div className="flex items-center gap-3">
-                    <button className="px-6 py-2.5 rounded-lg text-sm font-semibold border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors">
+                    <button className="px-6 py-2.5 rounded-lg text-sm font-semibold border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 transition-colors">
                       Preview Landing Page
                     </button>
                     <button 
@@ -291,33 +291,33 @@ export default function LandingPageManagement() {
               <div>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                   <div>
-                    <h2 className="text-2xl font-bold text-slate-900">Rooms Section Configuration</h2>
-                    <p className="text-sm text-slate-500 mt-1">Manage the room availability catalog displayed on your public landing page.</p>
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Rooms Section Configuration</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Manage the room availability catalog displayed on your public landing page.</p>
                   </div>
                   <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors">
                     <Plus className="w-4 h-4" /> Add New Room
                   </button>
                 </div>
 
-                <div className="overflow-x-auto rounded-lg border border-slate-200">
-                  <table className="w-full text-left border-collapse bg-white">
-                    <thead className="bg-slate-100">
+                <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+                  <table className="w-full text-left border-collapse bg-white dark:bg-slate-900">
+                    <thead className="bg-slate-100 dark:bg-slate-800">
                       <tr>
-                        <th className="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Room Image</th>
-                        <th className="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Room Name</th>
-                        <th className="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Starting Price</th>
-                        <th className="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Amenities</th>
-                        <th className="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                        <th className="py-3 px-4 text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">Room Image</th>
+                        <th className="py-3 px-4 text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">Room Name</th>
+                        <th className="py-3 px-4 text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">Starting Price</th>
+                        <th className="py-3 px-4 text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">Amenities</th>
+                        <th className="py-3 px-4 text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {rooms.map((room) => (
-                        <tr key={room.id} className="hover:bg-slate-50 transition-colors">
+                        <tr key={room.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 transition-colors">
                           <td className="py-4 px-4">
-                            <img src={room.image} alt={room.name} className="w-16 h-12 rounded-lg object-cover border border-slate-200" />
+                            <img src={room.image} alt={room.name} className="w-16 h-12 rounded-lg object-cover border border-slate-200 dark:border-slate-700" />
                           </td>
-                          <td className="py-4 px-4 text-sm font-bold text-slate-800">{room.name}</td>
-                          <td className="py-4 px-4 text-sm font-bold text-blue-900">{room.price} <span className="text-xs text-slate-500 font-normal">/mo</span></td>
+                          <td className="py-4 px-4 text-sm font-bold text-slate-800 dark:text-slate-200">{room.name}</td>
+                          <td className="py-4 px-4 text-sm font-bold text-blue-900">{room.price} <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 font-normal">/mo</span></td>
                           <td className="py-4 px-4">
                             <div className="flex gap-1.5 flex-wrap">
                               {room.amenities.map(amenity => (
@@ -341,7 +341,7 @@ export default function LandingPageManagement() {
                   >
                     Save Changes
                   </button>
-                  <div className="text-xs text-slate-500 flex items-center gap-1.5">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
                     <div className="w-3.5 h-3.5 rounded-full border border-slate-400 flex items-center justify-center text-[8px] font-bold">i</div>
                     Last updated: Oct 24, 2024 at 10:45 AM
                   </div>

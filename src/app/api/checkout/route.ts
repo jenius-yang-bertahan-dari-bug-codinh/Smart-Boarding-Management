@@ -28,7 +28,7 @@ export async function POST(request: Request) {
         });
       }
 
-      // 2. Create the member record linked to the room
+      // 2. Create the member record linked to the room (pending approval)
       const member = await tx.member.create({
         data: {
           user_id: user.id,
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
           name: fullName,
           phone: phone,
           id_number: idNumber,
-          status: 'active',
+          status: 'pending',
         },
       });
 
@@ -46,14 +46,14 @@ export async function POST(request: Request) {
           member_id: member.id,
           amount: totalCost,
           payment_method: paymentMethod,
-          status: 'completed', // Assuming instant mock payment
+          status: 'pending', // Pending payment until approved
         },
       });
 
-      // 4. Update the room status to occupied
+      // 4. Update the room status to Booked (awaiting approval)
       await tx.room.update({
         where: { id: parseInt(roomId) },
-        data: { status: 'Occupied' },
+        data: { status: 'Booked' },
       });
 
       return { user, member, payment };

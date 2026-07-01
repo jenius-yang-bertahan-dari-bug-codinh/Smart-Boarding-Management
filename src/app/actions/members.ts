@@ -31,3 +31,44 @@ export async function getAdminMembers() {
     return { success: false, error: 'Failed to fetch members' };
   }
 }
+
+export async function updateAdminMember(id: string, data: { name: string, phone: string, email: string, status: string }) {
+  try {
+    const statusMap: Record<string, string> = {
+      'Active': 'active',
+      'Pending': 'pending',
+      'Past Member': 'past'
+    };
+    
+    await prisma.member.update({
+      where: { id: parseInt(id) },
+      data: {
+        name: data.name,
+        phone: data.phone,
+        status: statusMap[data.status] || 'active'
+      }
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating member:', error);
+    return { success: false, error: 'Failed to update member' };
+  }
+}
+
+export async function deleteAdminMember(id: string) {
+  try {
+    // Delete related records first if necessary, or just rely on cascade (if set)
+    // We will just try deleting the member directly for now. If it fails due to FK, we'll need to delete complaints/payments first.
+    // For safety, let's delete complaints and payments first
+    await prisma.complaint.deleteMany({ where: { member_id: parseInt(id) } });
+    await prisma.payment.deleteMany({ where: { member_id: parseInt(id) } });
+    
+    await prisma.member.delete({
+      where: { id: parseInt(id) }
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting member:', error);
+    return { success: false, error: 'Failed to delete member' };
+  }
+}

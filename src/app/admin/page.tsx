@@ -46,6 +46,14 @@ export default function AdminPage() {
   // Dropdowns States
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('Last 30 Days');
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [viewAllOpen, setViewAllOpen] = useState(false);
+
+  const [notifications, setNotifications] = useState([
+    { id: 1, title: 'New Booking Request', message: 'Jane Doe requested Room 201.', time: '5m ago', unread: true },
+    { id: 2, title: 'Maintenance Alert', message: 'AC broken in Room 305.', time: '1h ago', unread: true },
+    { id: 3, title: 'Payment Received', message: 'John Smith paid $300.', time: '2h ago', unread: false },
+  ]);
 
   // Toast Notification State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -95,22 +103,22 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col selection:bg-teal-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-sans flex flex-col selection:bg-teal-500 selection:text-white">
       
       {/* Toast Alert Box */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 animate-bounce bg-white border border-slate-100 shadow-xl rounded-2xl p-4 max-w-sm flex items-center gap-3.5 border-l-4 border-l-teal-500">
+        <div className="fixed bottom-6 right-6 z-50 animate-bounce bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xl rounded-2xl p-4 max-w-sm flex items-center gap-3.5 border-l-4 border-l-teal-500">
           <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 shrink-0">
             <CheckCircle className="w-4.5 h-4.5" />
           </div>
           <div>
-            <p className="text-xs font-bold text-slate-900">Notification</p>
-            <p className="text-[11px] text-slate-500 font-semibold mt-0.5">{toastMessage}</p>
+            <p className="text-xs font-bold text-slate-900 dark:text-white">Notification</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 dark:text-slate-500 font-semibold mt-0.5">{toastMessage}</p>
           </div>
           <button 
             type="button" 
             onClick={() => setToastMessage(null)} 
-            className="text-slate-400 hover:text-slate-600 ml-auto cursor-pointer"
+            className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:text-slate-500 ml-auto cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -118,7 +126,7 @@ export default function AdminPage() {
       )}
 
       {/* Global Navigation Bar (Top) */}
-      <header className="fixed top-0 left-0 right-0 w-full bg-white border-b border-slate-100 shadow-xs z-40">
+      <header className="fixed top-0 left-0 right-0 w-full bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 shadow-xs z-40">
         <div className="max-w-7xl mx-auto px-6 h-18 flex items-center justify-between">
           
           {/* Left: Logo & Navigation Tabs */}
@@ -148,7 +156,7 @@ export default function AdminPage() {
                     className={`pb-1.5 pt-1 text-sm font-semibold transition-all cursor-pointer border-b-2 ${
                       isActive 
                         ? 'border-blue-900 text-blue-900' 
-                        : 'border-transparent text-slate-500 hover:text-blue-900'
+                        : 'border-transparent text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900'
                     }`}
                   >
                     {tab}
@@ -163,28 +171,60 @@ export default function AdminPage() {
             
             {/* Icons Area */}
             <div className="flex items-center gap-3">
-              {/* Notification Bell */}
-              <button 
-                type="button" 
-                onClick={() => showToast('You have 3 unread administrative notifications.', 'info')}
-                className="relative p-2 text-slate-500 hover:text-blue-900 hover:bg-slate-50 rounded-xl transition-all cursor-pointer"
-              >
-                <Bell className="w-5 h-5 stroke-[2]" />
-                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white" />
-              </button>
+              {/* Notification Bell & Dropdown */}
+              <div className="relative">
+                <button 
+                  type="button" 
+                  onClick={() => setNotificationsOpen(!notificationsOpen)}
+                  className="relative p-2 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 rounded-xl transition-all cursor-pointer"
+                >
+                  <Bell className="w-5 h-5 stroke-[2]" />
+                  {notifications.some(n => n.unread) && (
+                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white" />
+                  )}
+                </button>
+                {notificationsOpen && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden">
+                    <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">Notifications</h3>
+                      <button type="button" onClick={() => setNotifications(notifications.map(n => ({...n, unread: false})))} className="text-xs text-blue-600 hover:underline">Mark all as read</button>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifications.filter(n => n.unread).length === 0 ? (
+                        <div className="p-8 text-center text-slate-500 dark:text-slate-400 text-sm font-semibold">
+                          No new notifications.
+                        </div>
+                      ) : (
+                        notifications.filter(n => n.unread).map((notif) => (
+                          <div key={notif.id} className="p-4 border-b border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 cursor-pointer transition-colors bg-blue-50/50 dark:bg-blue-900/20">
+                            <div className="flex justify-between items-start mb-1">
+                              <h4 className="text-sm font-bold text-slate-900 dark:text-white">{notif.title}</h4>
+                              <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">{notif.time}</span>
+                            </div>
+                            <p className="text-xs text-slate-600 dark:text-slate-400 dark:text-slate-500">{notif.message}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    <div className="p-3 text-center border-t border-slate-100 dark:border-slate-800">
+                      <button type="button" onClick={() => { setNotificationsOpen(false); setViewAllOpen(true); }} className="text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">View All Notifications</button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Settings Gear */}
               <button 
                 type="button" 
-                onClick={() => showToast('Opening system settings...', 'info')}
-                className="p-2 text-slate-500 hover:text-blue-900 hover:bg-slate-50 rounded-xl transition-all cursor-pointer"
+                onClick={() => window.location.href = '/admin/settings'}
+                className="p-2 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 rounded-xl transition-all cursor-pointer"
               >
                 <Settings className="w-5 h-5 stroke-[2]" />
               </button>
             </div>
 
             {/* User Profile Avatar & Add Resident */}
-            <div className="flex items-center gap-4 border-l border-slate-200 pl-4">
+            <div className="flex items-center gap-4 border-l border-slate-200 dark:border-slate-700 pl-4">
               <button
                 onClick={() => setActiveModal('addResident')}
                 className="hidden sm:flex items-center gap-1.5 bg-[#0f2852] hover:bg-[#0f2852]/90 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
@@ -195,7 +235,7 @@ export default function AdminPage() {
               <img
                 src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
                 alt="Admin Profile"
-                className="w-9 h-9 rounded-full object-cover border border-slate-200"
+                className="w-9 h-9 rounded-full object-cover border border-slate-200 dark:border-slate-700"
               />
             </div>
 
@@ -213,7 +253,7 @@ export default function AdminPage() {
             <h1 className="text-3xl font-black text-blue-900 tracking-tight">
               System Overview
             </h1>
-            <p className="text-slate-500 mt-1 text-sm sm:text-base font-semibold">
+            <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1 text-sm sm:text-base font-semibold">
               Operational heartbeat for August 2024
             </p>
           </div>
@@ -224,15 +264,15 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
-                className="bg-white border border-slate-200 hover:border-slate-300 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-700 flex items-center gap-2 shadow-xs transition-all cursor-pointer"
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2 shadow-xs transition-all cursor-pointer"
               >
-                <Calendar className="w-4 h-4 text-slate-400" />
+                <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <span>{selectedFilter}</span>
-                <ChevronDown className="w-4 h-4 text-slate-400" />
+                <ChevronDown className="w-4 h-4 text-slate-400 dark:text-slate-500" />
               </button>
 
               {filterDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-lg z-50 p-1.5 animate-in fade-in slide-in-from-top-2">
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl shadow-lg z-50 p-1.5 animate-in fade-in slide-in-from-top-2">
                   {['Today', 'Last 7 Days', 'Last 30 Days', 'This Month', 'This Year'].map((filter) => (
                     <button
                       key={filter}
@@ -242,7 +282,7 @@ export default function AdminPage() {
                         setFilterDropdownOpen(false);
                         showToast(`Filtered dashboard to: ${filter}`, 'info');
                       }}
-                      className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-600 hover:text-blue-900 hover:bg-slate-50 rounded-lg transition-all"
+                      className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 rounded-lg transition-all"
                     >
                       {filter}
                     </button>
@@ -267,9 +307,9 @@ export default function AdminPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           
           {/* KPI 1: Total Revenue */}
-          <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                 Total Revenue
               </span>
               <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -277,7 +317,7 @@ export default function AdminPage() {
               </div>
             </div>
             <div>
-              <span className="text-2xl font-black text-slate-900 block tracking-tight">
+              <span className="text-2xl font-black text-slate-900 dark:text-white block tracking-tight">
                 $42{dashboardData ? '$ ' + dashboardData.totalRevenue.toLocaleString() : '...'}
               </span>
               <div className="mt-2.5 flex items-center gap-1">
@@ -285,15 +325,15 @@ export default function AdminPage() {
                   <ArrowUpRight className="w-3 h-3" />
                   +12.5%
                 </span>
-                <span className="text-[10px] text-slate-400 font-semibold">from last month</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">from last month</span>
               </div>
             </div>
           </div>
 
           {/* KPI 2: Occupancy Rate */}
-          <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                 Occupancy Rate
               </span>
               <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
@@ -302,7 +342,7 @@ export default function AdminPage() {
             </div>
             <div>
               <div className="flex items-baseline justify-between mb-1.5">
-                <span className="text-2xl font-black text-slate-900 tracking-tight">
+                <span className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                   85%
                 </span>
                 <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
@@ -310,16 +350,16 @@ export default function AdminPage() {
                 </span>
               </div>
               {/* Horizontal blue progress bar */}
-              <div className="w-full bg-slate-100 rounded-full h-2 mt-2">
-                <div className="bg-blue-600 h-2 rounded-full transition-all duration-500" style={{ width: "%" }}></div>
+              <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 mt-2">
+                <div className="bg-blue-600 h-2 rounded-full transition-all duration-500" style={{ width: "85%" }}></div>
               </div>
             </div>
           </div>
 
           {/* KPI 3: Active Maintenance */}
-          <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                 Active Maintenance
               </span>
               <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
@@ -327,22 +367,22 @@ export default function AdminPage() {
               </div>
             </div>
             <div>
-              <span className="text-2xl font-black text-slate-900 block tracking-tight">
+              <span className="text-2xl font-black text-slate-900 dark:text-white block tracking-tight">
                 {dashboardData ? dashboardData.activeMaintenance + ' Tickets' : '...'}
               </span>
               <div className="mt-2.5 flex items-center gap-1.5">
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-200/40">
                   3 Priority
                 </span>
-                <span className="text-[10px] text-slate-400 font-semibold">unresolved tasks</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">unresolved tasks</span>
               </div>
             </div>
           </div>
 
           {/* KPI 4: New Reservations */}
-          <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                 New Reservations
               </span>
               <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
@@ -350,14 +390,14 @@ export default function AdminPage() {
               </div>
             </div>
             <div>
-              <span className="text-2xl font-black text-slate-900 block tracking-tight">
+              <span className="text-2xl font-black text-slate-900 dark:text-white block tracking-tight">
                 28 Requests
               </span>
               <div className="mt-2.5 flex items-center gap-1.5">
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700">
                   Today
                 </span>
-                <span className="text-[10px] text-slate-400 font-semibold">awaiting review</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">awaiting review</span>
               </div>
             </div>
           </div>
@@ -368,24 +408,24 @@ export default function AdminPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
           {/* Left Column (Revenue Growth Chart) */}
-          <div className="lg:col-span-8 bg-white border border-slate-100 rounded-2xl p-6 sm:p-8 shadow-xs">
+          <div className="lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xs">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h2 className="text-lg font-bold text-slate-900 tracking-tight">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                   Revenue Growth
                 </h2>
-                <p className="text-slate-400 text-xs mt-0.5 font-medium">Monthly performance overview</p>
+                <p className="text-slate-400 dark:text-slate-500 text-xs mt-0.5 font-medium">Monthly performance overview</p>
               </div>
 
               {/* Monthly / Weekly toggle buttons */}
-              <div className="flex bg-slate-50 border border-slate-200/60 p-1 rounded-xl">
+              <div className="flex bg-slate-50 dark:bg-slate-950 border border-slate-200/60 p-1 rounded-xl">
                 <button
                   type="button"
                   onClick={() => setChartView('Monthly')}
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     chartView === 'Monthly'
-                      ? 'bg-white text-blue-900 shadow-xs'
-                      : 'text-slate-400 hover:text-slate-600'
+                      ? 'bg-white dark:bg-slate-900 text-blue-900 shadow-xs'
+                      : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:text-slate-500'
                   }`}
                 >
                   Monthly
@@ -395,8 +435,8 @@ export default function AdminPage() {
                   onClick={() => setChartView('Weekly')}
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     chartView === 'Weekly'
-                      ? 'bg-white text-blue-900 shadow-xs'
-                      : 'text-slate-400 hover:text-slate-600'
+                      ? 'bg-white dark:bg-slate-900 text-blue-900 shadow-xs'
+                      : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:text-slate-500'
                   }`}
                 >
                   Weekly
@@ -405,14 +445,14 @@ export default function AdminPage() {
             </div>
 
             {/* Custom High-Fidelity Chart */}
-            <div className="relative h-72 flex items-end justify-between gap-1 sm:gap-2 px-2 pt-6 border-b border-slate-100">
+            <div className="relative h-72 flex items-end justify-between gap-1 sm:gap-2 px-2 pt-6 border-b border-slate-100 dark:border-slate-800">
               
               {/* Background grid lines */}
               <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-8 pt-4">
-                <div className="border-b border-dashed border-slate-100 w-full h-0"></div>
-                <div className="border-b border-dashed border-slate-100 w-full h-0"></div>
-                <div className="border-b border-dashed border-slate-100 w-full h-0"></div>
-                <div className="border-b border-dashed border-slate-100 w-full h-0"></div>
+                <div className="border-b border-dashed border-slate-100 dark:border-slate-800 w-full h-0"></div>
+                <div className="border-b border-dashed border-slate-100 dark:border-slate-800 w-full h-0"></div>
+                <div className="border-b border-dashed border-slate-100 dark:border-slate-800 w-full h-0"></div>
+                <div className="border-b border-dashed border-slate-100 dark:border-slate-800 w-full h-0"></div>
               </div>
 
               {/* Interactive Tooltip Card */}
@@ -426,7 +466,7 @@ export default function AdminPage() {
                   }}
                 >
                   <p className="text-center font-bold">{currentChartData[hoveredBar].amount}</p>
-                  <p className="text-[8px] text-slate-400 text-center font-normal">{currentChartData[hoveredBar].month}</p>
+                  <p className="text-[8px] text-slate-400 dark:text-slate-500 text-center font-normal">{currentChartData[hoveredBar].month}</p>
                 </div>
               )}
 
@@ -449,7 +489,7 @@ export default function AdminPage() {
                   ></div>
                   
                   {/* Label under bar */}
-                  <span className="text-[10px] font-bold text-slate-400 mt-2.5 block">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-2.5 block">
                     {item.month}
                   </span>
                 </div>
@@ -457,7 +497,7 @@ export default function AdminPage() {
             </div>
 
             {/* Growth Indicator Footer */}
-            <div className="mt-6 flex items-center justify-between text-xs text-slate-400">
+            <div className="mt-6 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
               <span className="font-semibold flex items-center gap-1 text-emerald-600">
                 <TrendingUp className="w-3.5 h-3.5" />
                 Growth is up 12% compared to Q1 2024
@@ -470,8 +510,8 @@ export default function AdminPage() {
           <div className="lg:col-span-4 space-y-6">
             
             {/* Module 1: Recent Activity */}
-            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs">
-              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-5">
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-5">
                 Recent Activity
               </h2>
 
@@ -482,14 +522,14 @@ export default function AdminPage() {
                     <CheckCircle className="w-4 h-4" />
                   </div>
                   <div className="flex-grow min-w-0">
-                    <p className="text-xs font-bold text-slate-800 truncate">
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
                       Payment Received
                     </p>
-                    <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">
                       Unit 402 &bull; $1,200.00
                     </p>
                   </div>
-                  <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap">
                     2m ago
                   </span>
                 </div>
@@ -500,14 +540,14 @@ export default function AdminPage() {
                     <UserPlus className="w-4 h-4" />
                   </div>
                   <div className="flex-grow min-w-0">
-                    <p className="text-xs font-bold text-slate-800 truncate">
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
                       New Member Sign-up
                     </p>
-                    <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">
                       Alex Rivera &bull; Suite 12B
                     </p>
                   </div>
-                  <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap">
                     1h ago
                   </span>
                 </div>
@@ -518,14 +558,14 @@ export default function AdminPage() {
                     <Wrench className="w-4 h-4" />
                   </div>
                   <div className="flex-grow min-w-0">
-                    <p className="text-xs font-bold text-slate-800 truncate">
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
                       Maintenance Resolved
                     </p>
-                    <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">
                       Unit 105 &bull; Electrical Fix
                     </p>
                   </div>
-                  <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap">
                     3h ago
                   </span>
                 </div>
@@ -535,15 +575,15 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={() => showToast('Opening comprehensive activity ledger...', 'info')}
-                className="w-full border border-slate-100 hover:border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-600 py-2.5 rounded-xl transition-all cursor-pointer text-center block mt-5"
+                className="w-full border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 text-xs font-bold text-slate-600 dark:text-slate-400 dark:text-slate-500 py-2.5 rounded-xl transition-all cursor-pointer text-center block mt-5"
               >
                 View All Activity
               </button>
             </div>
 
             {/* Module 2: Quick Actions */}
-            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs">
-              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-5">
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-5">
                 Quick Actions
               </h2>
 
@@ -552,16 +592,16 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={() => setActiveModal('add_resident')}
-                  className="w-full flex items-center gap-3.5 border border-slate-100 hover:border-slate-200 bg-white hover:bg-slate-50/50 p-3 rounded-xl transition-all cursor-pointer group"
+                  className="w-full flex items-center gap-3.5 border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50/50 p-3 rounded-xl transition-all cursor-pointer group"
                 >
                   <div className="w-9 h-9 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
                     <UserPlus className="w-4.5 h-4.5" />
                   </div>
                   <div className="text-left">
-                    <span className="text-xs font-bold text-slate-800 block">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
                       Add Resident
                     </span>
-                    <span className="text-[9px] text-slate-400 block mt-0.5">Onboard a new guest</span>
+                    <span className="text-[9px] text-slate-400 dark:text-slate-500 block mt-0.5">Onboard a new guest</span>
                   </div>
                 </button>
 
@@ -569,16 +609,16 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={() => showToast('Generating monthly bill run invoices...', 'success')}
-                  className="w-full flex items-center gap-3.5 border border-slate-100 hover:border-slate-200 bg-white hover:bg-slate-50/50 p-3 rounded-xl transition-all cursor-pointer group"
+                  className="w-full flex items-center gap-3.5 border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50/50 p-3 rounded-xl transition-all cursor-pointer group"
                 >
                   <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
                     <FileSpreadsheet className="w-4.5 h-4.5" />
                   </div>
                   <div className="text-left">
-                    <span className="text-xs font-bold text-slate-800 block">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
                       Generate Invoice
                     </span>
-                    <span className="text-[9px] text-slate-400 block mt-0.5">Calculate dues and utility dues</span>
+                    <span className="text-[9px] text-slate-400 dark:text-slate-500 block mt-0.5">Calculate dues and utility dues</span>
                   </div>
                 </button>
 
@@ -586,16 +626,16 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={() => showToast('Redirecting to Maintenance dispatch portal...', 'info')}
-                  className="w-full flex items-center gap-3.5 border border-slate-100 hover:border-slate-200 bg-white hover:bg-slate-50/50 p-3 rounded-xl transition-all cursor-pointer group"
+                  className="w-full flex items-center gap-3.5 border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50/50 p-3 rounded-xl transition-all cursor-pointer group"
                 >
                   <div className="w-9 h-9 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
                     <Wrench className="w-4.5 h-4.5" />
                   </div>
                   <div className="text-left">
-                    <span className="text-xs font-bold text-slate-800 block">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
                       Open Maintenance
                     </span>
-                    <span className="text-[9px] text-slate-400 block mt-0.5">File an emergency repair ticket</span>
+                    <span className="text-[9px] text-slate-400 dark:text-slate-500 block mt-0.5">File an emergency repair ticket</span>
                   </div>
                 </button>
 
@@ -603,16 +643,16 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={() => showToast('Sending building-wide notification...', 'success')}
-                  className="w-full flex items-center gap-3.5 border border-slate-100 hover:border-slate-200 bg-white hover:bg-slate-50/50 p-3 rounded-xl transition-all cursor-pointer group"
+                  className="w-full flex items-center gap-3.5 border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50/50 p-3 rounded-xl transition-all cursor-pointer group"
                 >
                   <div className="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
                     <Megaphone className="w-4.5 h-4.5" />
                   </div>
                   <div className="text-left">
-                    <span className="text-xs font-bold text-slate-800 block">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
                       Send Announcement
                     </span>
-                    <span className="text-[9px] text-slate-400 block mt-0.5">Broadcast push alert to all units</span>
+                    <span className="text-[9px] text-slate-400 dark:text-slate-500 block mt-0.5">Broadcast push alert to all units</span>
                   </div>
                 </button>
               </div>
@@ -647,11 +687,11 @@ export default function AdminPage() {
             {/* Module 4: Admin Guide */}
             <div className="bg-slate-100/70 border border-slate-200/40 rounded-2xl p-5 shadow-xs flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-white text-slate-600 border border-slate-200/60 flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-lg bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 dark:text-slate-500 border border-slate-200/60 flex items-center justify-center shrink-0">
                   <BookOpen className="w-4.5 h-4.5" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-slate-800">
+                  <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200">
                     Admin Guide
                   </h3>
                   <button 
@@ -673,15 +713,15 @@ export default function AdminPage() {
       {/* Quick Action Modal Dialog for Add Resident */}
       {activeModal === 'add_resident' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="bg-white border border-slate-100 rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 animate-in zoom-in-95">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
-              <h3 className="text-lg font-bold text-slate-900">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-6">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 Add New Resident
               </h3>
               <button 
                 type="button" 
                 onClick={() => setActiveModal(null)} 
-                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:text-slate-500 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -689,23 +729,23 @@ export default function AdminPage() {
 
             <form onSubmit={handleAddResidentSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Resident Full Name</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Resident Full Name</label>
                 <input
                   type="text"
                   required
                   placeholder="Enter name"
                   value={newResidentName}
                   onChange={(e) => setNewResidentName(e.target.value)}
-                  className="w-full bg-white border border-slate-200 focus:border-blue-950 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-950"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-blue-950 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-950"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Assigned Unit</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Assigned Unit</label>
                 <select
                   value={newResidentUnit}
                   onChange={(e) => setNewResidentUnit(e.target.value)}
-                  className="w-full bg-white border border-slate-200 focus:border-blue-950 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-800 focus:outline-none"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-blue-950 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none"
                 >
                   <option value="101">Unit 101 - Deluxe Suite</option>
                   <option value="102">Unit 102 - Executive Suite</option>
@@ -718,7 +758,7 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={() => setActiveModal(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -735,20 +775,20 @@ export default function AdminPage() {
       )}
 
       {/* Global Sticky Footer */}
-      <footer className="bg-white border-t border-slate-100 py-6 mt-12">
+      <footer className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 py-6 mt-12">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-400">
+              <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
                 SmartStay
               </span>
               <span className="text-slate-300 text-xs">|</span>
-              <span className="text-[11px] text-slate-500 font-medium">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">
                 &copy; 2024 SmartStay Management System. All rights reserved.
               </span>
             </div>
             {/* Role Switcher moved here from navbar */}
-            <div className="border-l border-slate-200 pl-4">
+            <div className="border-l border-slate-200 dark:border-slate-700 pl-4">
               <RoleSwitcher currentRole="admin" />
             </div>
           </div>
@@ -762,7 +802,7 @@ export default function AdminPage() {
                   e.preventDefault();
                   showToast(`Opening ${link} link...`, 'info');
                 }}
-                className="text-[11px] text-slate-500 hover:text-blue-900 font-semibold transition-colors"
+                className="text-[11px] text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 font-semibold transition-colors"
               >
                 {link}
               </a>
@@ -771,6 +811,32 @@ export default function AdminPage() {
         </div>
       </footer>
 
+      {/* ── View All Notifications Drawer ── */}
+      {viewAllOpen && (
+        <div className="fixed inset-0 z-[70] flex justify-end">
+          <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-xs" onClick={() => setViewAllOpen(false)} />
+          <aside className="relative w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl flex flex-col h-full animate-in slide-in-from-right">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-10">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">All Notifications History</h3>
+              <button type="button" onClick={() => setViewAllOpen(false)} className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-300 cursor-pointer"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {notifications.map((notif) => (
+                <div key={notif.id} className={`p-5 border-b border-slate-50 dark:border-slate-800 ${notif.unread ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''}`}>
+                  <div className="flex justify-between items-start mb-1">
+                    <h4 className={`text-sm ${notif.unread ? 'font-bold text-slate-900 dark:text-white' : 'font-semibold text-slate-700 dark:text-slate-300'}`}>{notif.title}</h4>
+                    <span className="text-xs text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap ml-4">{notif.time}</span>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{notif.message}</p>
+                </div>
+              ))}
+              {notifications.length === 0 && (
+                <div className="p-10 text-center text-slate-500 dark:text-slate-400 font-semibold">No notification history.</div>
+              )}
+            </div>
+          </aside>
+        </div>
+      )}
     </div>
   );
 }

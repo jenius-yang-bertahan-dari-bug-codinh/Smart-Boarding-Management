@@ -41,10 +41,29 @@ export async function getAdminReservations() {
 
 export async function updateReservationStatus(id: number, status: string) {
   try {
-    await prisma.member.update({
+    const member = await prisma.member.update({
       where: { id },
       data: { status }
     });
+
+    if (status === 'active') {
+      // Also update payment to completed
+      await prisma.payment.updateMany({
+        where: { member_id: id },
+        data: { status: 'completed' }
+      });
+      // And update room to Occupied
+      await prisma.room.update({
+        where: { id: member.room_id },
+        data: { status: 'Occupied' }
+      });
+    } else if (status === 'Cancelled' || status === 'inactive') {
+      await prisma.room.update({
+        where: { id: member.room_id },
+        data: { status: 'Available' }
+      });
+    }
+
     return { success: true };
   } catch (error) {
     console.error('Error updating reservation:', error);
