@@ -11,6 +11,7 @@ import {
   Calendar, ArrowUpRight, Eye, UserCheck,
 } from 'lucide-react';
 import Logo from '@/components/Logo';
+import AdminNavbar from '@/components/AdminNavbar';
 
 /* ─── types ─── */
 type ResvStatus = 'Confirmed' | 'Pending' | 'Cancelled';
@@ -77,7 +78,6 @@ export default function ReservationsPage() {
   }, []);
 
 
-  const [activeTab, setActiveTab] = useState('Reservations');
   const [page, setPage] = useState(1);
   const [toast, setToast] = useState<{ msg: string } | null>(null);
   const [bookingModal, setBookingModal] = useState(false);
@@ -223,7 +223,6 @@ export default function ReservationsPage() {
     await handleUpdateStatus(id, 'active');
   };
 
-  const NAV_TABS = ['Dashboard', 'Properties', 'Reservations', 'Billing', 'Members', 'Maintenance'];
   const handleTabClick = (tab: string) => {
     setActiveTab(tab);
     if      (tab === 'Dashboard')    router.push('/admin');
@@ -231,6 +230,7 @@ export default function ReservationsPage() {
     else if (tab === 'Billing')      router.push('/admin/billing');
     else if (tab === 'Members')      router.push('/admin/members');
     else if (tab === 'Maintenance')  router.push('/admin/maintenance');
+    else if (tab === 'Landing Page') router.push('/admin/landing-page');
     else showToast(`Viewing ${tab}`);
   };
 
@@ -301,49 +301,7 @@ export default function ReservationsPage() {
       )}
 
       {/* ══════ NAV BAR ══════ */}
-      <header className="fixed top-0 left-0 right-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 shadow-xs z-40">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
-
-          {/* Logo */}
-          <Link href="/admin" className="flex items-center gap-2 shrink-0">
-            <Logo size={28} />
-            <span className="text-base font-extrabold text-blue-900 tracking-tight whitespace-nowrap">SmartStay</span>
-          </Link>
-
-          {/* Tabs */}
-          <nav className="hidden md:flex items-center gap-1">
-            {NAV_TABS.map((tab) => {
-              const isActive = tab === activeTab;
-              return (
-                <button key={tab} type="button" onClick={() => handleTabClick(tab)}
-                  className={`px-3.5 py-1.5 text-sm font-semibold rounded-lg transition-all cursor-pointer ${
-                    isActive ? 'bg-blue-900 text-white shadow-xs' : 'text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950'
-                  }`}
-                >
-                  {tab}
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Right icons */}
-          <div className="flex items-center gap-3 shrink-0">
-            <button type="button" onClick={() => showToast('Searching reservations…')} className="p-2 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 rounded-xl cursor-pointer">
-              <Search className="w-5 h-5 stroke-[2]" />
-            </button>
-            <button type="button" onClick={() => showToast('3 unread notifications')} className="relative p-2 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 rounded-xl cursor-pointer">
-              <Bell className="w-5 h-5 stroke-[2]" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white" />
-            </button>
-            <button type="button" onClick={() => window.location.href = '/admin/settings'} className="p-2 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 rounded-xl cursor-pointer">
-              <Settings className="w-5 h-5 stroke-[2]" />
-            </button>
-            <div className="border-l border-slate-200 dark:border-slate-700 pl-3">
-              <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Admin" className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 object-cover" />
-            </div>
-          </div>
-        </div>
-      </header>
+      <AdminNavbar activeTab="Reservations" />
 
       {/* ══════ MAIN ══════ */}
       <main className="flex-grow pt-24 pb-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full space-y-6">

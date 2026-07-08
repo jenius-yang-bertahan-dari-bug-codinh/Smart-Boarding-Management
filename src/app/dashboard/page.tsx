@@ -27,6 +27,7 @@ import RoleSwitcher from '@/components/RoleSwitcher';
 export default function MemberDashboard() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isPaying, setIsPaying] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -34,15 +35,20 @@ export default function MemberDashboard() {
       .then((res) => {
         if (!res.ok) {
           router.push('/login');
-          throw new Error('Not authenticated');
+          return null; // Skip further processing
         }
         return res.json();
       })
       .then((data) => {
-        setUser(data.user);
-        setLoading(false);
+        if (data) {
+          setUser(data.user);
+          setLoading(false);
+        }
       })
-      .catch((err) => console.error(err));
+      .catch((err) => {
+        // Only log actual unexpected errors, not intentional redirects
+        console.warn('Dashboard fetch error:', err.message);
+      });
   }, [router]);
 
   if (loading) {
@@ -248,10 +254,31 @@ export default function MemberDashboard() {
           <div className="mt-6 flex items-center">
             <button 
               type="button"
-              onClick={() => alert('Redirecting to Payment screen...')}
-              className="bg-blue-900 hover:bg-blue-950 text-white font-bold py-2.5 px-6 rounded-xl transition-all cursor-pointer text-sm"
+              disabled={isPaying || !user.memberProfile?.pendingPayments || user.memberProfile.pendingPayments.length === 0}
+              onClick={async () => {
+                const pendingTxs = user.memberProfile?.pendingPayments || [];
+                if (pendingTxs.length === 0) return;
+                
+                const pendingTx = pendingTxs[0];
+                if (pendingTx.gateway_reference) {
+                  window.open(pendingTx.gateway_reference, '_blank');
+                  return;
+                }
+
+                setIsPaying(true);
+                const { generatePaymentLink } = await import('@/app/actions/midtrans');
+                const res = await generatePaymentLink(pendingTx.id);
+                if (res.success && res.redirect_url) {
+                  window.open(res.redirect_url, '_blank');
+                  // We could update local state here but since we redirect, it's fine.
+                } else {
+                  alert('Failed to initialize payment: ' + (res.error || 'Unknown error'));
+                }
+                setIsPaying(false);
+              }}
+              className="bg-blue-900 hover:bg-blue-950 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 px-6 rounded-xl transition-all cursor-pointer text-sm"
             >
-              Pay Now
+              {isPaying ? 'Connecting...' : 'Pay Now'}
             </button>
             <a 
               href="#" 

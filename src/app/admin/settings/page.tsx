@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { ArrowLeft, User, Bell, Shield, Paintbrush, Smartphone, Check, Settings, Moon, Sun } from 'lucide-react';
 import Logo from '@/components/Logo';
+import AdminNavbar from '@/components/AdminNavbar';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -46,20 +47,7 @@ export default function SettingsPage() {
       )}
 
       {/* ── Header ── */}
-      <header className="fixed top-0 left-0 right-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 shadow-xs z-40">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center gap-4">
-          <button type="button" onClick={() => router.back()} className="p-2 -ml-2 text-slate-400 hover:text-slate-600 dark:text-slate-400 rounded-xl hover:bg-slate-50 dark:bg-slate-950 transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <Link href="/admin" className="flex items-center gap-2 shrink-0">
-            <Logo size={26} />
-            <div className="leading-tight">
-              <span className="text-sm font-extrabold text-blue-900 block tracking-tight">SmartStay</span>
-              <span className="text-[10px] font-bold text-blue-700 uppercase tracking-widest block">Settings</span>
-            </div>
-          </Link>
-        </div>
-      </header>
+      <AdminNavbar activeTab="Settings" />
 
       {/* ── Main Content ── */}
       <main className="flex-grow pt-24 pb-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto w-full">

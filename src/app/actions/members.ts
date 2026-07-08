@@ -32,22 +32,39 @@ export async function getAdminMembers() {
   }
 }
 
-export async function updateAdminMember(id: string, data: { name: string, phone: string, email: string, status: string }) {
+export async function updateAdminMember(id: string, data: { name: string, phone: string, email: string, status: string, room: string }) {
   try {
     const statusMap: Record<string, string> = {
       'Active': 'active',
       'Pending': 'pending',
       'Past Member': 'past'
     };
+
+    let room_id = undefined;
+    if (data.room) {
+      const room = await prisma.room.findFirst({ where: { room_number: data.room } });
+      if (room) {
+        room_id = room.id;
+      }
+    }
     
     await prisma.member.update({
       where: { id: parseInt(id) },
       data: {
         name: data.name,
         phone: data.phone,
-        status: statusMap[data.status] || 'active'
+        status: statusMap[data.status] || 'active',
+        ...(room_id ? { room_id } : {})
       }
     });
+
+    if (room_id && (statusMap[data.status] || 'active') === 'active') {
+      await prisma.room.update({
+        where: { id: room_id },
+        data: { status: 'Occupied' }
+      });
+    }
+
     return { success: true };
   } catch (error) {
     console.error('Error updating member:', error);

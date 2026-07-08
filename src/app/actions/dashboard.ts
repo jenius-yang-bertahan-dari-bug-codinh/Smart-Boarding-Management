@@ -2,11 +2,28 @@
 
 import prisma from '@/lib/prisma';
 
-export async function getDashboardStats() {
+export async function getDashboardStats(filter: string = 'Last 30 Days') {
   try {
-    // 1. Total Revenue
+    let startDate = new Date(0);
+    const now = new Date();
+    if (filter === 'Today') {
+      startDate = new Date(now.setHours(0, 0, 0, 0));
+    } else if (filter === 'Last 7 Days') {
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (filter === 'Last 30 Days') {
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (filter === 'This Month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (filter === 'This Year') {
+      startDate = new Date(now.getFullYear(), 0, 1);
+    }
+
+    // 1. Total Revenue (Filtered by date)
     const payments = await prisma.payment.findMany({
-      where: { status: 'paid' } // or whatever status means success
+      where: { 
+        status: 'paid',
+        payment_date: { gte: startDate }
+      }
     });
     const totalRevenue = payments.reduce((acc, curr) => acc + curr.amount, 0);
 
@@ -22,14 +39,15 @@ export async function getDashboardStats() {
       where: { status: 'pending' }
     });
 
-    // 4. Total Active Members
-    const activeMembers = await prisma.member.count({
-      where: { status: 'active' }
+    // 4. New Reservations (Pending Members)
+    const newReservations = await prisma.member.count({
+      where: { status: 'pending' }
     });
 
     // 5. Recent Activities
     const recentPayments = await prisma.payment.findMany({
       take: 3,
+      where: { payment_date: { gte: startDate } },
       orderBy: { payment_date: 'desc' },
       include: { member: { include: { room: true } } }
     });
@@ -59,28 +77,57 @@ export async function getDashboardStats() {
       }))
     ].sort((a, b) => b.time.localeCompare(a.time)).slice(0, 5);
 
-    // Mock Monthly Data for now, ideally group by month in SQL
-    const monthlyData = [
-      { month: 'Jan', value: 35, amount: '$15,400' },
-      { month: 'Feb', value: 50, amount: '$22,000' },
-      { month: 'Mar', value: 45, amount: '$19,800' },
-      { month: 'Apr', value: 65, amount: '$28,600' },
-      { month: 'May', value: 75, amount: '$33,000' },
-      { month: 'Jun', value: 95, amount: '$42,850', highlight: true },
-      { month: 'Jul', value: 55, amount: '$24,200' },
-      { month: 'Aug', value: 40, amount: '$17,600' },
-      { month: 'Sep', value: 65, amount: '$28,600' },
-      { month: 'Oct', value: 75, amount: '$33,000' }
-    ];
+    // Fetch all paid payments for the current year to build the charts
+    const currentYear = new Date().getFullYear();
+    const startOfYear = new Date(currentYear, 0, 1);
+    
+    const allPayments = await prisma.payment.findMany({
+      where: {
+        status: 'paid',
+        payment_date: { gte: startOfYear }
+      },
+      select: { payment_date: true, amount: true }
+    });
 
-    const weeklyData = [
-      { month: 'W1', value: 45, amount: '$6,200' },
-      { month: 'W2', value: 60, amount: '$8,400' },
-      { month: 'W3', value: 55, amount: '$7,800' },
-      { month: 'W4', value: 85, amount: '$12,100', highlight: true },
-      { month: 'W5', value: 40, amount: '$5,600' },
-      { month: 'W6', value: 50, amount: '$7,000' }
-    ];
+    // Generate Monthly Data
+    const monthlyTotals = new Array(12).fill(0);
+    allPayments.forEach(p => {
+      const monthIndex = p.payment_date.getMonth();
+      monthlyTotals[monthIndex] += p.amount;
+    });
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const maxMonthly = Math.max(...monthlyTotals, 1);
+    const monthlyData = monthlyTotals.map((total, i) => ({
+      month: monthNames[i],
+      value: Math.round((total / maxMonthly) * 100),
+      amount: '$' + total.toLocaleString(),
+      highlight: total === maxMonthly && total > 0
+    }));
+
+    // Generate Weekly Data (Last 6 weeks)
+    const weeklyData = [];
+    const nowTime = now.getTime();
+    const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
+    const weeklyTotals = new Array(6).fill(0);
+    
+    allPayments.forEach(p => {
+      const diffTime = nowTime - p.payment_date.getTime();
+      const weekIndex = Math.floor(diffTime / oneWeekMs);
+      if (weekIndex >= 0 && weekIndex < 6) {
+        weeklyTotals[5 - weekIndex] += p.amount; // 5 is the most recent week, 0 is 5 weeks ago
+      }
+    });
+
+    const maxWeekly = Math.max(...weeklyTotals, 1);
+    for (let i = 0; i < 6; i++) {
+      weeklyData.push({
+        month: `W${i + 1}`,
+        value: Math.round((weeklyTotals[i] / maxWeekly) * 100),
+        amount: '$' + weeklyTotals[i].toLocaleString(),
+        highlight: weeklyTotals[i] === maxWeekly && weeklyTotals[i] > 0
+      });
+    }
 
     return {
       success: true,
@@ -88,7 +135,7 @@ export async function getDashboardStats() {
         totalRevenue,
         occupancyRate,
         activeMaintenance,
-        activeMembers,
+        newReservations,
         monthlyData,
         weeklyData,
         recentActivities

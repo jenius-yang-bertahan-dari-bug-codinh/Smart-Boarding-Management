@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { getAdminLandingConfig } from '@/app/actions/landing';
 import Link from 'next/link';
+import AdminNavbar from '@/components/AdminNavbar';
 import { useRouter } from 'next/navigation';
 import { 
   Bell, 
@@ -23,8 +24,6 @@ import {
 
 export default function LandingPageManagement() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'Dashboard' | 'Properties' | 'Reservations' | 'Billing' | 'Members' | 'Landing Page'>('Landing Page');
-  
   // Page specific tabs
   const [activeConfigTab, setActiveConfigTab] = useState<'Hero Section' | 'Facilities' | 'Rooms'>('Hero Section');
 
@@ -84,63 +83,7 @@ export default function LandingPageManagement() {
       )}
 
       {/* Global Navigation Bar */}
-      <header className="fixed top-0 left-0 right-0 w-full bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 shadow-xs z-40">
-        <div className="max-w-7xl mx-auto px-6 h-18 flex items-center justify-between">
-          <div className="flex items-center gap-8 lg:gap-10">
-            <Link href="/" className="flex items-center gap-2.5">
-              <span className="text-xl font-bold text-blue-900 tracking-tight">SmartStay Admin</span>
-            </Link>
-            
-            <nav className="hidden md:flex items-center gap-4 lg:gap-6">
-              {(['Dashboard', 'Properties', 'Reservations', 'Billing', 'Members', 'Landing Page'] as const).map((tab) => {
-                const isActive = activeTab === tab;
-                return (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => {
-                      setActiveTab(tab);
-                      if      (tab === 'Properties')   router.push('/admin/properties');
-                      else if (tab === 'Reservations') router.push('/admin/reservations');
-                      else if (tab === 'Billing')      router.push('/admin/billing');
-                      else if (tab === 'Members')      router.push('/admin/members');
-                      else if (tab === 'Landing Page') router.push('/admin/landing-page');
-                      else if (tab === 'Dashboard')    router.push('/admin');
-                    }}
-                    className={`pb-1.5 pt-1 text-sm font-semibold transition-all cursor-pointer border-b-2 ${
-                      isActive ? 'border-blue-900 text-blue-900' : 'border-transparent text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900'
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <button className="relative p-2 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 rounded-xl transition-all">
-                <Bell className="w-5 h-5 stroke-[2]" />
-                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white" />
-              </button>
-              <button className="p-2 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 rounded-xl transition-all">
-                <Settings className="w-5 h-5 stroke-[2]" />
-              </button>
-            </div>
-            <div className="flex items-center gap-4 border-l border-slate-200 dark:border-slate-700 pl-4">
-              <button className="hidden sm:flex items-center gap-1.5 bg-[#0f2852] hover:bg-[#0f2852]/90 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm">
-                <span className="text-lg leading-none mb-0.5">+</span> Add Resident
-              </button>
-              <img
-                src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                alt="Admin Profile"
-                className="w-9 h-9 rounded-full object-cover border border-slate-200 dark:border-slate-700"
-              />
-            </div>
-          </div>
-        </div>
-      </header>
+      <AdminNavbar activeTab="Landing Page" />
 
       {/* Main Content */}
       <main className="flex-grow pt-24 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">

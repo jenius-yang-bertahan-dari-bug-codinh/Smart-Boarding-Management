@@ -11,6 +11,7 @@ import {
   Filter, Zap, Check, X, MessageSquareWarning, CircleAlert,
 } from 'lucide-react';
 import Logo from '@/components/Logo';
+import AdminNavbar from '@/components/AdminNavbar';
 
 /* ─── types ─── */
 type RequestType = 'Maintenance' | 'Complaint';
@@ -69,9 +70,6 @@ export default function MaintenancePage() {
 
 
   /* nav */
-  const [activeTab, setActiveTab] = useState('Maintenance');
-  const NAV_TABS = ['Dashboard', 'Properties', 'Reservations', 'Billing', 'Members', 'Maintenance'];
-
   /* toast */
   const [toast, setToast] = useState<string | null>(null);
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3200); };
@@ -305,55 +303,7 @@ export default function MaintenancePage() {
       )}
 
       {/* ══════ NAV BAR ══════ */}
-      <header className="fixed top-0 left-0 right-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 shadow-xs z-40">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
-
-          {/* Stacked logo */}
-          <Link href="/admin" className="flex items-center gap-2 shrink-0">
-            <Logo size={26} />
-            <div className="leading-tight">
-              <span className="text-sm font-extrabold text-blue-900 block tracking-tight">SmartStay</span>
-              <span className="text-[10px] font-bold text-blue-700 uppercase tracking-widest block">Admin</span>
-            </div>
-          </Link>
-
-          {/* Tabs */}
-          <nav className="hidden md:flex items-center gap-0.5">
-            {NAV_TABS.map((tab) => {
-              const isActive = tab === activeTab;
-              return (
-                <button key={tab} type="button" onClick={() => handleTabClick(tab)}
-                  className={`relative px-3 py-2 text-sm font-semibold transition-all cursor-pointer ${
-                    isActive
-                      ? 'text-blue-900 after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:bg-blue-900 after:rounded-full'
-                      : 'text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 rounded-lg'
-                  }`}
-                >
-                  {tab}
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Right */}
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="relative hidden lg:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-              <input type="text" placeholder="Search requests..." onKeyDown={(e) => { if (e.key === 'Enter') showToast(`Searching "${(e.target as HTMLInputElement).value}"…`); }} className="w-44 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl pl-8 pr-3 py-1.5 text-xs font-medium focus:outline-none transition-all placeholder:text-slate-400 dark:text-slate-500" />
-            </div>
-            <button type="button" onClick={() => showToast('3 unread notifications')} className="relative p-2 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 rounded-xl cursor-pointer">
-              <Bell className="w-5 h-5 stroke-[2]" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white" />
-            </button>
-            <button type="button" onClick={() => window.location.href = '/admin/settings'} className="p-2 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 rounded-xl cursor-pointer">
-              <Settings className="w-5 h-5 stroke-[2]" />
-            </button>
-            <div className="border-l border-slate-200 dark:border-slate-700 pl-3">
-              <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Admin" className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 object-cover" />
-            </div>
-          </div>
-        </div>
-      </header>
+      <AdminNavbar activeTab="Maintenance" />
 
       {/* ══════ MAIN ══════ */}
       <main className="flex-grow pt-24 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full space-y-6">

@@ -1,6 +1,7 @@
 'use server';
 
 import prisma from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
 
 export async function getAdminMaintenance() {
   try {
@@ -39,5 +40,43 @@ export async function getAdminMaintenance() {
   } catch (error) {
     console.error('Error fetching admin maintenance:', error);
     return { success: false, error: 'Failed to fetch maintenance requests' };
+  }
+}
+
+export async function resolveMaintenanceTicket(trackingId: string) {
+  try {
+    // If the tracking ID starts with #MT-, we might need to parse the actual ID if it doesn't match the DB tracking_id exactly.
+    // However, the DB tracks tracking_id. Let's find by tracking_id first.
+    let complaint = await prisma.complaint.findUnique({
+      where: { tracking_id: trackingId }
+    });
+
+    if (!complaint) {
+      // fallback for old complaints without a tracking_id that got mapped to #MT-000X
+      if (trackingId.startsWith('#MT-')) {
+        const idStr = trackingId.replace('#MT-', '');
+        const idNum = parseInt(idStr, 10);
+        if (!isNaN(idNum)) {
+          complaint = await prisma.complaint.findUnique({ where: { id: idNum } });
+        }
+      }
+    }
+
+    if (!complaint) {
+      return { success: false, error: 'Ticket not found' };
+    }
+
+    await prisma.complaint.update({
+      where: { id: complaint.id },
+      data: { status: 'resolved' }
+    });
+    
+    revalidatePath('/admin');
+    revalidatePath('/admin/maintenance');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error resolving maintenance ticket:', error);
+    return { success: false, error: 'Failed to resolve ticket' };
   }
 }

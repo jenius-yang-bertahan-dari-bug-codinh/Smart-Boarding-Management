@@ -45,3 +45,94 @@ export async function getAdminRooms() {
     return { success: false, error: 'Failed to fetch rooms' };
   }
 }
+
+export async function assignMemberToRoom(memberId: number, roomId: number) {
+  try {
+    const room = await prisma.room.findUnique({ 
+      where: { id: roomId },
+      include: { members: { where: { status: 'active' } } }
+    });
+    if (!room || room.status === 'Maintenance' || room.members.length > 0) {
+      return { success: false, error: 'Room is not available' };
+    }
+
+    // Assign member to room
+    await prisma.member.update({
+      where: { id: memberId },
+      data: { room_id: roomId }
+    });
+
+    // Update room status
+    await prisma.room.update({
+      where: { id: roomId },
+      data: { status: 'Occupied' }
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error assigning member to room:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function addRoom(data: { room_number: string, floor: number, type: string, price: number }) {
+  try {
+    const existing = await prisma.room.findFirst({
+      where: { room_number: data.room_number }
+    });
+    if (existing) {
+      return { success: false, error: 'Room number already exists' };
+    }
+
+    const newRoom = await prisma.room.create({
+      data: {
+        room_number: data.room_number,
+        floor: data.floor,
+        type: data.type,
+        price: data.price,
+        status: 'Available'
+      }
+    });
+
+    return { success: true, data: newRoom };
+  } catch (error: any) {
+    console.error('Error adding room:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateRoom(roomId: number, data: { room_number: string, floor: number, type: string, price: number, status: string }) {
+  try {
+    const existing = await prisma.room.findFirst({
+      where: { room_number: data.room_number, NOT: { id: roomId } }
+    });
+    if (existing) {
+      return { success: false, error: 'Room number already exists' };
+    }
+
+    // If status is changed to Available or Maintenance, evict active members
+    if (data.status !== 'Occupied') {
+      await prisma.member.updateMany({
+        where: { room_id: roomId, status: 'active' },
+        data: { status: 'past' }
+      });
+    }
+
+    const updatedRoom = await prisma.room.update({
+      where: { id: roomId },
+      data: {
+        room_number: data.room_number,
+        floor: data.floor,
+        type: data.type,
+        price: data.price,
+        status: data.status
+      }
+    });
+
+    return { success: true, data: updatedRoom };
+  } catch (error: any) {
+    console.error('Error updating room:', error);
+    return { success: false, error: error.message };
+  }
+}
+

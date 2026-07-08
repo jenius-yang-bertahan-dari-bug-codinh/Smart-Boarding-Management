@@ -1,6 +1,8 @@
 // @ts-nocheck
 "use client";
 import { getAdminMembers, updateAdminMember, deleteAdminMember } from '@/app/actions/members';
+import { getAdminRooms } from '@/app/actions/properties';
+import { getMemberInvoices, generateMemberInvoice } from '@/app/actions/billing';
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
@@ -11,6 +13,7 @@ import {
   Check, X, ExternalLink,
 } from 'lucide-react';
 import Logo from '@/components/Logo';
+import AdminNavbar from '@/components/AdminNavbar';
 
 /* ─── types ─── */
 type MemberStatus = 'Active' | 'Pending' | 'Past Member';
@@ -48,10 +51,13 @@ export default function MembersPage() {
   const router = useRouter();
 
   const [membersList, setMembersList] = useState<any[]>([]);
+  const [allRooms, setAllRooms] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
-    getAdminMembers().then(res => {
-      if(res.success && res.data) setMembersList(res.data);
+    Promise.all([getAdminMembers(), getAdminRooms()]).then(([membersRes, roomsRes]) => {
+      if(membersRes.success && membersRes.data) setMembersList(membersRes.data);
+      if(roomsRes.success && roomsRes.data) setAllRooms(roomsRes.data);
       setIsLoading(false);
     });
   }, []);
@@ -124,12 +130,14 @@ export default function MembersPage() {
   /* detail drawer */
   const [selectedMember, setSelectedMember] = useState<any>(null);
 
-  /* edit member modal */
+/* ─── edit member modal ─── */
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', room: '', status: '' });
 
   /* full profile modal */
   const [fullProfileOpen, setFullProfileOpen] = useState(false);
+  const [memberInvoices, setMemberInvoices] = useState<any[]>([]);
+  const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
 
   /* notifications */
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -153,6 +161,29 @@ export default function MembersPage() {
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
   }, []);
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedMember(null);
+        setEditModalOpen(false);
+        setFullProfileOpen(false);
+        setAddModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, []);
+
+  useEffect(() => {
+    if (fullProfileOpen && selectedMember) {
+      getMemberInvoices(selectedMember.id).then(res => {
+        if (res.success && res.data) {
+          setMemberInvoices(res.data);
+        }
+      });
+    }
+  }, [fullProfileOpen, selectedMember]);
 
   /* filtered members */
   const filtered = membersList.filter((m) => {
@@ -260,7 +291,18 @@ export default function MembersPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Room</label>
-                  <input type="text" value={editForm.room} onChange={(e) => setEditForm({...editForm, room: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-500 rounded-xl px-3 py-2.5 text-sm focus:outline-none dark:bg-slate-950 dark:text-white" />
+                  <select 
+                    value={editForm.room} 
+                    onChange={(e) => setEditForm({...editForm, room: e.target.value})} 
+                    className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-500 rounded-xl px-3 py-2.5 text-sm focus:outline-none dark:bg-slate-950 dark:text-white"
+                  >
+                    <option value="" disabled>Select Room</option>
+                    {allRooms.map((r: any) => (
+                      <option key={r.id} value={r.roomNo}>
+                        Room {r.roomNo} ({r.type})
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Status</label>
@@ -335,6 +377,68 @@ export default function MembersPage() {
               </div>
             </div>
             
+            {/* ── Billing & Invoices Section ── */}
+            <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">Billing & Invoices</h4>
+                <button 
+                  type="button" 
+                  onClick={async () => {
+                    setIsGeneratingInvoice(true);
+                    showToast('Generating invoice...');
+                    const res = await generateMemberInvoice(selectedMember.id);
+                    setIsGeneratingInvoice(false);
+                    if (res.success && res.redirect_url) {
+                      navigator.clipboard.writeText(res.redirect_url);
+                      showToast('Invoice generated & link copied!');
+                      // refresh invoices
+                      const invRes = await getMemberInvoices(selectedMember.id);
+                      if(invRes.success && invRes.data) setMemberInvoices(invRes.data);
+                    } else {
+                      showToast(res.error || res.warning || 'Failed', 'error');
+                    }
+                  }}
+                  disabled={isGeneratingInvoice}
+                  className="px-4 py-2 bg-blue-900 hover:bg-blue-950 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2">
+                  <span className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">+</span>
+                  Generate Invoice
+                </button>
+              </div>
+              
+              {memberInvoices.length === 0 ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-semibold bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 text-center">No invoices found for this member.</p>
+              ) : (
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                  {memberInvoices.map(inv => (
+                    <div key={inv.id} className="flex items-center justify-between p-3 border border-slate-100 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <div>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white">Inv #{inv.id}</p>
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{inv.billingMonth} • Due {inv.dueDate}</p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <p className="text-sm font-extrabold text-blue-900 dark:text-blue-400">${inv.amount}</p>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold ${
+                          inv.status === 'paid' ? 'bg-emerald-50 text-emerald-700' :
+                          inv.status === 'overdue' ? 'bg-rose-50 text-rose-700' :
+                          'bg-orange-50 text-orange-600'
+                        }`}>
+                          {inv.status.toUpperCase()}
+                        </span>
+                        {inv.gatewayReference && inv.status !== 'paid' && (
+                          <button type="button" onClick={() => {
+                            navigator.clipboard.writeText(inv.gatewayReference);
+                            showToast('Payment link copied!');
+                          }} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer" title="Copy Payment Link">
+                            <ExternalLink className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end">
               <button type="button" onClick={() => setFullProfileOpen(false)} className="px-6 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-xl transition-all cursor-pointer">
                 Close Profile
@@ -400,94 +504,8 @@ export default function MembersPage() {
       )}
 
       {/* ══════ NAV BAR ══════ */}
-      <header className="fixed top-0 left-0 right-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 shadow-xs z-40">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
+      <AdminNavbar activeTab="Members" />
 
-          {/* Logo */}
-          <Link href="/admin" className="flex items-center gap-2 shrink-0">
-            <Logo size={28} />
-            <span className="text-base font-extrabold text-blue-900 tracking-tight whitespace-nowrap">SmartStay</span>
-          </Link>
-
-          {/* Center tabs */}
-          <nav className="hidden md:flex items-center gap-1">
-            {NAV_TABS.map((tab) => {
-              const isActive = tab === activeTab;
-              return (
-                <button key={tab} type="button" onClick={() => handleTabClick(tab)}
-                  className={`relative px-3.5 py-2 text-sm font-semibold transition-all cursor-pointer ${
-                    isActive
-                      ? 'text-blue-900 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:bg-blue-900 after:rounded-full'
-                      : 'text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 rounded-lg'
-                  }`}
-                >
-                  {tab}
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Right */}
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="relative hidden lg:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-              <input
-                type="text"
-                placeholder="Search members..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-44 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl pl-8 pr-3 py-1.5 text-xs font-medium focus:outline-none transition-all placeholder:text-slate-400 dark:text-slate-500"
-              />
-            </div>
-            <div className="relative" ref={notifRef}>
-              <button 
-                type="button" 
-                onClick={() => setNotificationsOpen(!notificationsOpen)}
-                className="relative p-2 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 rounded-xl transition-all cursor-pointer"
-              >
-                <Bell className="w-5 h-5 stroke-[2]" />
-                {notifications.some(n => n.unread) && (
-                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white" />
-                )}
-              </button>
-              {notificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden">
-                  <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Notifications</h3>
-                    <button type="button" onClick={() => setNotifications(notifications.map(n => ({...n, unread: false})))} className="text-xs text-blue-600 hover:underline">Mark all as read</button>
-                  </div>
-                  <div className="max-h-80 overflow-y-auto">
-                    {notifications.filter(n => n.unread).length === 0 ? (
-                      <div className="p-8 text-center text-slate-500 dark:text-slate-400 text-sm font-semibold">
-                        No new notifications.
-                      </div>
-                    ) : (
-                      notifications.filter(n => n.unread).map((notif) => (
-                        <div key={notif.id} className="p-4 border-b border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 cursor-pointer transition-colors bg-blue-50/50 dark:bg-blue-900/20">
-                          <div className="flex justify-between items-start mb-1">
-                            <h4 className="text-sm font-bold text-slate-900 dark:text-white">{notif.title}</h4>
-                            <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">{notif.time}</span>
-                          </div>
-                          <p className="text-xs text-slate-600 dark:text-slate-400 dark:text-slate-500">{notif.message}</p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                  <div className="p-3 text-center border-t border-slate-100 dark:border-slate-800">
-                    <button type="button" onClick={() => { setNotificationsOpen(false); setViewAllOpen(true); }} className="text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">View All Notifications</button>
-                  </div>
-                </div>
-              )}
-            </div>
-            <button type="button" onClick={() => window.location.href = '/admin/settings'} className="p-2 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 rounded-xl cursor-pointer">
-              <Settings className="w-5 h-5 stroke-[2]" />
-            </button>
-            <div className="border-l border-slate-200 dark:border-slate-700 pl-3">
-              <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Admin" className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 object-cover" />
-            </div>
-          </div>
-        </div>
-      </header>
 
       {/* ══════ MAIN ══════ */}
       <main className="flex-grow pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full space-y-5">
@@ -518,6 +536,19 @@ export default function MembersPage() {
         <div className="bg-white dark:bg-slate-900 border border-slate-200/60 rounded-2xl px-5 py-3.5 flex flex-wrap items-center gap-3 shadow-xs">
           {/* Left: filters */}
           <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+              <input
+                type="text"
+                placeholder="Search members..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-44 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-lg pl-8 pr-3 py-1.5 text-xs font-medium focus:outline-none transition-all placeholder:text-slate-400 dark:text-slate-500"
+              />
+            </div>
+            
+            <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+            
             <Filter className="w-4 h-4 text-slate-400 dark:text-slate-500" />
 
             {/* Floor dropdown */}
