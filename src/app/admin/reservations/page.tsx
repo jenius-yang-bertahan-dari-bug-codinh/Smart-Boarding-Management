@@ -248,6 +248,10 @@ export default function ReservationsPage() {
   const [bTenant, setBTenant] = useState('');
   const [bRoom,   setBRoom]   = useState('101');
 
+  /* details modal state */
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [selectedReservation, setSelectedReservation] = useState<any>(null);
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans flex flex-col selection:bg-blue-500 selection:text-white">
 
@@ -296,6 +300,47 @@ export default function ReservationsPage() {
                 <button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold px-5 py-2 rounded-xl cursor-pointer transition-all shadow-md shadow-orange-500/15">Confirm Booking</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── View Details Modal ── */}
+      {detailsModalOpen && selectedReservation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4" onClick={(e) => { if(e.target === e.currentTarget) setDetailsModalOpen(false); }}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 sm:p-8">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Reservation Details</h3>
+              <button type="button" onClick={() => setDetailsModalOpen(false)} className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:text-slate-500 cursor-pointer"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tenant Name</label>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{selectedReservation.name || selectedReservation.tenant}</p>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Room</label>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{selectedReservation.unit || selectedReservation.room}</p>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Lease Term</label>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{selectedReservation.date || selectedReservation.term}</p>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Amount</label>
+                <p className="text-sm font-extrabold text-blue-900">{selectedReservation.price || selectedReservation.amount}</p>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Status</label>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                  {selectedReservation.approved ? 'Approved' : (selectedReservation.status || 'Pending Request')}
+                </p>
+              </div>
+            </div>
+            <div className="mt-8 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+              <button type="button" onClick={() => setDetailsModalOpen(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 dark:text-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 font-bold px-4 py-2 rounded-xl text-sm transition-colors cursor-pointer">
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -474,7 +519,7 @@ export default function ReservationsPage() {
                         <Check className="w-3.5 h-3.5" />
                         Approve
                       </button>
-                      <button type="button" onClick={() => showToast(`Viewing details for ${a.name}…`)} className="flex-1 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 text-slate-700 dark:text-slate-300 text-xs font-bold py-2 rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5">
+                      <button type="button" onClick={() => { setSelectedReservation(a); setDetailsModalOpen(true); }} className="flex-1 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 text-slate-700 dark:text-slate-300 text-xs font-bold py-2 rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5">
                         <Eye className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                         Details
                       </button>
@@ -564,7 +609,7 @@ export default function ReservationsPage() {
                             <X className="w-4 h-4" />
                           </button>
                         )}
-                        <button type="button" onClick={() => showToast(`Viewing details for ${r.tenant}…`)} className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-blue-50 rounded-lg cursor-pointer transition-all">
+                        <button type="button" onClick={() => { setSelectedReservation(r); setDetailsModalOpen(true); }} className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-blue-50 rounded-lg cursor-pointer transition-all">
                           <Eye className="w-4 h-4" />
                         </button>
                       </div>
