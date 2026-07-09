@@ -1,23 +1,36 @@
-# Smart Boarding House Management System - Frontend
+# Smart Boarding House Management System
 
-Welcome to the **Frontend Repository** of the Smart Boarding House Management System! 
+Welcome to the **Smart Boarding House Management System**! 
 
-This web application serves as the user-facing landing page and tenant portal. It provides real-time room availability, highlights premium facilities, and presents an interactive location map. Our goal is to offer a highly responsive, modern, and premium web experience for prospective and current tenants.
+This is a comprehensive full-stack web application designed to manage boarding houses (kost/kontrakan). It features a modern, user-facing landing page for prospective tenants and a powerful, integrated Admin Panel for landlords/managers to handle rooms, members, reservations, billing, and maintenance.
 
 ---
 
-## Tech Stack
+## 🚀 Key Features
 
-This project is built using modern frontend technologies to ensure performance, type safety, and rapid UI development:
+- **Dynamic Landing Page**: Showcases room availability, premium facilities, and location map.
+- **Admin Dashboard**: Real-time overview of occupancy, monthly revenue, and system health.
+- **Room Management**: Full CRUD operations for rooms, including dynamic status updates and member assignments.
+- **Resident (Member) Directory**: Manage tenant profiles, view contract details, and handle room assignments.
+- **Billing & Invoicing**: Track payments, pending invoices, and monthly revenue trends.
+- **Maintenance Tracking**: Log, schedule, and track repairs and maintenance requests.
+- **Reservation System**: Handle incoming booking requests from prospective tenants.
 
-- **Framework:** [Next.js](https://nextjs.org/) (App Router)
+---
+
+## 🛠 Tech Stack
+
+This project is built using modern full-stack technologies to ensure performance, type safety, and rapid development:
+
+- **Framework:** [Next.js](https://nextjs.org/) (App Router, Server Actions)
+- **Database:** [SQLite](https://www.sqlite.org/) via [Prisma ORM](https://www.prisma.io/)
 - **Styling:** [Tailwind CSS](https://tailwindcss.com/)
 - **Language:** [TypeScript](https://www.typescriptlang.org/)
 - **Icons:** [Lucide React](https://lucide.dev/)
 
 ---
 
-## Prerequisites & Local Setup
+## 📦 Prerequisites & Local Setup
 
 To run this project locally, ensure you have **Node.js** (v18+ recommended) installed.
 
@@ -26,7 +39,7 @@ To run this project locally, ensure you have **Node.js** (v18+ recommended) inst
 1. **Clone the repository:**
    ```bash
    git clone <REPOSITORY_URL>
-   cd ITPROJECTMANAGEMENTFINAL
+   cd ITPROJECTMANAGEMENTFINAL/Smart-Boarding-Management
    ```
 
 2. **Install dependencies:**
@@ -34,19 +47,36 @@ To run this project locally, ensure you have **Node.js** (v18+ recommended) inst
    npm install
    ```
 
-3. **Run the development server:**
+3. **Configure Environment Variables:**
+   Create a `.env` file in the root directory and add the Midtrans Sandbox credentials:
+   ```env
+   MIDTRANS_MERCHANT_ID="G105380640"
+   MIDTRANS_CLIENT_KEY="SB-Mid-client-PLcINWELsBNsoBdN"
+   MIDTRANS_SERVER_KEY="SB-Mid-server-k5VnZZNVNdRTXqed22jd4LRD"
+   MIDTRANS_IS_PRODUCTION="false"
+   ```
+
+4. **Set up the Database (Prisma):**
+   This project uses SQLite for ease of development. Generate the Prisma client and push the schema:
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   ```
+
+4. **Run the development server:**
    ```bash
    npm run dev
    ```
 
-4. **View the app:**
-   Open your browser and navigate to [http://localhost:3000](http://localhost:3000). The page will auto-update as you edit files.
+5. **View the app:**
+   - Landing Page: [http://localhost:3000](http://localhost:3000)
+   - Admin Panel: [http://localhost:3000/admin](http://localhost:3000/admin)
 
 ---
 
-## Git Collaboration Workflow (CRITICAL)
+## 🤝 Git Collaboration Workflow (CRITICAL)
 
-To ensure smooth collaboration among **Michael, Fathan, and Theodore**, and to maintain clear progress for **Alfadzri (PM)** and **Nofi (BA)**, everyone **MUST** follow these strict Git rules to prevent merge conflicts.
+To ensure smooth collaboration among the team (Michael, Fathan, Theodore) and to maintain clear progress for Alfadzri (PM) and Nofi (BA), everyone **MUST** follow these strict Git rules:
 
 > **CRITICAL RULE:** 🛑 **NEVER** push or commit directly to the `main` branch!
 
@@ -61,14 +91,14 @@ git pull origin main
 Branch names should be descriptive of the task you are working on.
 ```bash
 git checkout -b feature/your-feature-name
-# Example: git checkout -b feature/room-card
+# Example: git checkout -b feature/admin-dashboard
 ```
 
 ### 3. Work, Commit, and Push:
 Commit your changes with clear, descriptive messages.
 ```bash
 git add .
-git commit -m "feat: add room card component"
+git commit -m "feat: add admin dashboard layout"
 git push origin feature/your-feature-name
 ```
 
@@ -76,7 +106,6 @@ git push origin feature/your-feature-name
 - Go to the repository on GitHub/GitLab and open a **Pull Request (PR)** against the `main` branch.
 - **DO NOT** merge your own PR immediately.
 - Require **at least one code review** and approval from another developer before merging.
-- Once approved, squash and merge into `main`.
 
 ### 5. Keeping your branch updated (Avoiding Conflicts):
 If someone else merges code into `main` while you are working, update your branch safely:
@@ -90,40 +119,32 @@ git merge main
 
 ---
 
-## Project Folder Structure
-
-This project follows the Next.js App Router conventions. All source code is located inside the `src/` directory.
+## 📁 Project Folder Structure
 
 ```text
 src/
-├── app/                  # Next.js App Router (pages, layouts, global styles)
+├── app/                  # Next.js App Router (pages, layouts, server actions)
+│   ├── admin/            # Admin Panel Pages (Dashboard, Rooms, Members, etc.)
+│   ├── actions/          # Next.js Server Actions for database mutations
 │   ├── globals.css       # Tailwind CSS and global styling configuration
-│   ├── layout.tsx        # Root layout HTML and Metadata
 │   └── page.tsx          # Main Landing Page
-├── components/           # Reusable React components (UI building blocks)
-│   ├── Facilities.tsx
-│   ├── Hero.tsx
-│   ├── LocationMap.tsx
-│   └── RoomCard.tsx
-├── data/                 # Mock data for frontend integration testing
-│   └── mockRooms.ts
+├── components/           # Reusable React components (AdminNavbar, Modals, UI blocks)
+├── lib/                  # Library configurations (Prisma client)
+├── data/                 # Mock data (if any remaining)
 └── types/                # TypeScript interface and type definitions
-    └── index.ts
+prisma/
+└── schema.prisma         # Prisma database schema definition
 ```
 
 ---
 
-## Coding Standards
+## 🧑‍💻 Coding Standards
 
-To keep the codebase clean and consistent, please adhere to these simple rules:
-
-- **Components:** Use **PascalCase** for component files and function names (e.g., `RoomCard.tsx`, `const RoomCard = () => {}`).
-- **Variables & Functions:** Use **camelCase** (e.g., `const fetchRooms = () => {}`, `let isAvailable = true`).
+- **Components:** Use **PascalCase** for component files and function names (e.g., `AdminNavbar.tsx`).
+- **Variables & Functions:** Use **camelCase** (e.g., `const fetchRooms = () => {}`).
 - **Types/Interfaces:** Use **PascalCase** (e.g., `interface RoomProps {}`).
-- **Styling:** Use standard Tailwind CSS utility classes. Avoid inline `style={{}}` unless dynamically calculating values.
-- **Responsiveness:** Always design mobile-first. Start with base classes and add `sm:`, `md:`, and `lg:` prefixes for larger screens.
+- **Server Actions:** Keep database queries inside `src/app/actions/` and use `"use server"`.
+- **Styling:** Use standard Tailwind CSS utility classes. Avoid inline `style={{}}`.
 
 ---
 *If you run into any issues, please reach out in the developer group chat!*
-=======
-# Smart-Boarding-Management

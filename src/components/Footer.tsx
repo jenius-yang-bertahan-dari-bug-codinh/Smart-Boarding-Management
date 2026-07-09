@@ -22,13 +22,13 @@ const Footer: React.FC = () => {
   }, []);
 
   const roles = [
-    { id: 'public',  label: 'Main / Public Page',    path: '/',          Icon: Globe  },
-    { id: 'guest',   label: 'Guest / Member Portal',  path: '/dashboard', Icon: User   },
-    { id: 'admin',   label: 'Admin / Management',     path: '/admin',     Icon: Shield },
+    { id: 'public', label: 'Main / Public Page', path: '/', Icon: Globe },
+    { id: 'guest', label: 'Guest / Member Portal', path: '/dashboard', Icon: User },
+    { id: 'admin', label: 'Admin / Management', path: '/admin', Icon: Shield },
   ];
 
   return (
-    <footer className="fixed bottom-0 left-0 right-0 bg-[#e2e8f0] dark:bg-slate-950 transition-colors py-6 md:py-8 border-t border-slate-300/40 dark:border-slate-800 z-50">
+    <footer className="w-full bg-[#e2e8f0] dark:bg-slate-950 transition-colors py-6 md:py-8 border-t border-slate-300/40 dark:border-slate-800">
       <div className="max-w-7xl mx-auto px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
 
         {/* Left Side: Logo (role-switch trigger) + brand text + copyright */}
@@ -69,11 +69,10 @@ const Footer: React.FC = () => {
                             setIsOpen(false);
                             router.push(role.path);
                           }}
-                          className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-xl text-left transition-all cursor-pointer ${
-                            isActive
+                          className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-xl text-left transition-all cursor-pointer ${isActive
                               ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-900 dark:text-blue-400 font-bold'
                               : 'text-slate-600 dark:text-slate-300 hover:text-blue-900 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium'
-                          }`}
+                            }`}
                         >
                           <role.Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-900 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`} />
                           <span className="flex-grow">{role.label}</span>

@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { decrypt } from '@/lib/auth'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
@@ -71,7 +69,14 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { category, description } = body;
+    const { category, description, photo_url } = body;
+
+    if (photo_url && typeof photo_url === 'string') {
+      const isAllowed = /^data:image\/(jpeg|png|jpg);base64,/i.test(photo_url) || /\.(jpg|jpeg|png)$/i.test(photo_url);
+      if (!isAllowed) {
+        return NextResponse.json({ error: 'Only JPG, JPEG, and PNG image formats are allowed.' }, { status: 400 });
+      }
+    }
 
     const newComplaint = await prisma.complaint.create({
       data: {
@@ -79,6 +84,7 @@ export async function POST(req: Request) {
         member_id: user.members[0].id,
         category,
         description,
+        photo_url: photo_url || null,
         status: 'pending',
       }
     });

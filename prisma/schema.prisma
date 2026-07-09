@@ -63,6 +63,8 @@ model Payment {
   payment_method    String
   status            String   @default("pending")
   payment_date      DateTime @default(now())
+  due_date          DateTime @default(now())
+  billing_month     String?
   gateway_reference String?
 }
 

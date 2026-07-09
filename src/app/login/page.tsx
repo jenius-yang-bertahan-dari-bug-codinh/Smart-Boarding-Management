@@ -25,14 +25,18 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-
+      
       const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Login failed');
-        setLoading(false);
+      
+      if (res.ok) {
+        if (data.user?.role === 'admin' || email.toLowerCase().includes('admin')) {
+          router.push('/admin');
+        } else {
+          router.push('/dashboard');
+        }
       } else {
-        router.push('/dashboard');
+        setError(data.error || 'Invalid credentials');
+        setLoading(false);
       }
     } catch (err) {
       setError('Something went wrong. Please try again.');
@@ -72,6 +76,9 @@ export default function LoginPage() {
           </h2>
           <p className="text-sm font-medium text-slate-500 mt-1.5">
             Member Portal Access
+          </p>
+          <p className="text-[10px] font-bold text-orange-500 mt-3 bg-orange-50 px-3 py-1.5 rounded-full border border-orange-100">
+            Mock: Type "admin" in email to access Admin Panel
           </p>
         </div>
 
@@ -153,34 +160,6 @@ export default function LoginPage() {
             {!loading && <ArrowRight className="w-4.5 h-4.5 stroke-[2.2]" />}
           </button>
         </form>
-
-        {/* Separator */}
-        <div className="relative flex items-center justify-center my-6">
-          <div className="border-t border-slate-200/80 w-full"></div>
-          <span className="absolute bg-white px-3 text-[10px] font-bold text-slate-400 tracking-wider uppercase">
-            Or Continue With
-          </span>
-        </div>
-
-        {/* Alternative Login Buttons */}
-        <div className="grid grid-cols-2 gap-4">
-          <button 
-            type="button"
-            onClick={() => alert('Initiating Face ID scan...')}
-            className="flex items-center justify-center gap-2 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 cursor-pointer"
-          >
-            <ScanFace className="w-4 h-4 text-slate-500 stroke-[1.8]" />
-            <span>Face ID</span>
-          </button>
-          <button 
-            type="button"
-            onClick={() => alert('Initiating Touch ID fingerprint scan...')}
-            className="flex items-center justify-center gap-2 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 cursor-pointer"
-          >
-            <Fingerprint className="w-4 h-4 text-slate-500 stroke-[1.8]" />
-            <span>Touch ID</span>
-          </button>
-        </div>
 
         {/* Security Note / Footer */}
         <div className="text-center mt-8 text-[11px] sm:text-xs text-slate-400 font-medium">

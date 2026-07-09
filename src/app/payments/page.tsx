@@ -30,6 +30,7 @@ export default function FinancialHub() {
   const [currentBalance, setCurrentBalance] = useState<number>(0);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isPaying, setIsPaying] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -72,7 +73,7 @@ export default function FinancialHub() {
           <div className="flex flex-col items-center mb-6 py-4 border-y border-slate-100/60">
             <img
               src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
-              alt="Alex Avatar"
+              alt={user?.name || "Member Avatar"}
               className="w-16 h-16 rounded-full object-cover border-2 border-slate-100 shadow-sm mb-2"
             />
             <span className="text-xs font-semibold text-slate-400">Welcome back,</span>
@@ -152,13 +153,17 @@ export default function FinancialHub() {
               <HelpCircle className="w-4.5 h-4.5 text-slate-400 stroke-[1.8]" />
               <span>Help Center</span>
             </a>
-            <Link 
-              href="/" 
-              className="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 hover:text-rose-600 hover:bg-rose-50/50 font-semibold text-xs sm:text-sm transition-all"
+            <button 
+              type="button"
+              onClick={async () => {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                window.location.href = '/login';
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 hover:text-rose-600 hover:bg-rose-50/50 font-semibold text-xs sm:text-sm transition-all cursor-pointer text-left"
             >
               <LogOut className="w-4 h-4 text-slate-400 stroke-[1.8]" />
               <span>Sign Out</span>
-            </Link>
+            </button>
           </div>
         </div>
       </aside>
@@ -232,10 +237,33 @@ export default function FinancialHub() {
               {/* Pay Now Button */}
               <button
                 type="button"
-                onClick={() => alert('Directing to Balance payment portal...')}
-                className="mt-6 w-full bg-blue-900 hover:bg-blue-950 text-white font-bold py-3 px-6 rounded-xl transition-all cursor-pointer text-sm shadow-sm hover:shadow-md"
+                disabled={currentBalance <= 0 || isPaying}
+                onClick={async () => {
+                  const pendingTx = transactions.find(t => t.status === 'pending');
+                  if (!pendingTx) return;
+                  
+                  if (pendingTx.gateway_reference) {
+                    window.open(pendingTx.gateway_reference, '_blank');
+                    return;
+                  }
+
+                  setIsPaying(true);
+                  const { generatePaymentLink } = await import('@/app/actions/midtrans');
+                  const res = await generatePaymentLink(pendingTx.id);
+                  if (res.success && res.redirect_url) {
+                    window.open(res.redirect_url, '_blank');
+                  } else {
+                    alert('Failed to initialize payment: ' + (res.error || 'Unknown error'));
+                  }
+                  setIsPaying(false);
+                }}
+                className={`mt-6 w-full font-bold py-3 px-6 rounded-xl transition-all cursor-pointer text-sm shadow-sm hover:shadow-md flex items-center justify-center gap-2 ${
+                  currentBalance > 0 
+                    ? 'bg-blue-900 hover:bg-blue-950 text-white' 
+                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                }`}
               >
-                Pay Now
+                {isPaying ? 'Connecting...' : (currentBalance > 0 ? 'Pay Now' : 'All Paid')}
               </button>
             </div>
 
@@ -310,15 +338,44 @@ export default function FinancialHub() {
                       </div>
 
                       {/* Right Block: Amount + Status */}
-                      <div className="text-right">
+                      <div className="text-right flex flex-col items-end">
                         <span className={`text-sm font-black block ${tx.status === 'pending' ? 'text-orange-500' : 'text-slate-800'}`}>
                           ${tx.amount.toFixed(2)}
                         </span>
                         
-                        <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          <CircleDot className={`w-2.5 h-2.5 ${tx.status === 'pending' ? 'text-orange-500 fill-orange-500/10' : 'text-emerald-500 fill-emerald-500/10'}`} />
-                          {tx.status}
-                        </span>
+                        <div className="flex items-center gap-2 mt-1">
+                          {tx.status === 'pending' && (
+                            <button
+                              type="button"
+                              disabled={isPaying}
+                              onClick={async (e) => {
+                                e.preventDefault();
+                                if (tx.gateway_reference) {
+                                  window.open(tx.gateway_reference, '_blank');
+                                  return;
+                                }
+                                setIsPaying(true);
+                                const { generatePaymentLink } = await import('@/app/actions/midtrans');
+                                const res = await generatePaymentLink(tx.id);
+                                if (res.success && res.redirect_url) {
+                                  // Update local state so gateway_reference is populated
+                                  setTransactions(transactions.map(t => t.id === tx.id ? { ...t, gateway_reference: res.redirect_url } : t));
+                                  window.open(res.redirect_url, '_blank');
+                                } else {
+                                  alert('Failed to generate Midtrans link');
+                                }
+                                setIsPaying(false);
+                              }}
+                              className="text-[10px] bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white px-2 py-0.5 rounded-md font-bold transition-colors cursor-pointer"
+                            >
+                              Pay
+                            </button>
+                          )}
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            <CircleDot className={`w-2.5 h-2.5 ${tx.status === 'pending' ? 'text-orange-500 fill-orange-500/10' : 'text-emerald-500 fill-emerald-500/10'}`} />
+                            {tx.status}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );
