@@ -75,7 +75,7 @@ export async function assignMemberToRoom(memberId: number, roomId: number) {
   }
 }
 
-export async function addRoom(data: { room_number: string, floor: number, type: string, price: number }) {
+export async function addRoom(data: { room_number: string, floor: number, type: string, price: number, features?: string, imageUrl?: string }) {
   try {
     const existing = await prisma.room.findFirst({
       where: { room_number: data.room_number }
@@ -90,7 +90,9 @@ export async function addRoom(data: { room_number: string, floor: number, type: 
         floor: data.floor,
         type: data.type,
         price: data.price,
-        status: 'Available'
+        status: 'Available',
+        features: data.features || JSON.stringify(['AC', 'WiFi', 'Private Bathroom']),
+        imageUrl: data.imageUrl || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80'
       }
     });
 
@@ -101,7 +103,7 @@ export async function addRoom(data: { room_number: string, floor: number, type: 
   }
 }
 
-export async function updateRoom(roomId: number, data: { room_number: string, floor: number, type: string, price: number, status: string }) {
+export async function updateRoom(roomId: number, data: { room_number: string, floor: number, type: string, price: number, status: string, features?: string, imageUrl?: string }) {
   try {
     const existing = await prisma.room.findFirst({
       where: { room_number: data.room_number, NOT: { id: roomId } }
@@ -125,7 +127,9 @@ export async function updateRoom(roomId: number, data: { room_number: string, fl
         floor: data.floor,
         type: data.type,
         price: data.price,
-        status: data.status
+        status: data.status,
+        ...(data.features ? { features: data.features } : {}),
+        ...(data.imageUrl ? { imageUrl: data.imageUrl } : {})
       }
     });
 
