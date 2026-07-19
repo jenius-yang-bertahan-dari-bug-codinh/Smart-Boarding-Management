@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     }
 
     // Wrap in a transaction to ensure all or nothing
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       // 0. Check room availability first
       const room = await tx.room.findUnique({
         where: { id: parseInt(roomId) },

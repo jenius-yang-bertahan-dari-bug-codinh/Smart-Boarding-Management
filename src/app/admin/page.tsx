@@ -777,11 +777,11 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* View All Activity link */}
+              {/* View All Activity button */}
               <button
                 type="button"
-                onClick={() => showToast('Opening comprehensive activity ledger...', 'info')}
-                className="w-full border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 text-xs font-bold text-slate-600 dark:text-slate-400 dark:text-slate-500 py-2.5 rounded-xl transition-all cursor-pointer text-center block mt-5"
+                onClick={() => setActiveModal('all_activity')}
+                className="w-full border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-600 dark:text-slate-400 py-2.5 rounded-xl transition-all cursor-pointer text-center block mt-5"
               >
                 View All Activity
               </button>
@@ -865,9 +865,9 @@ export default function AdminDashboard() {
             </div>
 
             {/* Module 3: Smart System Status */}
-            <div className="bg-blue-950 text-white rounded-2xl p-6 shadow-md relative overflow-hidden group">
+            {/* <div className="bg-blue-950 text-white rounded-2xl p-6 shadow-md relative overflow-hidden group"> */}
               {/* Radial gradient background accent */}
-              <div className="absolute -bottom-8 -right-8 w-24 h-24 bg-blue-500/25 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform"></div>
+              {/* <div className="absolute -bottom-8 -right-8 w-24 h-24 bg-blue-500/25 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform"></div>
 
               <div className="flex items-center gap-2 mb-4">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -888,24 +888,32 @@ export default function AdminDashboard() {
                 <Cpu className="w-4 h-4 shrink-0" />
                 <span>View Hardware Map</span>
               </button>
-            </div>
+            </div> */}
 
             {/* Module 4: Admin Guide */}
-            <div className="bg-slate-100/70 border border-slate-200/40 rounded-2xl p-5 shadow-xs flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 dark:text-slate-500 border border-slate-200/60 flex items-center justify-center shrink-0">
-                  <BookOpen className="w-4.5 h-4.5" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    Admin Guide
-                  </h3>
-                  <button 
-                    onClick={() => showToast('Opening Admin Guide docs...', 'info')}
-                    className="text-[10px] text-teal-600 hover:text-teal-700 font-bold hover:underline transition-colors block text-left"
+            <div className="bg-gradient-to-br from-indigo-900 to-slate-900 border border-indigo-500/30 rounded-2xl p-6 shadow-lg relative overflow-hidden group">
+              <div className="absolute -top-12 -right-12 w-32 h-32 bg-teal-500/20 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-700"></div>
+              
+              <div className="flex items-start justify-between relative z-10">
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center justify-center shrink-0">
+                      <BookOpen className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-sm font-bold text-white tracking-wide">
+                      Admin Guide
+                    </h3>
+                  </div>
+                  <p className="text-xs text-indigo-200/70 mb-4 max-w-[200px] leading-relaxed">
+                    Learn how to manage rooms, residents, and automated billing.
+                  </p>
+                  <Link 
+                    href="/admin/guide"
+                    className="inline-flex items-center gap-1.5 text-xs text-teal-400 hover:text-teal-300 font-bold transition-colors w-fit group/link"
                   >
                     Read documentation
-                  </button>
+                    <ArrowUpRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
+                  </Link>
                 </div>
               </div>
             </div>
@@ -1209,6 +1217,120 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* All Activity Modal */}
+      {activeModal === 'all_activity' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full flex flex-col max-h-[85vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800 shrink-0">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Recent Activity</h3>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">All events across payments, members &amp; maintenance</p>
+              </div>
+              <button type="button" onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="overflow-y-auto flex-1 divide-y divide-slate-100 dark:divide-slate-800">
+
+              {/* Payments */}
+              <div className="px-6 pt-4 pb-3">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Payments</p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                      <CheckCircle className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Payment Received</p>
+                      <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Unit 402 &bull; Rp 1.400.000</p>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">2m ago</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Members */}
+              <div className="px-6 pt-4 pb-3">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Members</p>
+                <div className="space-y-3">
+                  {activeMembers.length === 0 ? (
+                    <p className="text-xs text-slate-400 pb-2">No recent member activity.</p>
+                  ) : (
+                    activeMembers.slice(0, 5).map((m: any) => (
+                      <div key={m.id} className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                          <UserPlus className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{m.name}</p>
+                          <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                            {m.status === 'active' ? 'Active Member' : m.status}{m.room ? ` \u2022 Unit ${m.room}` : ''}
+                          </p>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${m.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+                          {m.status}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Maintenance */}
+              <div className="px-6 pt-4 pb-4">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Maintenance</p>
+                <div className="space-y-3">
+                  {maintenanceTickets.length === 0 ? (
+                    <p className="text-xs text-slate-400">No maintenance activity.</p>
+                  ) : (
+                    maintenanceTickets.slice(0, 5).map((ticket: any) => (
+                      <div key={ticket.id} className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
+                          <Wrench className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{ticket.type}</p>
+                          <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{ticket.unit} &bull; {ticket.member}</p>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${
+                          ticket.status === 'Resolved' ? 'bg-emerald-50 text-emerald-600' :
+                          ticket.status === 'In Progress' ? 'bg-orange-50 text-orange-600' :
+                          'bg-blue-50 text-blue-600'
+                        }`}>
+                          {ticket.status}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Footer with quick-links */}
+            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <Link href="/admin/billing" onClick={() => setActiveModal(null)} className="text-xs font-bold text-blue-700 hover:underline">Billing →</Link>
+                <span className="text-slate-300 dark:text-slate-700">|</span>
+                <Link href="/admin/members" onClick={() => setActiveModal(null)} className="text-xs font-bold text-blue-700 hover:underline">Members →</Link>
+                <span className="text-slate-300 dark:text-slate-700">|</span>
+                <Link href="/admin/maintenance" onClick={() => setActiveModal(null)} className="text-xs font-bold text-blue-700 hover:underline">Maintenance →</Link>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
