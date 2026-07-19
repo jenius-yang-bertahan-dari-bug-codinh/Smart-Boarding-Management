@@ -115,7 +115,7 @@ const Navbar: React.FC = () => {
           <Link href="/" className="flex items-center gap-2.5" onClick={() => setIsMobileMenuOpen(false)}>
             <Logo size={36} />
             <span className="text-xl font-bold text-blue-900 dark:text-blue-400 tracking-tight">
-              SmartStay
+              Papikost
             </span>
           </Link>
         </div>

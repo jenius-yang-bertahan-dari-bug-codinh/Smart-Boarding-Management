@@ -379,7 +379,7 @@ export default function BillingPage() {
                 <Wallet className="w-4.5 h-4.5 text-blue-700" />
               </div>
             </div>
-            <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{metrics?.monthlyIncome || '$0.00'}</p>
+            <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{metrics?.monthlyIncome || 'Rp 0'}</p>
             <div className="mt-3 flex items-center gap-1.5">
               <TrendingUp className="w-3.5 h-3.5 text-amber-600" />
               <span className="text-xs font-bold text-amber-600">Calculated from paid invoices</span>
@@ -394,7 +394,7 @@ export default function BillingPage() {
                 <ClipboardList className="w-4.5 h-4.5 text-blue-700" />
               </div>
             </div>
-            <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{metrics?.pendingInvoicesSum || '$0.00'}</p>
+            <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{metrics?.pendingInvoicesSum || 'Rp 0'}</p>
             <p className="mt-3 text-xs font-semibold text-slate-400 dark:text-slate-500">{metrics?.pendingInvoicesCount || 0} invoices awaiting payment</p>
           </div>
 
@@ -406,7 +406,7 @@ export default function BillingPage() {
                 <AlertTriangle className="w-4.5 h-4.5 text-rose-600" />
               </div>
             </div>
-            <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{metrics?.overduePaymentsSum || '$0.00'}</p>
+            <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{metrics?.overduePaymentsSum || 'Rp 0'}</p>
             <div className="mt-3 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
               <span className="text-xs font-bold text-rose-600">{metrics?.overduePaymentsCount || 0} payments overdue</span>
@@ -645,7 +645,10 @@ export default function BillingPage() {
                         {(inv.status === 'Unpaid' || inv.status === 'Overdue') && (
                           <button type="button" title="Generate/Copy Payment Link" onClick={async () => {
                             if (inv.gatewayReference) {
-                              navigator.clipboard.writeText(inv.gatewayReference);
+                              // Parse redirect URL from gateway_reference (format: "order_id|redirect_url" or legacy URL)
+                              const parts = inv.gatewayReference.split('|');
+                              const url = parts.length > 1 ? parts[1] : parts[0];
+                              navigator.clipboard.writeText(url);
                               showToast('Payment link copied to clipboard!');
                               return;
                             }
@@ -724,20 +727,16 @@ export default function BillingPage() {
       {/* ══════ GLOBAL FOOTER ══════ */}
       <footer className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 py-5">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <Logo size={22} />
-            <div>
-              <span className="text-sm font-extrabold text-blue-900 block leading-tight">SmartStay</span>
-              <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-                &copy; 2024 SmartStay Management System. All rights reserved.
-              </span>
-            </div>
+          <div>
+            <p className="text-[11px] font-black text-blue-900 uppercase tracking-widest">Papikost</p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
+              &copy; 2024 Papikost Management System. All rights reserved.
+            </p>
           </div>
-
           <div className="flex items-center gap-5">
-            {['Support', 'Privacy Policy', 'Terms of Service', 'Contact Us'].map((link) => (
+            {['Contact Us'].map((link) => (
               <a key={link} href="#" onClick={(e) => { e.preventDefault(); showToast(`Opening ${link}…`); }}
-                className="text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 transition-colors underline-offset-2 hover:underline">
+                className="text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
                 {link}
               </a>
             ))}

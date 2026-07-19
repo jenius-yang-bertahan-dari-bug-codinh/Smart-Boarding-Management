@@ -12,6 +12,7 @@ const snap = new midtransClient.Snap({
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    console.log('Midtrans Webhook received:', JSON.stringify(body, null, 2));
 
     // Verify the notification using midtrans library
     const notification = await snap.transaction.notification(body);
@@ -20,11 +21,14 @@ export async function POST(req: Request) {
     const transactionStatus = notification.transaction_status;
     const fraudStatus = notification.fraud_status;
 
+    console.log(`Midtrans Webhook: order_id=${orderId}, status=${transactionStatus}, fraud=${fraudStatus}`);
+
     // Our order ID format is `INV-{paymentId}-{timestamp}`
     const paymentIdStr = orderId.split('-')[1];
     const paymentId = parseInt(paymentIdStr, 10);
 
     if (isNaN(paymentId)) {
+      console.error(`Midtrans Webhook: Invalid order ID format: ${orderId}`);
       return NextResponse.json({ message: 'Invalid order ID format' }, { status: 400 });
     }
 
@@ -44,6 +48,8 @@ export async function POST(req: Request) {
       finalStatus = 'pending';
     }
 
+    console.log(`Midtrans Webhook: Payment #${paymentId} → finalStatus=${finalStatus}`);
+
     // Update the payment record in the database
     if (finalStatus === 'paid') {
       await prisma.payment.update({
@@ -53,14 +59,17 @@ export async function POST(req: Request) {
           payment_date: new Date() // Mark the actual payment date
         }
       });
+      console.log(`Midtrans Webhook: Payment #${paymentId} marked as PAID`);
     } else if (finalStatus === 'failed') {
-      // If it failed/expired, we can just leave it as pending or mark as failed
+      // If it failed/expired, clear gateway_reference so user can retry
       await prisma.payment.update({
         where: { id: paymentId },
         data: {
-          status: 'pending' // Revert to pending so they can try again
+          status: 'pending',
+          gateway_reference: null
         }
       });
+      console.log(`Midtrans Webhook: Payment #${paymentId} marked as PENDING (expired/failed), gateway_reference cleared`);
     }
 
     return NextResponse.json({ message: 'Webhook processed successfully' }, { status: 200 });

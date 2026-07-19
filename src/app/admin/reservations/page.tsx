@@ -280,7 +280,7 @@ export default function ReservationsPage() {
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Room</label>
                   <select name="roomId" value={bRoom} onChange={(e) => setBRoom(e.target.value)} className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none">
-                    {availableRooms.map(r => (
+                    {availableRooms.filter(r => r.status === 'Available').map(r => (
                       <option key={r.id} value={r.room_number}>Room {r.room_number} - {r.type}</option>
                     ))}
                   </select>
@@ -645,18 +645,16 @@ export default function ReservationsPage() {
       {/* ══════ GLOBAL FOOTER ══════ */}
       <footer className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 py-5">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2">
-            <Logo size={22} />
-            <span className="text-sm font-extrabold text-blue-900">SmartStay</span>
-          </Link>
-
-          <p className="text-xs text-slate-400 dark:text-slate-500 font-medium text-center">
-            &copy; 2024 SmartStay Management System. All rights reserved.
-          </p>
-
+          <div>
+            <p className="text-[11px] font-black text-blue-900 uppercase tracking-widest">Papikost</p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
+              &copy; 2024 Papikost Management System. All rights reserved.
+            </p>
+          </div>
           <div className="flex items-center gap-5">
-            {['Support', 'Privacy Policy', 'Terms of Service', 'Contact Us'].map((link) => (
-              <a key={link} href="#" onClick={(e) => { e.preventDefault(); showToast(`Opening ${link}…`); }} className="text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 transition-colors">
+            {['Contact Us'].map((link) => (
+              <a key={link} href="#" onClick={(e) => { e.preventDefault(); showToast(`Opening ${link}…`); }}
+                className="text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
                 {link}
               </a>
             ))}

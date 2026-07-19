@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
 
 export async function POST(request: Request) {
   try {
@@ -13,6 +14,17 @@ export async function POST(request: Request) {
 
     // Wrap in a transaction to ensure all or nothing
     const result = await prisma.$transaction(async (tx) => {
+      // 0. Check room availability first
+      const room = await tx.room.findUnique({
+        where: { id: parseInt(roomId) },
+      });
+      if (!room) {
+        throw new Error('Room not found');
+      }
+      if (room.status !== 'Available') {
+        throw new Error('Room is no longer available');
+      }
+
       // 1. Find or create the user
       let user = await tx.user.findUnique({
         where: { email },
@@ -58,6 +70,11 @@ export async function POST(request: Request) {
 
       return { user, member, payment };
     });
+
+    revalidatePath('/');
+    revalidatePath('/api/rooms');
+    revalidatePath('/admin/reservations');
+    revalidatePath('/admin/rooms');
 
     return NextResponse.json({ success: true, data: result }, { status: 201 });
   } catch (error) {

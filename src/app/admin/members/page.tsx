@@ -145,7 +145,7 @@ export default function MembersPage() {
   const [notifications, setNotifications] = useState([
     { id: 1, title: 'New Booking Request', message: 'Jane Doe requested Room 201.', time: '5m ago', unread: true },
     { id: 2, title: 'Maintenance Alert', message: 'AC broken in Room 305.', time: '1h ago', unread: true },
-    { id: 3, title: 'Payment Received', message: 'John Smith paid $300.', time: '2h ago', unread: false },
+    { id: 3, title: 'Payment Received', message: 'John Smith paid Rp 1.400.000.', time: '2h ago', unread: false },
   ]);
   const notifRef = useRef<HTMLDivElement>(null);
 
@@ -371,7 +371,7 @@ export default function MembersPage() {
                   </div>
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Balance</span>
-                    <span className="text-sm font-extrabold text-blue-600 dark:text-blue-400">$0.00</span>
+                    <span className="text-sm font-extrabold text-blue-600 dark:text-blue-400">Rp 0</span>
                   </div>
                 </div>
               </div>
@@ -416,7 +416,7 @@ export default function MembersPage() {
                         <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{inv.billingMonth} • Due {inv.dueDate}</p>
                       </div>
                       <div className="flex items-center gap-4">
-                        <p className="text-sm font-extrabold text-blue-900 dark:text-blue-400">${inv.amount}</p>
+                        <p className="text-sm font-extrabold text-blue-900 dark:text-blue-400">Rp {Number(inv.amount).toLocaleString('id-ID')}</p>
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold ${
                           inv.status === 'paid' ? 'bg-emerald-50 text-emerald-700' :
                           inv.status === 'overdue' ? 'bg-rose-50 text-rose-700' :
@@ -721,13 +721,13 @@ export default function MembersPage() {
       <footer className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 py-5">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
-            <p className="text-[11px] font-black text-blue-900 uppercase tracking-widest">SmartStay</p>
+            <p className="text-[11px] font-black text-blue-900 uppercase tracking-widest">Papikost</p>
             <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
-              &copy; 2024 SmartStay Management System. All rights reserved.
+              &copy; 2024 Papikost Management System. All rights reserved.
             </p>
           </div>
           <div className="flex items-center gap-5">
-            {['Support', 'Privacy Policy', 'Terms of Service', 'Contact Us'].map((link) => (
+            {['Contact Us'].map((link) => (
               <a key={link} href="#" onClick={(e) => { e.preventDefault(); showToast(`Opening ${link}…`); }}
                 className="text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
                 {link}

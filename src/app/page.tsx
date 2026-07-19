@@ -5,9 +5,10 @@ import RoomCard from '@/components/RoomCard';
 import LocationMap from '@/components/LocationMap';
 import Footer from '@/components/Footer';
 import prisma from '@/lib/prisma';
+export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const rooms = await prisma.room.findMany();
+  const rooms = await prisma.room.findMany({ orderBy: { id: 'asc' } });
   
   const formattedRooms = rooms.map(room => {
     let parsedFeatures: string[] = [];
@@ -22,7 +23,7 @@ export default async function Home() {
     return {
       id: room.id.toString(),
       name: `Room ${room.room_number} - ${room.type}`,
-      price: `$${room.price}/mo`,
+      price: `Rp ${Number(room.price).toLocaleString('id-ID')}/bln`,
       status: room.status,
       features: parsedFeatures,
       imageUrl: room.imageUrl || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800',

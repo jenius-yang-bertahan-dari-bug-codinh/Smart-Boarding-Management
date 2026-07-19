@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
-  title: "Smart Boarding House Management",
-  description: "Find your smart and comfortable living space.",
+  title: "Papikost Boarding House Management",
+  description: "Find your smart and comfortable living space at Papikost.",
 };
 
 export default function RootLayout({

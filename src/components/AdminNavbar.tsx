@@ -17,7 +17,7 @@ export default function AdminNavbar({ activeTab }: AdminNavbarProps) {
   const [notifications, setNotifications] = useState([
     { id: 1, title: 'New Booking Request', message: 'Jane Doe requested Room 201.', time: '5m ago', unread: true },
     { id: 2, title: 'Maintenance Alert', message: 'AC broken in Room 305.', time: '1h ago', unread: true },
-    { id: 3, title: 'Payment Received', message: 'John Smith paid $300.', time: '2h ago', unread: false },
+    { id: 3, title: 'Payment Received', message: 'John Smith paid Rp 1.400.000.', time: '2h ago', unread: false },
   ]);
 
   const NAV_TABS = ['Dashboard', 'Rooms', 'Reservations', 'Billing', 'Members', 'Maintenance', 'Landing Page'] as const;
@@ -40,7 +40,7 @@ export default function AdminNavbar({ activeTab }: AdminNavbarProps) {
         <Link href="/admin" className="flex items-center gap-2.5 shrink-0">
           <Logo size={28} />
           <span className="text-xl font-bold text-blue-900 tracking-tight">
-            SmartStay Admin
+            Papikost Admin
           </span>
         </Link>
         

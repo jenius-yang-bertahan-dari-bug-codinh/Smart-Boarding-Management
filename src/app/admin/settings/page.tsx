@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { ArrowLeft, User, Bell, Shield, Paintbrush, Smartphone, Check, Settings, Moon, Sun } from 'lucide-react';
+import { ArrowLeft, User, Bell, Shield, Paintbrush, Smartphone, Check, Settings, Moon, Sun, LogOut } from 'lucide-react';
 import Logo from '@/components/Logo';
 import AdminNavbar from '@/components/AdminNavbar';
 
@@ -22,6 +22,16 @@ export default function SettingsPage() {
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
+    } catch (err) {
+      console.error(err);
+      window.location.href = '/login';
+    }
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -79,6 +89,17 @@ export default function SettingsPage() {
                 </button>
               );
             })}
+
+            <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer"
+              >
+                <LogOut className="w-4 h-4 text-rose-500 shrink-0" />
+                <span>Logout</span>
+              </button>
+            </div>
           </aside>
 
           {/* Settings Panel */}
@@ -106,7 +127,7 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Email Address</label>
-                    <input type="email" defaultValue="admin@smartstay.com" className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
+                    <input type="email" defaultValue="admin@papikost.com" className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
                   </div>
                 </div>
               )}
@@ -187,6 +208,26 @@ export default function SettingsPage() {
           </div>
         </div>
       </main>
+
+      {/* ══════ GLOBAL FOOTER ══════ */}
+      <footer className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 py-5">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-black text-blue-900 uppercase tracking-widest">Papikost</p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
+              &copy; 2024 Papikost Management System. All rights reserved.
+            </p>
+          </div>
+          <div className="flex items-center gap-5">
+            {['Contact Us'].map((link) => (
+              <a key={link} href="#" onClick={(e) => { e.preventDefault(); showToast(`Opening ${link}…`); }}
+                className="text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
+                {link}
+              </a>
+            ))}
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

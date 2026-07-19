@@ -11,7 +11,7 @@ async function main() {
       room_number: '101',
       floor: 1,
       type: 'Deluxe',
-      price: 250,
+      price: 1600000,
       status: 'Available',
       features: JSON.stringify(['Double Bed', 'En-suite', 'Workspace']),
       imageUrl: '/assets/rooms/room_101.png',
@@ -20,8 +20,8 @@ async function main() {
       room_number: '102',
       floor: 1,
       type: 'Suite',
-      price: 350,
-      status: 'Booked',
+      price: 1400000,
+      status: 'Booked',  // Pending booking (Alex's reservation awaiting approval)
       features: JSON.stringify(['Queen Bed', 'Smart TV', 'Sofa']),
       imageUrl: '/assets/rooms/room_102.png',
     },
@@ -29,7 +29,7 @@ async function main() {
       room_number: '205',
       floor: 2,
       type: 'Standard',
-      price: 160,
+      price: 1000000,
       status: 'Available',
       features: JSON.stringify(['Single Bed', 'Workspace']),
       imageUrl: '/assets/rooms/room_205.png',
@@ -47,6 +47,21 @@ async function main() {
 
   // Hash the password
   const hashedPassword = await bcrypt.hash('password123', 10)
+
+  // 0. Create or update the Admin user
+  await prisma.user.upsert({
+    where: { email: 'admin@smartstay.com' },
+    update: {
+      password: hashedPassword,
+      role: 'admin',
+    },
+    create: {
+      email: 'admin@smartstay.com',
+      password: hashedPassword,
+      role: 'admin',
+    },
+  })
+  console.log('Admin account created (admin@smartstay.com / password123)')
 
   // 1. Create or update the User "Alex"
   const alexUser = await prisma.user.upsert({
@@ -76,7 +91,7 @@ async function main() {
           room_id: room102.id,
           name: 'Alex Johnson',
           phone: '123-456-7890',
-          status: 'active',
+          status: 'pending',
         },
       })
     }
@@ -85,7 +100,7 @@ async function main() {
     await prisma.payment.create({
       data: {
         member_id: member.id,
-        amount: 250,
+        amount: 1600000,
         payment_method: 'Bank Transfer',
         status: 'pending',
       }
