@@ -1,27 +1,30 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTheme } from 'next-themes';
-import { ArrowLeft, User, Bell, Shield, Paintbrush, Smartphone, Check, Settings, Moon, Sun } from 'lucide-react';
+import { ArrowLeft, User, Bell, Shield, Paintbrush, Smartphone, Check, Settings, LogOut, Sun } from 'lucide-react';
 import Logo from '@/components/Logo';
 import AdminNavbar from '@/components/AdminNavbar';
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'security' | 'appearance'>('profile');
   const [toast, setToast] = useState<string | null>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
+    } catch (err) {
+      console.error(err);
+      window.location.href = '/login';
+    }
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -79,6 +82,17 @@ export default function SettingsPage() {
                 </button>
               );
             })}
+
+            <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer"
+              >
+                <LogOut className="w-4 h-4 text-rose-500 shrink-0" />
+                <span>Logout</span>
+              </button>
+            </div>
           </aside>
 
           {/* Settings Panel */}
@@ -106,7 +120,7 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Email Address</label>
-                    <input type="email" defaultValue="admin@smartstay.com" className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
+                    <input type="email" defaultValue="admin@papikost.com" className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
                   </div>
                 </div>
               )}
@@ -158,22 +172,17 @@ export default function SettingsPage() {
               {activeTab === 'appearance' && (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Appearance</h2>
-                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-6">Customize the UI theme.</p>
+                    <h2 className="text-lg font-bold text-slate-900 mb-1">Appearance</h2>
+                    <p className="text-xs font-semibold text-slate-500 mb-6">Customize the UI theme.</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button type="button" onClick={() => { if(mounted) setTheme('light'); showToast('Theme set to Light'); }} className={`border-2 p-4 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors ${mounted && theme === 'light' ? 'border-blue-600 bg-blue-50/50' : 'border-slate-100 dark:border-slate-800 hover:border-slate-300 bg-slate-50 dark:bg-slate-950'}`}>
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${mounted && theme === 'light' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                  <div>
+                    <div className="border-2 border-blue-600 bg-blue-50/50 p-4 rounded-xl flex flex-col items-center justify-center gap-2 max-w-[160px]">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-100 text-blue-600">
                         <Sun className="w-5 h-5" />
                       </div>
-                      <span className={`text-sm font-bold ${mounted && theme === 'light' ? 'text-blue-900' : 'text-slate-600 dark:text-slate-400'}`}>Light Mode</span>
-                    </button>
-                    <button type="button" onClick={() => { if(mounted) setTheme('dark'); showToast('Theme set to Dark'); }} className={`border-2 p-4 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors ${mounted && theme === 'dark' ? 'border-blue-600 bg-blue-50/50' : 'border-slate-100 dark:border-slate-800 hover:border-slate-300 bg-slate-50 dark:bg-slate-950'}`}>
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${mounted && theme === 'dark' ? 'bg-slate-800 text-white' : 'bg-slate-800 text-slate-400'}`}>
-                        <Moon className="w-5 h-5" />
-                      </div>
-                      <span className={`text-sm font-bold ${mounted && theme === 'dark' ? 'text-blue-900' : 'text-slate-600 dark:text-slate-400'}`}>Dark Mode</span>
-                    </button>
+                      <span className="text-sm font-bold text-blue-900">Light Mode</span>
+                      <span className="text-[10px] text-blue-500 font-semibold">Active</span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -187,6 +196,26 @@ export default function SettingsPage() {
           </div>
         </div>
       </main>
+
+      {/* ══════ GLOBAL FOOTER ══════ */}
+      <footer className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 py-5">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-black text-blue-900 uppercase tracking-widest">Papikost</p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
+              &copy; 2024 Papikost Management System. All rights reserved.
+            </p>
+          </div>
+          <div className="flex items-center gap-5">
+            {['Contact Us'].map((link) => (
+              <a key={link} href="#" onClick={(e) => { e.preventDefault(); showToast(`Opening ${link}…`); }}
+                className="text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
+                {link}
+              </a>
+            ))}
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -24,8 +24,9 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const currentStatus = room.status?.toLowerCase() || '';
   const isAvailable = currentStatus === 'available';
-  const isBooked = currentStatus === 'booked' || currentStatus === 'pending';
-  const displayStatus = isAvailable ? 'Available' : isBooked ? 'Booked' : 'Full';
+  const isPending = currentStatus === 'booked' || currentStatus === 'pending';
+  const isOccupied = currentStatus === 'occupied';
+  const displayStatus = isAvailable ? 'Available' : isPending ? 'Pending' : 'Occupied';
 
   const mockDescription = "Experience premium comfort in our Deluxe Room. Meticulously designed for the modern resident, this space features a plush double bed, a dedicated ergonomic study area, and a pristine en-suite bathroom. Generous natural light and minimalist furnishings create a serene environment perfect for both focused work and relaxation.";
   const mockLocation = "North Wing, 1st Floor";
@@ -43,14 +44,14 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
         <span className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1.5 shadow-sm backdrop-blur-md ${
             isAvailable
               ? 'bg-emerald-50/95 text-emerald-700 border border-emerald-100/50'
-              : isBooked
+              : isPending
               ? 'bg-amber-50/95 text-amber-700 border border-amber-100/50'
               : 'bg-rose-50/95 text-rose-700 border border-rose-100/50'
           }`}>
           <span className={`w-1.5 h-1.5 rounded-full ${
             isAvailable
               ? 'bg-emerald-500 animate-pulse'
-              : isBooked
+              : isPending
               ? 'bg-amber-500 animate-pulse'
               : 'bg-rose-500'
           }`} />
@@ -99,13 +100,13 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
             >
               Book Now
             </Link>
-          ) : isBooked ? (
-             <button className="w-full bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-semibold py-2.5 rounded-xl text-sm transition-all duration-200 cursor-not-allowed text-center block">
+          ) : isPending ? (
+             <button disabled className="w-full bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-400 font-semibold py-2.5 rounded-xl text-sm transition-all duration-200 cursor-not-allowed text-center block opacity-90">
               Waiting for Approval
             </button>
           ) : (
-            <button className="w-full bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-300 font-semibold py-2.5 rounded-xl text-sm transition-all duration-200 cursor-pointer text-center block">
-              Notify Me
+            <button disabled className="w-full bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-700 text-rose-700 dark:text-rose-400 font-semibold py-2.5 rounded-xl text-sm transition-all duration-200 cursor-not-allowed text-center block opacity-90">
+              Occupied
             </button>
           )}
         </div>

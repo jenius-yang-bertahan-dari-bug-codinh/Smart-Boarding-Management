@@ -21,10 +21,12 @@ import {
   CheckCircle,
   FileImage,
   Clock,
-  Wrench as WrenchIcon
+  Wrench as WrenchIcon,
+  User
 } from 'lucide-react';
 import Logo from '@/components/Logo';
-import RoleSwitcher from '@/components/RoleSwitcher';
+import MemberSidebar from '@/components/MemberSidebar';
+import { validateClientImageFile } from '@/lib/file-security';
 
 export default function ServiceRequests() {
   const [category, setCategory] = useState('');
@@ -32,6 +34,7 @@ export default function ServiceRequests() {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [showAllHistory, setShowAllHistory] = useState(false);
   
   const [complaints, setComplaints] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
@@ -51,32 +54,31 @@ export default function ServiceRequests() {
       .then((data) => {
         setComplaints(data.complaints);
         setUser(data.user);
-        setLoading(false);
         if (data.complaints.length > 0 && !selectedComplaint) {
           setSelectedComplaint(data.complaints[0]);
           setIsDrawerOpen(true);
         }
       })
-      .catch((err) => console.error(err));
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     fetchComplaints();
   }, [router]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
-    const validExtensions = /\.(jpg|jpeg|png)$/i;
-    if (!validTypes.includes(file.type) && !validExtensions.test(file.name)) {
-      alert('Only JPG, JPEG, and PNG format images are allowed.');
+    const validation = await validateClientImageFile(file);
+    if (!validation.isValid) {
+      alert(validation.error);
       e.target.value = '';
       return;
     }
 
-    setFileName(file.name);
+    setFileName(validation.sanitizedFileName || file.name);
     const reader = new FileReader();
     reader.onloadend = () => {
       setPhotoUrl(reader.result as string);
@@ -111,114 +113,7 @@ export default function ServiceRequests() {
     <main className="min-h-screen bg-slate-50/50 flex flex-col md:flex-row font-sans selection:bg-blue-500 selection:text-white">
       
       {/* Left-Side Navigation Sidebar */}
-      <aside className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-slate-100 flex flex-col py-6 px-4 shrink-0 justify-between md:min-h-screen">
-        <div>
-          {/* Top Brand Section: Logo + Text */}
-          <div className="flex items-center gap-2.5 px-2 mb-6">
-            <Logo size={32} />
-            <span className="text-xl font-bold text-blue-900 tracking-tight">
-              SmartStay
-            </span>
-          </div>
-
-          {/* User Profile Avatar Section */}
-          <div className="flex flex-col items-center mb-6 py-4 border-y border-slate-100/60">
-            <img
-              src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
-              alt={user?.name || "Member Avatar"}
-              className="w-16 h-16 rounded-full object-cover border-2 border-slate-100 shadow-sm mb-2"
-            />
-            <span className="text-xs font-semibold text-slate-400">Welcome back,</span>
-            <span className="text-sm font-bold text-blue-900 mt-0.5">{user?.name}</span>
-            <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full mt-1.5 uppercase tracking-wider">
-              Premium Member
-            </span>
-          </div>
-
-          {/* Vertical Navigation Links */}
-          <nav className="space-y-1">
-            {/* Overview */}
-            <Link 
-              href="/dashboard" 
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-blue-900 hover:bg-slate-50 font-semibold text-sm transition-all"
-            >
-              <LayoutDashboard className="w-4.5 h-4.5 stroke-[1.8]" />
-              <span>Overview</span>
-            </Link>
-
-            {/* Payments */}
-            <Link 
-              href="/payments" 
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-blue-900 hover:bg-slate-50 font-semibold text-sm transition-all"
-            >
-              <CreditCard className="w-4.5 h-4.5 stroke-[1.8]" />
-              <span>Payments</span>
-            </Link>
-
-            {/* Service Requests (Active) */}
-            <a 
-              href="#" 
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-blue-50/80 text-blue-900 font-semibold text-sm transition-all"
-            >
-              <Wrench className="w-4.5 h-4.5 stroke-[2.2]" />
-              <span>Service Requests</span>
-            </a>
-
-            {/* Announcements */}
-            <Link 
-              href="/announcements" 
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-blue-900 hover:bg-slate-50 font-semibold text-sm transition-all"
-            >
-              <Megaphone className="w-4.5 h-4.5 stroke-[1.8]" />
-              <span>Announcements</span>
-            </Link>
-
-            {/* Settings */}
-            <a 
-              href="#" 
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-blue-900 hover:bg-slate-50 font-semibold text-sm transition-all"
-            >
-              <Settings className="w-4.5 h-4.5 stroke-[1.8]" />
-              <span>Settings</span>
-            </a>
-          </nav>
-        </div>
-
-        {/* Sidebar Footer Section */}
-        <div className="mt-8 pt-4 border-t border-slate-100 space-y-4">
-          {/* Emergency Support Button */}
-          <button 
-            type="button"
-            onClick={() => alert('Emergency dispatch team has been notified. We will contact you immediately.')}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-orange-500/10 hover:shadow-lg hover:shadow-orange-500/20 text-xs sm:text-sm cursor-pointer"
-          >
-            <AlertTriangle className="w-4.5 h-4.5 stroke-[2.2]" />
-            <span>Emergency Support</span>
-          </button>
-
-          {/* Additional Links */}
-          <div className="space-y-1">
-            <a 
-              href="#" 
-              className="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 hover:text-blue-900 hover:bg-slate-50 font-semibold text-xs sm:text-sm transition-all"
-            >
-              <HelpCircle className="w-4.5 h-4.5 text-slate-400 stroke-[1.8]" />
-              <span>Help Center</span>
-            </a>
-            <button 
-              type="button"
-              onClick={async () => {
-                await fetch('/api/auth/logout', { method: 'POST' });
-                window.location.href = '/login';
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 hover:text-rose-600 hover:bg-rose-50/50 font-semibold text-xs sm:text-sm transition-all cursor-pointer text-left"
-            >
-              <LogOut className="w-4 h-4 text-slate-400 stroke-[1.8]" />
-              <span>Sign Out</span>
-            </button>
-          </div>
-        </div>
-      </aside>
+      <MemberSidebar activeTab="Service Requests" user={user} onRefresh={fetchComplaints} />
 
       {/* Main Right-Side Dashboard Area */}
       <section className="flex-grow p-6 sm:p-8 lg:p-10 overflow-y-auto flex flex-col">
@@ -233,9 +128,6 @@ export default function ServiceRequests() {
               Submit and track your property complaints or maintenance requests.
             </p>
           </div>
-          <div>
-            <RoleSwitcher currentRole="guest" />
-          </div>
         </div>
 
         {/* Core Layout Grid */}
@@ -243,8 +135,8 @@ export default function ServiceRequests() {
           
           {/* Left Block: New Request Form */}
           <div className={`space-y-6 ${isDrawerOpen ? 'xl:col-span-5' : 'xl:col-span-7'}`}>
-            <div className="bg-white border border-slate-100 rounded-2xl p-6 sm:p-8 shadow-sm">
-              <h2 className="text-xl font-bold text-slate-900 mb-6 pb-2 border-b border-slate-100">
+            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+              <h2 className="text-sm font-bold text-slate-800 mb-4 pb-2 border-b border-slate-100">
                 New Request
               </h2>
 
@@ -326,8 +218,8 @@ export default function ServiceRequests() {
                       <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                         <UploadCloud className="w-5.5 h-5.5" />
                       </div>
-                      <span className="text-xs font-bold text-slate-700 group-hover:text-blue-600 transition-colors">Click to upload image</span>
-                      <span className="text-[10px] text-slate-400 font-semibold mt-1">JPG, JPEG, or PNG only (optional attachment)</span>
+                      <span className="text-xs font-bold text-slate-700 group-hover:text-blue-600 transition-colors">Click to upload image (Max 5 MB)</span>
+                      <span className="text-[10px] text-slate-400 font-semibold mt-1">JPG, JPEG, or PNG only</span>
                     </label>
                   )}
                 </div>
@@ -357,13 +249,13 @@ export default function ServiceRequests() {
             
             {/* Timeline Card */}
             <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-4">
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded">
                     REQ-2023-894
                   </span>
                   <h3 className="text-sm font-bold text-slate-800">
-                    HVAC Maintenance
+                    Request Details: HVAC Maintenance
                   </h3>
                 </div>
                 <button className="text-slate-400 hover:text-slate-600 cursor-pointer">
@@ -398,11 +290,9 @@ export default function ServiceRequests() {
                     
                     {/* Technician card summary */}
                     <div className="mt-3 flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 bg-slate-50/50 max-w-xs">
-                      <img
-                        src="https://images.unsplash.com/photo-1628157582853-a796fa650a6a?ixlib=rb-4.0.3&auto=format&fit=crop&w=80&q=80"
-                        alt="Michael"
-                        className="w-8 h-8 rounded-full object-cover border border-slate-100 shrink-0"
-                      />
+                      <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center border border-slate-300 shrink-0">
+                        <User className="w-4 h-4" />
+                      </div>
                       <div>
                         <h5 className="text-[11px] font-bold text-slate-800">Michael R.</h5>
                         <p className="text-[9px] text-slate-400 font-semibold">HVAC Specialist</p>
@@ -442,7 +332,7 @@ export default function ServiceRequests() {
               </h2>
 
               {/* History Item List */}
-              {complaints.map((c) => (
+              {(showAllHistory ? complaints : complaints.slice(0, 3)).map((c) => (
                 <div 
                   key={c.id}
                   onClick={() => { setSelectedComplaint(c); setIsDrawerOpen(true); }}
@@ -474,12 +364,24 @@ export default function ServiceRequests() {
               )}
 
               {/* Full History button */}
-              <button 
-                onClick={() => alert('Displaying full requests archive...')}
-                className="w-full mt-4 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold py-2.5 px-4 rounded-xl text-xs transition-all border border-slate-100 cursor-pointer text-center"
-              >
-                View All History
-              </button>
+              {!showAllHistory && complaints.length > 3 && (
+                <button 
+                  type="button"
+                  onClick={() => setShowAllHistory(true)}
+                  className="w-full mt-4 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold py-2.5 px-4 rounded-xl text-xs transition-all border border-slate-100 cursor-pointer text-center"
+                >
+                  View All History ({complaints.length})
+                </button>
+              )}
+              {showAllHistory && complaints.length > 3 && (
+                <button 
+                  type="button"
+                  onClick={() => setShowAllHistory(false)}
+                  className="w-full mt-4 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold py-2.5 px-4 rounded-xl text-xs transition-all border border-slate-100 cursor-pointer text-center"
+                >
+                  Show Less
+                </button>
+              )}
             </div>
 
           </div>

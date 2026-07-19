@@ -9,16 +9,29 @@ export async function GET() {
     const token = cookieStore.get('auth_token')?.value
 
     let userName = 'Guest';
+    let memberData = null;
+
     if (token) {
       try {
         const payload = await decrypt(token)
-        const user = await prisma.user.findUnique({
+        const user = (await prisma.user.findUnique({
           where: { id: payload.userId as number },
-          include: { members: true }
-        })
+          include: { 
+            members: {
+              include: {
+                room: true,
+                complaints: {
+                  orderBy: { id: 'desc' }
+                }
+              }
+            } 
+          }
+        })) as any;
+
         if (user) {
-          const member = user.members.length > 0 ? user.members[0] : null;
-          userName = member?.name || payload.name as string;
+          const member = user.members?.length > 0 ? user.members[0] : null;
+          userName = member?.name || (payload.name as string);
+          memberData = member;
         }
       } catch (e) {
         // ignore auth error for announcements
@@ -34,7 +47,13 @@ export async function GET() {
       orderBy: { id: 'desc' }
     });
 
-    return NextResponse.json({ announcements, user: { name: userName } })
+    return NextResponse.json({ 
+      announcements, 
+      user: { 
+        name: userName,
+        memberProfile: memberData
+      } 
+    })
   } catch (error: any) {
     console.error('Announcements API error:', error)
     return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 })

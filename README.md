@@ -1,150 +1,223 @@
-# Smart Boarding House Management System
+# 🏠 Papikost — Smart Boarding Management System
 
-Welcome to the **Smart Boarding House Management System**! 
-
-This is a comprehensive full-stack web application designed to manage boarding houses (kost/kontrakan). It features a modern, user-facing landing page for prospective tenants and a powerful, integrated Admin Panel for landlords/managers to handle rooms, members, reservations, billing, and maintenance.
+> A full-stack web application for managing modern boarding houses (kos-kosan). Built for landlords and property managers who want to automate operations, track residents, and monitor payments — all from one dashboard.
 
 ---
 
-## 🚀 Key Features
+## ✨ Features
 
-- **Dynamic Landing Page**: Showcases room availability, premium facilities, and location map.
-- **Admin Dashboard**: Real-time overview of occupancy, monthly revenue, and system health.
-- **Room Management**: Full CRUD operations for rooms, including dynamic status updates and member assignments.
-- **Resident (Member) Directory**: Manage tenant profiles, view contract details, and handle room assignments.
-- **Billing & Invoicing**: Track payments, pending invoices, and monthly revenue trends.
-- **Maintenance Tracking**: Log, schedule, and track repairs and maintenance requests.
-- **Reservation System**: Handle incoming booking requests from prospective tenants.
+### 🖥 Admin Panel
+| Feature | Description |
+|---|---|
+| **Dashboard** | Real-time KPIs — occupancy rate, revenue, pending maintenance, and new reservations. Interactive monthly/weekly revenue chart. |
+| **Quick Actions** | One-click shortcuts: Add Resident, Generate Invoices, Open Maintenance Tickets, Broadcast Announcements. |
+| **Recent Activity Modal** | Unified view of latest payments, member events, and maintenance updates in one place. |
+| **Room Management** | Full CRUD for rooms. Status tracking: `Available`, `Occupied`, `Maintenance`. |
+| **Resident (Member) Management** | Onboard residents, assign rooms, manage contracts and payment history. |
+| **Billing & Invoices** | Auto-generated invoices, payment verification queue, overdue tracking, and Payment Trends chart. |
+| **Maintenance Tickets** | Log and track repair requests submitted by residents. Resolve tickets with notes. |
+| **Reservations** | Handle incoming booking requests from prospective tenants. |
+| **Admin Guide** | In-app documentation page at `/admin/guide` with step-by-step instructions for all modules. |
+| **Settings** | Profile, notification preferences, security (password change), and appearance. |
+
+### 🌐 Public Landing Page
+- Room showcase with live availability
+- Facility highlights and location map
+- Online checkout & booking flow powered by **Midtrans** payment gateway
 
 ---
 
 ## 🛠 Tech Stack
 
-This project is built using modern full-stack technologies to ensure performance, type safety, and rapid development:
-
-- **Framework:** [Next.js](https://nextjs.org/) (App Router, Server Actions)
-- **Database:** [SQLite](https://www.sqlite.org/) via [Prisma ORM](https://www.prisma.io/)
-- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
-- **Language:** [TypeScript](https://www.typescriptlang.org/)
-- **Icons:** [Lucide React](https://lucide.dev/)
-
----
-
-## 📦 Prerequisites & Local Setup
-
-To run this project locally, ensure you have **Node.js** (v18+ recommended) installed.
-
-### Step-by-Step Setup:
-
-1. **Clone the repository:**
-   ```bash
-   git clone <REPOSITORY_URL>
-   cd ITPROJECTMANAGEMENTFINAL/Smart-Boarding-Management
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Configure Environment Variables:**
-   Create a `.env` file in the root directory and add the Midtrans Sandbox credentials:
-   ```env
-   MIDTRANS_MERCHANT_ID="G105380640"
-   MIDTRANS_CLIENT_KEY="SB-Mid-client-PLcINWELsBNsoBdN"
-   MIDTRANS_SERVER_KEY="SB-Mid-server-k5VnZZNVNdRTXqed22jd4LRD"
-   MIDTRANS_IS_PRODUCTION="false"
-   ```
-
-4. **Set up the Database (Prisma):**
-   This project uses SQLite for ease of development. Generate the Prisma client and push the schema:
-   ```bash
-   npx prisma generate
-   npx prisma db push
-   ```
-
-4. **Run the development server:**
-   ```bash
-   npm run dev
-   ```
-
-5. **View the app:**
-   - Landing Page: [http://localhost:3000](http://localhost:3000)
-   - Admin Panel: [http://localhost:3000/admin](http://localhost:3000/admin)
+| Layer | Technology |
+|---|---|
+| **Framework** | [Next.js 16](https://nextjs.org/) — App Router, Server Actions, Server Components |
+| **Language** | [TypeScript 5](https://www.typescriptlang.org/) |
+| **Database** | [SQLite](https://www.sqlite.org/) via [Prisma ORM 6](https://www.prisma.io/) |
+| **Styling** | [Tailwind CSS 4](https://tailwindcss.com/) |
+| **UI Icons** | [Lucide React](https://lucide.dev/) |
+| **Auth** | [jose](https://github.com/panva/jose) (JWT) + [bcryptjs](https://github.com/dcodeIO/bcrypt.js) |
+| **Payments** | [Midtrans](https://midtrans.com/) Sandbox |
+| **PDF** | [PDFKit](https://pdfkit.org/) |
+| **Runtime** | [Node.js](https://nodejs.org/) 18+ |
 
 ---
 
-## 🤝 Git Collaboration Workflow (CRITICAL)
+## 📦 Local Setup
 
-To ensure smooth collaboration among the team (Michael, Fathan, Theodore) and to maintain clear progress for Alfadzri (PM) and Nofi (BA), everyone **MUST** follow these strict Git rules:
+### Prerequisites
+- **Node.js** v18 or later
+- **npm** v9 or later
 
-> **CRITICAL RULE:** 🛑 **NEVER** push or commit directly to the `main` branch!
-
-### 1. Update your local `main` branch before starting work:
-Always make sure you are up to date with the latest code before creating a new branch.
+### 1. Clone the repository
 ```bash
+git clone <REPOSITORY_URL>
+cd Smart-Boarding-Management
+```
+
+### 2. Install dependencies
+```bash
+npm install
+```
+
+### 3. Configure environment variables
+Create a `.env` file in the project root:
+```env
+# Midtrans Payment Gateway (Sandbox)
+MIDTRANS_MERCHANT_ID="G105380640"
+MIDTRANS_CLIENT_KEY="SB-Mid-client-PLcINWELsBNsoBdN"
+MIDTRANS_SERVER_KEY="SB-Mid-server-k5VnZZNVNdRTXqed22jd4LRD"
+MIDTRANS_IS_PRODUCTION="false"
+```
+
+### 4. Set up the database
+```bash
+# Generate the Prisma client
+npx prisma generate
+
+# Push the schema to SQLite
+npx prisma db push
+
+# (Optional) Seed the database with sample data
+npx prisma db seed
+```
+
+### 5. Start the dev server
+```bash
+npm run dev
+```
+
+### 6. Open the app
+| URL | Description |
+|---|---|
+| `http://localhost:3000` | Public landing page |
+| `http://localhost:3000/admin` | Admin dashboard |
+| `http://localhost:3000/login` | Admin login |
+
+### Useful scripts
+```bash
+npm run dev      # Start development server
+npm run build    # Build for production
+npm run start    # Start production server
+npm run lint     # Run ESLint
+
+npx prisma studio       # Open Prisma DB browser at localhost:5555
+npx prisma db push      # Sync schema changes to DB
+npx prisma db seed      # Re-seed with sample data
+```
+
+---
+
+## 📁 Project Structure
+
+```text
+Smart-Boarding-Management/
+├── prisma/
+│   ├── schema.prisma        # Database schema (Rooms, Members, Payments, Complaints)
+│   └── seed.ts              # Sample data seeder
+├── src/
+│   ├── app/
+│   │   ├── admin/           # Admin panel pages
+│   │   │   ├── page.tsx         # Dashboard
+│   │   │   ├── guide/           # In-app Admin Guide documentation
+│   │   │   ├── billing/         # Billing & invoices
+│   │   │   ├── members/         # Resident management
+│   │   │   ├── rooms/           # Room management
+│   │   │   ├── maintenance/     # Maintenance tickets
+│   │   │   ├── reservations/    # Booking requests
+│   │   │   ├── settings/        # Admin settings
+│   │   │   └── landing-page/    # Landing page editor
+│   │   ├── actions/         # Next.js Server Actions (DB mutations)
+│   │   │   ├── dashboard.ts
+│   │   │   ├── billing.ts
+│   │   │   ├── members.ts
+│   │   │   ├── maintenance.ts
+│   │   │   ├── properties.ts
+│   │   │   └── quick-actions.ts
+│   │   ├── api/             # API route handlers
+│   │   │   ├── auth/            # Login / logout
+│   │   │   └── checkout/        # Midtrans payment integration
+│   │   ├── globals.css      # Global styles
+│   │   └── page.tsx         # Public landing page
+│   ├── components/          # Reusable React components
+│   │   ├── AdminNavbar.tsx
+│   │   ├── Footer.tsx
+│   │   └── Logo.tsx
+│   └── lib/
+│       └── prisma.ts        # Prisma client singleton
+└── .env                     # Environment variables (not committed)
+```
+
+---
+
+## 🤝 Git Collaboration Workflow
+
+> 🛑 **NEVER push or commit directly to `main`.** All changes go through feature branches and Pull Requests.
+
+### Daily workflow
+
+```bash
+# 1. Always start from an up-to-date main
 git checkout main
 git pull origin main
-```
 
-### 2. Create a new Feature Branch:
-Branch names should be descriptive of the task you are working on.
-```bash
+# 2. Create a feature branch
 git checkout -b feature/your-feature-name
-# Example: git checkout -b feature/admin-dashboard
-```
+# e.g. git checkout -b feature/billing-overdue-alert
 
-### 3. Work, Commit, and Push:
-Commit your changes with clear, descriptive messages.
-```bash
+# 3. Work, then commit with a clear message
 git add .
-git commit -m "feat: add admin dashboard layout"
+git commit -m "feat: add overdue payment alert to billing page"
 git push origin feature/your-feature-name
+
+# 4. Open a Pull Request on GitHub → target branch: main
+# 5. Request a review from at least one teammate before merging
 ```
 
-### 4. Pull Request (PR) & Code Review:
-- Go to the repository on GitHub/GitLab and open a **Pull Request (PR)** against the `main` branch.
-- **DO NOT** merge your own PR immediately.
-- Require **at least one code review** and approval from another developer before merging.
+### Keeping your branch up to date
 
-### 5. Keeping your branch updated (Avoiding Conflicts):
-If someone else merges code into `main` while you are working, update your branch safely:
 ```bash
 git checkout main
 git pull origin main
 git checkout feature/your-feature-name
 git merge main
-# Resolve any conflicts locally, then push again
+# Resolve conflicts locally, then push
 ```
 
----
+### Commit message convention
 
-## 📁 Project Folder Structure
-
-```text
-src/
-├── app/                  # Next.js App Router (pages, layouts, server actions)
-│   ├── admin/            # Admin Panel Pages (Dashboard, Rooms, Members, etc.)
-│   ├── actions/          # Next.js Server Actions for database mutations
-│   ├── globals.css       # Tailwind CSS and global styling configuration
-│   └── page.tsx          # Main Landing Page
-├── components/           # Reusable React components (AdminNavbar, Modals, UI blocks)
-├── lib/                  # Library configurations (Prisma client)
-├── data/                 # Mock data (if any remaining)
-└── types/                # TypeScript interface and type definitions
-prisma/
-└── schema.prisma         # Prisma database schema definition
-```
+| Prefix | When to use |
+|---|---|
+| `feat:` | New feature |
+| `fix:` | Bug fix |
+| `style:` | UI/CSS changes only |
+| `refactor:` | Code restructure, no behavior change |
+| `chore:` | Config, deps, tooling |
+| `docs:` | README or documentation updates |
 
 ---
 
 ## 🧑‍💻 Coding Standards
 
-- **Components:** Use **PascalCase** for component files and function names (e.g., `AdminNavbar.tsx`).
-- **Variables & Functions:** Use **camelCase** (e.g., `const fetchRooms = () => {}`).
-- **Types/Interfaces:** Use **PascalCase** (e.g., `interface RoomProps {}`).
-- **Server Actions:** Keep database queries inside `src/app/actions/` and use `"use server"`.
-- **Styling:** Use standard Tailwind CSS utility classes. Avoid inline `style={{}}`.
+- **Components:** `PascalCase` filenames and function names — e.g., `AdminNavbar.tsx`
+- **Variables & functions:** `camelCase` — e.g., `const fetchRooms = () => {}`
+- **Types / Interfaces:** `PascalCase` — e.g., `interface RoomProps {}`
+- **Server Actions:** All DB queries live in `src/app/actions/` and must start with `"use server"`
+- **Styling:** Use Tailwind CSS utility classes. Avoid inline `style={{}}` unless strictly necessary.
+- **No implicit `any`:** Always type your parameters explicitly in callbacks and reduce functions.
 
 ---
-*If you run into any issues, please reach out in the developer group chat!*
+
+## 👥 Team
+
+| Role | Name |
+|---|---|
+| Developer | Michael |
+| Developer | Fathan |
+| Developer | Theodore |
+| Project Manager | Alfadzri |
+| Business Analyst | Nofi |
+
+---
+
+*Questions or issues? Reach out in the developer group chat.*

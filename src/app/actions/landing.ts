@@ -29,7 +29,7 @@ export async function getAdminLandingConfig() {
       id: r.id,
       image: r.imageUrl || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=200',
       name: `${r.type} ${r.room_number}`,
-      price: `$${r.price}`,
+      price: `Rp ${Number(r.price).toLocaleString('id-ID')}`,
       amenities: r.features ? (r.features.startsWith('[') ? JSON.parse(r.features) : r.features.split(',')) : ['WiFi']
     }));
 
@@ -38,8 +38,8 @@ export async function getAdminLandingConfig() {
       data: {
         facilities: parsedFacilities,
         rooms: mappedRooms.length > 0 ? mappedRooms : [
-          { id: 1, image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=200', name: 'Premium Sky Suite', price: '$1,200', amenities: ['WiFi 6', 'AC', 'Smart Lock'] },
-          { id: 2, image: 'https://images.unsplash.com/photo-1554995207-c18c203602cb?auto=format&fit=crop&q=80&w=200', name: 'Standard Solo Studio', price: '$850', amenities: ['WiFi', 'En-suite'] }
+          { id: 1, image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=200', name: 'Premium Sky Suite', price: 'Rp 1.400.000', amenities: ['WiFi 6', 'AC', 'Smart Lock'] },
+          { id: 2, image: 'https://images.unsplash.com/photo-1554995207-c18c203602cb?auto=format&fit=crop&q=80&w=200', name: 'Standard Solo Studio', price: 'Rp 1.000.000', amenities: ['WiFi', 'En-suite'] }
         ]
       }
     };

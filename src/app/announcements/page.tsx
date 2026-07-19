@@ -15,29 +15,103 @@ import {
   FileText,
   Users,
   Calendar,
-  Sparkles
+  Sparkles,
+  Search
 } from 'lucide-react';
 import Logo from '@/components/Logo';
-import RoleSwitcher from '@/components/RoleSwitcher';
+import MemberSidebar from '@/components/MemberSidebar';
+import MemberCalendarModal from '@/components/MemberCalendarModal';
+import HouseRulesModal from '@/components/HouseRulesModal';
+import LeaseAgreementModal from '@/components/LeaseAgreementModal';
 
 export default function AnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
+  // Dynamic Document Management State (integrated with admin updates)
+  const [docs, setDocs] = useState<{
+    leaseAgreement: { name: string; size: string; date: string; url: string } | null;
+    houseRules: { name: string; size: string; date: string; url: string } | null;
+  }>({
+    leaseAgreement: { name: 'lease-agreement-v2.pdf', size: '2.4 MB', date: '2024-07-01', url: '/lease-agreement.pdf' },
+    houseRules: { name: 'house-rules-official.pdf', size: '1.8 MB', date: '2024-06-15', url: '/house-rules.pdf' },
+  });
+  const [isHouseRulesOpen, setIsHouseRulesOpen] = useState(false);
+  const [isLeaseModalOpen, setIsLeaseModalOpen] = useState(false);
+
+  const openDocument = (docUrl: string, fileName: string) => {
+    if (!docUrl) return;
+    if (docUrl.startsWith('data:')) {
+      try {
+        const arr = docUrl.split(',');
+        const mimeMatch = arr[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'application/pdf';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+      } catch (e) {
+        const link = document.createElement('a');
+        link.href = docUrl;
+        link.download = fileName || 'document.pdf';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } else {
+      window.open(docUrl, '_blank');
+    }
+  };
+
+  const fetchAnnouncements = () => {
     fetch('/api/announcements')
       .then((res) => res.json())
       .then((data) => {
         setAnnouncements(data.announcements || []);
         setUser(data.user);
-        setLoading(false);
       })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
-      });
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchAnnouncements();
+
+    const loadDocs = () => {
+      try {
+        const savedDocs = localStorage.getItem('papikost_admin_docs');
+        if (savedDocs) {
+          setDocs(JSON.parse(savedDocs));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadDocs();
+    window.addEventListener('storage', loadDocs);
+    window.addEventListener('papikost_docs_changed', loadDocs);
+    return () => {
+      window.removeEventListener('storage', loadDocs);
+      window.removeEventListener('papikost_docs_changed', loadDocs);
+    };
   }, []);
+
+  const filteredAnnouncements = announcements.filter((ann) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (ann.title && ann.title.toLowerCase().includes(q)) ||
+      (ann.body && ann.body.toLowerCase().includes(q))
+    );
+  });
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans font-semibold text-slate-500">Loading announcements...</div>;
@@ -47,114 +121,7 @@ export default function AnnouncementsPage() {
     <main className="min-h-screen bg-slate-50/50 flex flex-col md:flex-row font-sans selection:bg-blue-500 selection:text-white">
       
       {/* Left-Side Navigation Sidebar */}
-      <aside className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-slate-100 flex flex-col py-6 px-4 shrink-0 justify-between md:min-h-screen">
-        <div>
-          {/* Top Brand Section: Logo + Text */}
-          <div className="flex items-center gap-2.5 px-2 mb-6">
-            <Logo size={32} />
-            <span className="text-xl font-bold text-blue-900 tracking-tight">
-              SmartStay
-            </span>
-          </div>
-
-          {/* User Profile Avatar Section */}
-          <div className="flex flex-col items-center mb-6 py-4 border-y border-slate-100/60">
-            <img
-              src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
-              alt={user?.name || "Member Avatar"}
-              className="w-16 h-16 rounded-full object-cover border-2 border-slate-100 shadow-sm mb-2"
-            />
-            <span className="text-xs font-semibold text-slate-400">Welcome back,</span>
-            <span className="text-sm font-bold text-blue-900 mt-0.5">{user?.name}</span>
-            <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full mt-1.5 uppercase tracking-wider">
-              Premium Member
-            </span>
-          </div>
-
-          {/* Vertical Navigation Links */}
-          <nav className="space-y-1">
-            {/* Overview */}
-            <Link 
-              href="/dashboard" 
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-blue-900 hover:bg-slate-50 font-semibold text-sm transition-all"
-            >
-              <LayoutDashboard className="w-4.5 h-4.5 stroke-[1.8]" />
-              <span>Overview</span>
-            </Link>
-
-            {/* Payments */}
-            <Link 
-              href="/payments" 
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-blue-900 hover:bg-slate-50 font-semibold text-sm transition-all"
-            >
-              <CreditCard className="w-4.5 h-4.5 stroke-[1.8]" />
-              <span>Payments</span>
-            </Link>
-
-            {/* Service Requests */}
-            <Link 
-              href="/service-requests" 
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-blue-900 hover:bg-slate-50 font-semibold text-sm transition-all"
-            >
-              <Wrench className="w-4.5 h-4.5 stroke-[1.8]" />
-              <span>Service Requests</span>
-            </Link>
-
-            {/* Announcements (Active) */}
-            <a 
-              href="#" 
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-blue-50/80 text-blue-900 font-semibold text-sm transition-all"
-            >
-              <Megaphone className="w-4.5 h-4.5 stroke-[2.2]" />
-              <span>Announcements</span>
-            </a>
-
-            {/* Settings */}
-            <a 
-              href="#" 
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-blue-900 hover:bg-slate-50 font-semibold text-sm transition-all"
-            >
-              <Settings className="w-4.5 h-4.5 stroke-[1.8]" />
-              <span>Settings</span>
-            </a>
-          </nav>
-        </div>
-
-        {/* Sidebar Footer Section */}
-        <div className="mt-8 pt-4 border-t border-slate-100 space-y-4">
-          {/* Light Grey Emergency Support Button with Red Asterisk */}
-          <button 
-            type="button"
-            onClick={() => alert('Emergency dispatch team has been notified. We will contact you immediately.')}
-            className="w-full bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all text-xs cursor-pointer shadow-xs"
-          >
-            <span className="text-red-500 font-black text-sm">*</span>
-            <span>Emergency Support</span>
-          </button>
-
-          {/* Additional Links */}
-          <div className="space-y-1">
-            <a 
-              href="#" 
-              className="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 hover:text-blue-900 hover:bg-slate-50 font-semibold text-xs sm:text-sm transition-all"
-            >
-              <HelpCircle className="w-4.5 h-4.5 text-slate-400 stroke-[1.8]" />
-              <span>Help Center</span>
-            </a>
-            <button 
-              type="button"
-              onClick={async () => {
-                await fetch('/api/auth/logout', { method: 'POST' });
-                window.location.href = '/login';
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 hover:text-rose-600 hover:bg-rose-50/50 font-semibold text-xs sm:text-sm transition-all cursor-pointer text-left"
-            >
-              <LogOut className="w-4 h-4 text-slate-400 stroke-[1.8]" />
-              <span>Sign Out</span>
-            </button>
-          </div>
-        </div>
-      </aside>
+      <MemberSidebar activeTab="Announcements" user={user} onRefresh={fetchAnnouncements} />
 
       {/* Main Right-Side Announcements Area */}
       <section className="flex-grow p-6 sm:p-8 lg:p-10 overflow-y-auto">
@@ -170,20 +137,15 @@ export default function AnnouncementsPage() {
             </p>
           </div>
           
-          <div className="flex items-center gap-2.5">
-            <RoleSwitcher currentRole="guest" />
-            <button 
-              onClick={() => alert('Opening announcement filters...')}
-              className="border border-blue-900/80 hover:bg-blue-50 text-blue-900 font-bold py-2.5 px-4 rounded-xl text-xs cursor-pointer transition-colors"
-            >
-              Filter Feed
-            </button>
-            <button 
-              onClick={() => alert('Opening notice creation editor...')}
-              className="bg-blue-900 hover:bg-blue-950 text-white font-bold py-2.5 px-4 rounded-xl text-xs cursor-pointer transition-colors shadow-sm"
-            >
-              Post Notice
-            </button>
+          <div className="w-full sm:w-72 relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search announcements..."
+              className="w-full bg-white border border-slate-200 focus:border-blue-600 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-600 transition-all font-medium shadow-xs"
+            />
           </div>
         </div>
 
@@ -201,7 +163,7 @@ export default function AnnouncementsPage() {
               </h2>
             </div>
 
-            {announcements.map((ann, idx) => (
+            {filteredAnnouncements.map((ann, idx) => (
               <div key={ann.id} className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm relative">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
@@ -230,8 +192,22 @@ export default function AnnouncementsPage() {
                 </div>
               </div>
             ))}
-            {announcements.length === 0 && (
-              <div className="py-6 text-center text-slate-500 text-sm font-medium">No announcements available.</div>
+            {filteredAnnouncements.length === 0 && (
+              <div className="py-10 text-center bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+                <Search className="w-8 h-8 text-slate-300 mx-auto mb-2 stroke-[1.5]" />
+                <p className="text-slate-700 text-sm font-bold">
+                  {searchQuery ? `No announcements matching "${searchQuery}"` : 'No announcements available.'}
+                </p>
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="mt-2 text-xs font-bold text-blue-600 hover:underline cursor-pointer"
+                  >
+                    Clear search
+                  </button>
+                )}
+              </div>
             )}
 
           </div>
@@ -249,63 +225,97 @@ export default function AnnouncementsPage() {
 
             {/* Schedule Timeline Card */}
             <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                <span className="text-[10px] font-bold tracking-wider uppercase bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded">
+                  {user?.memberProfile?.room ? `Room ${user.memberProfile.room.room_number} & Building` : 'All Schedule'}
+                </span>
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                  Active Feed
+                </span>
+              </div>
+
               <div className="space-y-4 divide-y divide-slate-100">
-                
-                {/* Event 1 */}
+                {/* Event 1 (Personalized or Unit Priority) */}
                 <div className="pt-0 flex items-start justify-between gap-2">
                   <div>
-                    <span className="text-xs font-extrabold text-blue-900 block">
-                      June 15th
+                    <span className="text-xs font-extrabold text-amber-800 block">
+                      Jul 20th • {user?.memberProfile?.room ? `Room ${user.memberProfile.room.room_number}` : 'Unit Inspection'}
                     </span>
                     <h4 className="text-xs sm:text-sm font-bold text-slate-800 mt-1">
-                      AC Unit Servicing
+                      AC Unit &amp; Filter Deep Servicing
                     </h4>
                     <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">
-                      09:00 AM - 05:00 PM
+                      10:00 AM - 11:30 AM
                     </span>
                   </div>
-                  <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                    Upcoming
+                  <span className="text-[9px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded shrink-0">
+                    My Room
                   </span>
                 </div>
 
-                {/* Event 2 */}
-                <div className="pt-4 flex items-start justify-between gap-2">
-                  <div>
-                    <span className="text-xs font-extrabold text-blue-900 block">
-                      June 18th
-                    </span>
-                    <h4 className="text-xs sm:text-sm font-bold text-slate-800 mt-1">
-                      Window Washing (South Face)
-                    </h4>
-                    <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">
-                      08:00 AM - 12:00 PM
+                {/* Event 2 (Personalized or Unit Priority) */}
+                {user?.memberProfile?.complaints && user.memberProfile.complaints.length > 0 ? (
+                  <div className="pt-4 flex items-start justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-extrabold text-amber-800 block">
+                        Scheduled • {user.memberProfile.room ? `Room ${user.memberProfile.room.room_number}` : 'Unit Ticket'}
+                      </span>
+                      <h4 className="text-xs sm:text-sm font-bold text-slate-800 mt-1">
+                        {user.memberProfile.complaints[0].category} ({user.memberProfile.complaints[0].status})
+                      </h4>
+                      <span className="text-[10px] text-slate-400 font-semibold block mt-0.5 line-clamp-1">
+                        {user.memberProfile.complaints[0].description}
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded shrink-0">
+                      My Room
                     </span>
                   </div>
-                </div>
+                ) : (
+                  <div className="pt-4 flex items-start justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-extrabold text-blue-900 block">
+                        Jul 22nd • Common Area
+                      </span>
+                      <h4 className="text-xs sm:text-sm font-bold text-slate-800 mt-1">
+                        Elevator B Safety Inspection
+                      </h4>
+                      <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">
+                        08:00 AM - 12:00 PM
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded shrink-0">
+                      Building
+                    </span>
+                  </div>
+                )}
 
-                {/* Event 3 */}
+                {/* Event 3 (General Building) */}
                 <div className="pt-4 flex items-start justify-between gap-2">
                   <div>
                     <span className="text-xs font-extrabold text-blue-900 block">
-                      June 22nd
+                      Jul 25th • Facade
                     </span>
                     <h4 className="text-xs sm:text-sm font-bold text-slate-800 mt-1">
-                      Elevator B Maintenance
+                      Exterior Glass Pressure Washing
                     </h4>
                     <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">
-                      All Day
+                      09:00 AM - 04:00 PM
                     </span>
                   </div>
+                  <span className="text-[9px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded shrink-0">
+                    Building
+                  </span>
                 </div>
               </div>
 
               {/* View Full Calendar link */}
               <button 
-                onClick={() => alert('Opening calendar module...')}
+                type="button"
+                onClick={() => setIsCalendarOpen(true)}
                 className="w-full text-center text-xs font-extrabold text-blue-600 hover:text-blue-800 hover:underline pt-3 border-t border-slate-100 block cursor-pointer tracking-wider"
               >
-                VIEW FULL CALENDAR
+                VIEW FULL CALENDAR ({user?.memberProfile?.room ? `Room ${user.memberProfile.room.room_number}` : 'All'})
               </button>
             </div>
 
@@ -315,27 +325,51 @@ export default function AnnouncementsPage() {
                 Building Resources
               </h3>
               
-              <div className="grid grid-cols-2 gap-3">
-                {/* HOA Docs */}
-                <button
-                  type="button"
-                  onClick={() => alert('Opening HOA documents folder...')}
-                  className="border border-slate-200 hover:border-slate-300 rounded-xl p-4 bg-slate-50/20 hover:bg-slate-50 flex flex-col items-center justify-center cursor-pointer text-center transition-all group"
-                >
-                  <FileText className="w-5.5 h-5.5 text-slate-500 mb-1.5 group-hover:scale-105 transition-transform" />
-                  <span className="text-xs font-bold text-slate-700">HOA Docs</span>
-                </button>
+              {docs.houseRules || docs.leaseAgreement ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {/* House Rules Button */}
+                  {docs.houseRules && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (docs.houseRules && docs.houseRules.url && docs.houseRules.url !== '/house-rules.pdf') {
+                          openDocument(docs.houseRules.url, docs.houseRules.name);
+                        } else {
+                          setIsHouseRulesOpen(true);
+                        }
+                      }}
+                      className="border border-slate-200 hover:border-slate-300 rounded-xl p-4 bg-slate-50/20 hover:bg-slate-50 flex flex-col items-center justify-center cursor-pointer text-center transition-all group"
+                    >
+                      <FileText className="w-5.5 h-5.5 text-slate-500 mb-1.5 group-hover:scale-105 transition-transform" />
+                      <span className="text-xs font-bold text-slate-700">House Rules</span>
+                    </button>
+                  )}
 
-                {/* Directory */}
-                <button
-                  type="button"
-                  onClick={() => alert('Opening building residents directory...')}
-                  className="border border-slate-200 hover:border-slate-300 rounded-xl p-4 bg-slate-50/20 hover:bg-slate-50 flex flex-col items-center justify-center cursor-pointer text-center transition-all group"
-                >
-                  <Users className="w-5.5 h-5.5 text-slate-500 mb-1.5 group-hover:scale-105 transition-transform" />
-                  <span className="text-xs font-bold text-slate-700">Directory</span>
-                </button>
-              </div>
+                  {/* Lease Agreement Button */}
+                  {docs.leaseAgreement && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (docs.leaseAgreement && docs.leaseAgreement.url && docs.leaseAgreement.url !== '/lease-agreement.pdf') {
+                          openDocument(docs.leaseAgreement.url, docs.leaseAgreement.name);
+                        } else {
+                          setIsLeaseModalOpen(true);
+                        }
+                      }}
+                      className="border border-slate-200 hover:border-slate-300 rounded-xl p-4 bg-slate-50/20 hover:bg-slate-50 flex flex-col items-center justify-center cursor-pointer text-center transition-all group"
+                    >
+                      <FileText className="w-5.5 h-5.5 text-slate-500 mb-1.5 group-hover:scale-105 transition-transform" />
+                      <span className="text-xs font-bold text-slate-700">Lease Agreement</span>
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="p-5 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center">
+                  <p className="text-xs text-slate-500 font-semibold">
+                    No active documents published by property management.
+                  </p>
+                </div>
+              )}
             </div>
 
           </div>
@@ -344,6 +378,25 @@ export default function AnnouncementsPage() {
 
       </section>
 
+      {/* Interactive Personalized Member Calendar Modal */}
+      <MemberCalendarModal
+        isOpen={isCalendarOpen}
+        onClose={() => setIsCalendarOpen(false)}
+        user={user}
+      />
+
+      {/* House Rules Interactive Modal */}
+      <HouseRulesModal
+        isOpen={isHouseRulesOpen}
+        onClose={() => setIsHouseRulesOpen(false)}
+      />
+
+      {/* Lease Agreement Interactive Modal */}
+      <LeaseAgreementModal
+        isOpen={isLeaseModalOpen}
+        onClose={() => setIsLeaseModalOpen(false)}
+        user={user}
+      />
     </main>
   );
 }

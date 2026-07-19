@@ -1,6 +1,7 @@
 'use server';
 
 import prisma from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
 
 export async function getAdminRooms() {
   try {
@@ -27,7 +28,7 @@ export async function getAdminRooms() {
         roomNo: room.room_number,
         floor: `Floor ${room.floor}`,
         type: room.type,
-        price: `$${room.price}`,
+        price: `Rp ${Number(room.price).toLocaleString('id-ID')}`,
         status: activeMember ? 'Active Member' : (room.status === 'Maintenance' ? 'Maintenance' : 'Empty Room'),
         color: activeMember ? 'bg-blue-500' : '',
         member: activeMember ? {
@@ -68,6 +69,11 @@ export async function assignMemberToRoom(memberId: number, roomId: number) {
       data: { status: 'Occupied' }
     });
 
+    revalidatePath('/');
+    revalidatePath('/api/rooms');
+    revalidatePath('/admin/rooms');
+    revalidatePath('/admin/reservations');
+
     return { success: true };
   } catch (error: any) {
     console.error('Error assigning member to room:', error);
@@ -95,6 +101,10 @@ export async function addRoom(data: { room_number: string, floor: number, type: 
         imageUrl: data.imageUrl || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80'
       }
     });
+
+    revalidatePath('/');
+    revalidatePath('/api/rooms');
+    revalidatePath('/admin/rooms');
 
     return { success: true, data: newRoom };
   } catch (error: any) {
@@ -132,6 +142,10 @@ export async function updateRoom(roomId: number, data: { room_number: string, fl
         ...(data.imageUrl ? { imageUrl: data.imageUrl } : {})
       }
     });
+
+    revalidatePath('/');
+    revalidatePath('/api/rooms');
+    revalidatePath('/admin/rooms');
 
     return { success: true, data: updatedRoom };
   } catch (error: any) {

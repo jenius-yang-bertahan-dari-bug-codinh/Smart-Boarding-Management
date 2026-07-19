@@ -30,14 +30,15 @@ export async function generatePaymentLink(paymentId: number) {
     }
 
     // Prepare transaction details for Midtrans
+    const orderId = `INV-${payment.id}-${Date.now()}`;
     const parameter = {
       transaction_details: {
-        order_id: `INV-${payment.id}-${Date.now()}`,
+        order_id: orderId,
         gross_amount: Math.round(payment.amount) // Midtrans requires integer amount for IDR usually, but amount is Float in schema. If IDR, must be int. Let's round it to be safe.
       },
       customer_details: {
         first_name: payment.member.name,
-        email: payment.member.user_id ? `user${payment.member.user_id}@example.com` : 'tenant@smartstay.com', // fallback
+        email: payment.member.user_id ? `user${payment.member.user_id}@example.com` : 'tenant@papikost.com', // fallback
         phone: payment.member.phone
       }
     };
@@ -45,14 +46,16 @@ export async function generatePaymentLink(paymentId: number) {
     const transaction = await snap.createTransaction(parameter);
 
     if (transaction && transaction.redirect_url) {
-      // Save the generated redirect URL to gateway_reference so admin can copy it easily
+      // Save order_id and redirect_url in gateway_reference (format: "order_id|redirect_url")
+      // This allows us to query Midtrans API later for transaction status
       await prisma.payment.update({
         where: { id: paymentId },
         data: {
-          gateway_reference: transaction.redirect_url
+          gateway_reference: `${orderId}|${transaction.redirect_url}`
         }
       });
       revalidatePath('/admin/billing');
+      revalidatePath('/payments');
       return { success: true, redirect_url: transaction.redirect_url };
     } else {
       return { success: false, error: 'Failed to generate Midtrans link' };
