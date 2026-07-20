@@ -49,6 +49,8 @@ export async function onboardResident(data: { name: string; email: string; phone
       data: { status: 'Occupied' }
     });
 
+    revalidatePath('/');
+    revalidatePath('/api/rooms');
     revalidatePath('/admin');
     revalidatePath('/admin/rooms');
 

@@ -32,10 +32,12 @@ import {
   User, 
   X,
   CreditCard,
-  Check
+  Check,
+  Upload,
+  Trash2,
+  AlertCircle
 } from 'lucide-react';
 import Logo from '@/components/Logo';
-import RoleSwitcher from '@/components/RoleSwitcher';
 import AdminNavbar from '@/components/AdminNavbar';
 
 export default function AdminDashboard() {
@@ -57,7 +59,7 @@ export default function AdminDashboard() {
   const [notifications, setNotifications] = useState([
     { id: 1, title: 'New Booking Request', message: 'Jane Doe requested Room 201.', time: '5m ago', unread: true },
     { id: 2, title: 'Maintenance Alert', message: 'AC broken in Room 305.', time: '1h ago', unread: true },
-    { id: 3, title: 'Payment Received', message: 'John Smith paid $300.', time: '2h ago', unread: false },
+    { id: 3, title: 'Payment Received', message: 'John Smith paid Rp 1.400.000.', time: '2h ago', unread: false },
   ]);
 
   // Toast Notification State
@@ -72,12 +74,110 @@ export default function AdminDashboard() {
     }, 4000);
   };
 
+  // Document Management State (Lease Agreement & House Rules)
+  const [docs, setDocs] = useState<{
+    leaseAgreement: { name: string; size: string; date: string; url: string } | null;
+    houseRules: { name: string; size: string; date: string; url: string } | null;
+  }>({
+    leaseAgreement: { name: 'lease-agreement-v2.pdf', size: '2.4 MB', date: '2024-07-01', url: '/lease-agreement.pdf' },
+    houseRules: { name: 'house-rules-official.pdf', size: '1.8 MB', date: '2024-06-15', url: '/house-rules.pdf' },
+  });
+
+  useEffect(() => {
+    try {
+      const savedDocs = localStorage.getItem('papikost_admin_docs');
+      if (savedDocs) {
+        setDocs(JSON.parse(savedDocs));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const openDocument = (docUrl: string, fileName: string) => {
+    if (!docUrl) return;
+    if (docUrl.startsWith('data:')) {
+      try {
+        const arr = docUrl.split(',');
+        const mimeMatch = arr[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'application/pdf';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+      } catch (e) {
+        const link = document.createElement('a');
+        link.href = docUrl;
+        link.download = fileName || 'document.pdf';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } else {
+      window.open(docUrl, '_blank');
+    }
+  };
+
+  const handleDocUpload = (type: 'leaseAgreement' | 'houseRules', file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Error: File size exceeds 5MB limit.', 'error');
+      return;
+    }
+
+    const formattedSize = file.size >= 1024 * 1024
+      ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+      : `${Math.max(1, Math.round(file.size / 1024))} KB`;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const updated = {
+        ...docs,
+        [type]: {
+          name: file.name,
+          size: formattedSize,
+          date: new Date().toISOString().split('T')[0],
+          url: dataUrl,
+        },
+      };
+      setDocs(updated);
+      try {
+        localStorage.setItem('papikost_admin_docs', JSON.stringify(updated));
+        window.dispatchEvent(new Event('papikost_docs_changed'));
+      } catch (e) {
+        showToast('Error: File is too large for browser local storage.', 'error');
+        return;
+      }
+      showToast(`${type === 'leaseAgreement' ? 'Lease Agreement' : 'House Rules'} uploaded successfully!`, 'success');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDocDelete = (type: 'leaseAgreement' | 'houseRules') => {
+    if (!window.confirm(`Are you sure you want to remove the ${type === 'leaseAgreement' ? 'Lease Agreement' : 'House Rules'} file?`)) return;
+    const updated = {
+      ...docs,
+      [type]: null,
+    };
+    setDocs(updated);
+    try {
+      localStorage.setItem('papikost_admin_docs', JSON.stringify(updated));
+      window.dispatchEvent(new Event('papikost_docs_changed'));
+    } catch (e) {}
+    showToast(`${type === 'leaseAgreement' ? 'Lease Agreement' : 'House Rules'} removed successfully!`, 'info');
+  };
+
   // Quick Action Modal States
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [selectedMemberId, setSelectedMemberId] = useState('');
   const [newResidentUnit, setNewResidentUnit] = useState('');
 
-  const [invoiceAmount, setInvoiceAmount] = useState('500');
+  const [invoiceAmount, setInvoiceAmount] = useState('1000000');
 
   const [maintenanceMemberId, setMaintenanceMemberId] = useState('');
   const [maintenanceCategory, setMaintenanceCategory] = useState('Plumbing');
@@ -351,9 +451,11 @@ export default function AdminDashboard() {
         {/* Dashboard Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* Left Column (Revenue Growth Chart) */}
-          <div className="lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xs">
-            <div className="flex items-center justify-between mb-8">
+          {/* Left Column (Revenue Growth Chart & Documents) */}
+          <div className="lg:col-span-8 space-y-8">
+            {/* Revenue Growth Chart Box */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xs">
+              <div className="flex items-center justify-between mb-8">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                   Revenue Growth
@@ -446,7 +548,167 @@ export default function AdminDashboard() {
                 <TrendingUp className="w-3.5 h-3.5" />
                 Growth is up 12% compared to Q1 2024
               </span>
-              <span className="font-semibold">Amounts in USD</span>
+              <span className="font-semibold">Amounts in IDR (Rupiah)</span>
+            </div>
+            </div>
+
+            {/* Document & Policy Management Box (Leasing Agreement & House Rules) */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                    <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    Property Agreements & House Rules
+                  </h2>
+                  <p className="text-slate-400 dark:text-slate-500 text-xs mt-0.5 font-medium">
+                    Manage and update official property documents accessible to all active residents (5MB max per file).
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {/* 1. Lease Agreement Card */}
+                <div className="border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 bg-slate-50/50 dark:bg-slate-950/40 flex flex-col justify-between transition-all hover:border-slate-300 dark:hover:border-slate-700">
+                  <div>
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      {docs.leaseAgreement ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">
+                          <Check className="w-3 h-3" />
+                          Active File
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400">
+                          <AlertCircle className="w-3 h-3" />
+                          No File
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white">Lease Agreement</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                      Binding rental terms, monthly rates, and official tenancy contract provisions.
+                    </p>
+
+                    {docs.leaseAgreement && (
+                      <div className="mt-4 p-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl flex items-center justify-between text-xs">
+                        <div className="min-w-0 pr-2">
+                          <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{docs.leaseAgreement.name}</p>
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 font-semibold">{docs.leaseAgreement.size} &bull; {docs.leaseAgreement.date}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => openDocument(docs.leaseAgreement!.url, docs.leaseAgreement!.name)}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-lg transition-colors shrink-0 cursor-pointer"
+                          title="View Document"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-5 pt-4 border-t border-slate-200/60 dark:border-slate-800 flex items-center gap-2">
+                    <label className="flex-1 cursor-pointer bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs text-center">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{docs.leaseAgreement ? 'Replace File' : 'Upload PDF'}</span>
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleDocUpload('leaseAgreement', file);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                    {docs.leaseAgreement && (
+                      <button
+                        type="button"
+                        onClick={() => handleDocDelete('leaseAgreement')}
+                        className="p-2.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl transition-colors shrink-0"
+                        title="Delete Document"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. House Rules Card */}
+                <div className="border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 bg-slate-50/50 dark:bg-slate-950/40 flex flex-col justify-between transition-all hover:border-slate-300 dark:hover:border-slate-700">
+                  <div>
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      {docs.houseRules ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">
+                          <Check className="w-3 h-3" />
+                          Active File
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400">
+                          <AlertCircle className="w-3 h-3" />
+                          No File
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white">House Rules & Regulations</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                      Building code of conduct, visitor hours, common facility guidelines, and quiet hours.
+                    </p>
+
+                    {docs.houseRules && (
+                      <div className="mt-4 p-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl flex items-center justify-between text-xs">
+                        <div className="min-w-0 pr-2">
+                          <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{docs.houseRules.name}</p>
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 font-semibold">{docs.houseRules.size} &bull; {docs.houseRules.date}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => openDocument(docs.houseRules!.url, docs.houseRules!.name)}
+                          className="p-1.5 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/50 rounded-lg transition-colors shrink-0 cursor-pointer"
+                          title="View Document"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-5 pt-4 border-t border-slate-200/60 dark:border-slate-800 flex items-center gap-2">
+                    <label className="flex-1 cursor-pointer bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs text-center">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{docs.houseRules ? 'Replace File' : 'Upload PDF'}</span>
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleDocUpload('houseRules', file);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                    {docs.houseRules && (
+                      <button
+                        type="button"
+                        onClick={() => handleDocDelete('houseRules')}
+                        className="p-2.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl transition-colors shrink-0"
+                        title="Delete Document"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -470,7 +732,7 @@ export default function AdminDashboard() {
                       Payment Received
                     </p>
                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">
-                      Unit 402 &bull; $1,200.00
+                      Unit 402 &bull; Rp 1.400.000
                     </p>
                   </div>
                   <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap">
@@ -515,11 +777,11 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* View All Activity link */}
+              {/* View All Activity button */}
               <button
                 type="button"
-                onClick={() => showToast('Opening comprehensive activity ledger...', 'info')}
-                className="w-full border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 text-xs font-bold text-slate-600 dark:text-slate-400 dark:text-slate-500 py-2.5 rounded-xl transition-all cursor-pointer text-center block mt-5"
+                onClick={() => setActiveModal('all_activity')}
+                className="w-full border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-600 dark:text-slate-400 py-2.5 rounded-xl transition-all cursor-pointer text-center block mt-5"
               >
                 View All Activity
               </button>
@@ -603,9 +865,9 @@ export default function AdminDashboard() {
             </div>
 
             {/* Module 3: Smart System Status */}
-            <div className="bg-blue-950 text-white rounded-2xl p-6 shadow-md relative overflow-hidden group">
+            {/* <div className="bg-blue-950 text-white rounded-2xl p-6 shadow-md relative overflow-hidden group"> */}
               {/* Radial gradient background accent */}
-              <div className="absolute -bottom-8 -right-8 w-24 h-24 bg-blue-500/25 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform"></div>
+              {/* <div className="absolute -bottom-8 -right-8 w-24 h-24 bg-blue-500/25 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform"></div>
 
               <div className="flex items-center gap-2 mb-4">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -626,24 +888,32 @@ export default function AdminDashboard() {
                 <Cpu className="w-4 h-4 shrink-0" />
                 <span>View Hardware Map</span>
               </button>
-            </div>
+            </div> */}
 
             {/* Module 4: Admin Guide */}
-            <div className="bg-slate-100/70 border border-slate-200/40 rounded-2xl p-5 shadow-xs flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 dark:text-slate-500 border border-slate-200/60 flex items-center justify-center shrink-0">
-                  <BookOpen className="w-4.5 h-4.5" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    Admin Guide
-                  </h3>
-                  <button 
-                    onClick={() => showToast('Opening Admin Guide docs...', 'info')}
-                    className="text-[10px] text-teal-600 hover:text-teal-700 font-bold hover:underline transition-colors block text-left"
+            <div className="bg-gradient-to-br from-indigo-900 to-slate-900 border border-indigo-500/30 rounded-2xl p-6 shadow-lg relative overflow-hidden group">
+              <div className="absolute -top-12 -right-12 w-32 h-32 bg-teal-500/20 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-700"></div>
+              
+              <div className="flex items-start justify-between relative z-10">
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center justify-center shrink-0">
+                      <BookOpen className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-sm font-bold text-white tracking-wide">
+                      Admin Guide
+                    </h3>
+                  </div>
+                  <p className="text-xs text-indigo-200/70 mb-4 max-w-[200px] leading-relaxed">
+                    Learn how to manage rooms, residents, and automated billing.
+                  </p>
+                  <Link 
+                    href="/admin/guide"
+                    className="inline-flex items-center gap-1.5 text-xs text-teal-400 hover:text-teal-300 font-bold transition-colors w-fit group/link"
                   >
                     Read documentation
-                  </button>
+                    <ArrowUpRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
+                  </Link>
                 </div>
               </div>
             </div>
@@ -753,11 +1023,11 @@ export default function AdminDashboard() {
 
             <form onSubmit={handleGenerateInvoicesSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Standard Invoice Amount ($)</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Standard Invoice Amount (Rp)</label>
                 <input
                   type="number"
                   required
-                  placeholder="e.g. 500"
+                  placeholder="e.g. 1000000"
                   value={invoiceAmount}
                   onChange={(e) => setInvoiceAmount(e.target.value)}
                   className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-blue-950 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-950"
@@ -951,36 +1221,133 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Global Sticky Footer */}
-      <footer className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 py-6 mt-12">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
-                SmartStay
-              </span>
-              <span className="text-slate-300 text-xs">|</span>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">
-                &copy; 2024 SmartStay Management System. All rights reserved.
-              </span>
+      {/* All Activity Modal */}
+      {activeModal === 'all_activity' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full flex flex-col max-h-[85vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800 shrink-0">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Recent Activity</h3>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">All events across payments, members &amp; maintenance</p>
+              </div>
+              <button type="button" onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            {/* Role Switcher moved here from navbar */}
-            <div className="border-l border-slate-200 dark:border-slate-700 pl-4">
-              <RoleSwitcher currentRole="admin" />
+
+            {/* Body */}
+            <div className="overflow-y-auto flex-1 divide-y divide-slate-100 dark:divide-slate-800">
+
+              {/* Payments */}
+              <div className="px-6 pt-4 pb-3">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Payments</p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                      <CheckCircle className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Payment Received</p>
+                      <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Unit 402 &bull; Rp 1.400.000</p>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">2m ago</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Members */}
+              <div className="px-6 pt-4 pb-3">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Members</p>
+                <div className="space-y-3">
+                  {activeMembers.length === 0 ? (
+                    <p className="text-xs text-slate-400 pb-2">No recent member activity.</p>
+                  ) : (
+                    activeMembers.slice(0, 5).map((m: any) => (
+                      <div key={m.id} className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                          <UserPlus className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{m.name}</p>
+                          <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                            {m.status === 'active' ? 'Active Member' : m.status}{m.room ? ` \u2022 Unit ${m.room}` : ''}
+                          </p>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${m.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+                          {m.status}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Maintenance */}
+              <div className="px-6 pt-4 pb-4">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Maintenance</p>
+                <div className="space-y-3">
+                  {maintenanceTickets.length === 0 ? (
+                    <p className="text-xs text-slate-400">No maintenance activity.</p>
+                  ) : (
+                    maintenanceTickets.slice(0, 5).map((ticket: any) => (
+                      <div key={ticket.id} className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
+                          <Wrench className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{ticket.type}</p>
+                          <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{ticket.unit} &bull; {ticket.member}</p>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${
+                          ticket.status === 'Resolved' ? 'bg-emerald-50 text-emerald-600' :
+                          ticket.status === 'In Progress' ? 'bg-orange-50 text-orange-600' :
+                          'bg-blue-50 text-blue-600'
+                        }`}>
+                          {ticket.status}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Footer with quick-links */}
+            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <Link href="/admin/billing" onClick={() => setActiveModal(null)} className="text-xs font-bold text-blue-700 hover:underline">Billing →</Link>
+                <span className="text-slate-300 dark:text-slate-700">|</span>
+                <Link href="/admin/members" onClick={() => setActiveModal(null)} className="text-xs font-bold text-blue-700 hover:underline">Members →</Link>
+                <span className="text-slate-300 dark:text-slate-700">|</span>
+                <Link href="/admin/maintenance" onClick={() => setActiveModal(null)} className="text-xs font-bold text-blue-700 hover:underline">Maintenance →</Link>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer"
+              >
+                Close
+              </button>
             </div>
           </div>
+        </div>
+      )}
 
-          <div className="flex items-center gap-6">
-            {['Support', 'Privacy Policy', 'Contact Us'].map((link) => (
-              <a 
-                key={link} 
-                href="#" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  showToast(`Opening ${link} link...`, 'info');
-                }}
-                className="text-[11px] text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 font-semibold transition-colors"
-              >
+      {/* ══════ GLOBAL FOOTER ══════ */}
+      <footer className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 py-5">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-black text-blue-900 uppercase tracking-widest">Papikost</p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
+              &copy; 2024 Papikost Management System. All rights reserved.
+            </p>
+          </div>
+          <div className="flex items-center gap-5">
+            {['Contact Us'].map((link) => (
+              <a key={link} href="#" onClick={(e) => { e.preventDefault(); showToast(`Opening ${link}…`, 'info'); }}
+                className="text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
                 {link}
               </a>
             ))}

@@ -280,6 +280,26 @@ export default function RoomsPage() {
         )}
       </main>
 
+      {/* ══════ GLOBAL FOOTER ══════ */}
+      <footer className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 py-5">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-black text-blue-900 uppercase tracking-widest">Papikost</p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
+              &copy; 2024 Papikost Management System. All rights reserved.
+            </p>
+          </div>
+          <div className="flex items-center gap-5">
+            {['Contact Us'].map((link) => (
+              <a key={link} href="#" onClick={(e) => { e.preventDefault(); setToast({ message: `Opening ${link}…`, type: 'success' }); }}
+                className="text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
+                {link}
+              </a>
+            ))}
+          </div>
+        </div>
+      </footer>
+
       {/* Assign Resident Modal */}
       {activeModal === 'assign_resident' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
@@ -378,7 +398,7 @@ export default function RoomsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Monthly Price ($)</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Monthly Price (Rp)</label>
                   <input
                     type="number"
                     required
@@ -468,7 +488,7 @@ export default function RoomsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Monthly Price ($)</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Monthly Price (Rp)</label>
                   <input
                     type="number"
                     required

@@ -55,7 +55,7 @@ export async function getAdminBilling(trendFilter: string = '6_months') {
         member: p.member?.name || 'Unknown',
         initials,
         avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-        amount: `$${p.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        amount: `Rp ${p.amount.toLocaleString('id-ID')}`,
         dueDate: dueDate.toISOString().split('T')[0],
         dueDateRed: currentStatus === 'overdue',
         billingMonth: pAny.billing_month || 'N/A',
@@ -72,10 +72,10 @@ export async function getAdminBilling(trendFilter: string = '6_months') {
     const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
 
     const metrics = {
-      monthlyIncome: `$${incomeSum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      pendingInvoicesSum: `$${pendingSum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      monthlyIncome: `Rp ${incomeSum.toLocaleString('id-ID')}`,
+      pendingInvoicesSum: `Rp ${pendingSum.toLocaleString('id-ID')}`,
       pendingInvoicesCount: pendingCount,
-      overduePaymentsSum: `$${overdueSum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      overduePaymentsSum: `Rp ${overdueSum.toLocaleString('id-ID')}`,
       overduePaymentsCount: overdueCount,
       occupancyRate: occupancyRate,
       occupiedRooms: occupiedRooms,
@@ -122,7 +122,7 @@ export async function getAdminBilling(trendFilter: string = '6_months') {
         month, 
         h: h > 0 ? h : 5, // minimum visible height
         active: idx === monthsToCalculate - 1,
-        rawValue: `$${amount.toLocaleString()}`
+        rawValue: `Rp ${amount.toLocaleString('id-ID')}`
       };
     });
 

@@ -575,13 +575,13 @@ export default function MaintenancePage() {
       <footer className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 py-5">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-extrabold text-blue-900">SmartStay Admin</p>
+            <p className="text-[11px] font-black text-blue-900 uppercase tracking-widest">Papikost</p>
             <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
-              &copy; 2024 SmartStay Management Systems. All rights reserved.
+              &copy; 2024 Papikost Management System. All rights reserved.
             </p>
           </div>
           <div className="flex items-center gap-5">
-            {['Support', 'Privacy Policy', 'Terms of Service'].map((link) => (
+            {['Contact Us'].map((link) => (
               <a key={link} href="#" onClick={(e) => { e.preventDefault(); showToast(`Opening ${link}…`); }}
                 className="text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
                 {link}

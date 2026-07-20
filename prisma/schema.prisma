@@ -11,8 +11,9 @@ model User {
   id       Int      @id @default(autoincrement())
   email    String   @unique
   password String
-  role     String   @default("guest") // e.g., admin, guest, etc
-  members  Member[]
+  role       String   @default("guest") // e.g., admin, guest, etc
+  avatar_url String?
+  members    Member[]
 }
 
 model Room {
@@ -39,6 +40,7 @@ model Member {
   status     String     @default("active")
   due_date   DateTime?
   id_number  String?
+  avatar_url String?
   complaints Complaint[]
   payments   Payment[]
 }

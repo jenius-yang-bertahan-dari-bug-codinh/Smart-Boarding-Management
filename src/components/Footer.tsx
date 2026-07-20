@@ -86,26 +86,17 @@ const Footer: React.FC = () => {
             </div>
 
             <span className="text-xl font-bold text-blue-900 dark:text-blue-400 tracking-tight">
-              SmartStay
+              Papikost
             </span>
           </div>
 
           <p className="text-sm text-slate-600 dark:text-slate-400 text-center md:text-left">
-            &copy; 2024 SmartStay Boarding House Management. All rights reserved.
+            &copy; 2024 Papikost Boarding House Management. All rights reserved.
           </p>
         </div>
 
         {/* Right Side: Links */}
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 md:gap-x-8">
-          <a href="#" className="text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-400 transition-colors">
-            Privacy Policy
-          </a>
-          <a href="#" className="text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-400 transition-colors">
-            Terms of Service
-          </a>
-          <a href="#" className="text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-400 transition-colors">
-            Contact Support
-          </a>
           <a href="/admin" className="text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-400 transition-colors">
             Admin Portal
           </a>

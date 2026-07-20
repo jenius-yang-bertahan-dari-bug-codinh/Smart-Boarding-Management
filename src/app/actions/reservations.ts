@@ -1,6 +1,7 @@
 'use server';
 
 import prisma from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
 
 export async function getAdminReservations() {
   try {
@@ -26,7 +27,7 @@ export async function getAdminReservations() {
         color: m.status === 'active' ? 'bg-blue-500' : (m.status === 'pending' ? 'bg-emerald-500' : 'bg-slate-500'),
         room: m.room ? `Room ${m.room.room_number}` : 'Unknown Room',
         term: m.due_date ? `Due: ${m.due_date.toISOString().split('T')[0]}` : 'Flexible',
-        amount: m.room ? `$${m.room.price}` : 'N/A',
+        amount: m.room ? `Rp ${Number(m.room.price).toLocaleString('id-ID')}` : 'N/A',
         status: m.status === 'active' ? 'Confirmed' : (m.status === 'pending' ? 'Pending' : 'Cancelled')
       };
     });
@@ -57,12 +58,17 @@ export async function updateReservationStatus(id: number, status: string) {
         where: { id: member.room_id },
         data: { status: 'Occupied' }
       });
-    } else if (status === 'Cancelled' || status === 'inactive') {
+    } else if (status.toLowerCase() === 'cancelled' || status === 'inactive') {
       await prisma.room.update({
         where: { id: member.room_id },
         data: { status: 'Available' }
       });
     }
+
+    revalidatePath('/');
+    revalidatePath('/api/rooms');
+    revalidatePath('/admin/reservations');
+    revalidatePath('/admin/rooms');
 
     return { success: true };
   } catch (error) {
@@ -79,6 +85,11 @@ export async function createReservation(formData: FormData) {
     
     if (!tenantName || !roomIdStr) return { success: false, error: 'Missing fields' };
     
+    // Check room availability first
+    const room = await prisma.room.findUnique({ where: { room_number: roomIdStr } });
+    if (!room) return { success: false, error: 'Room not found' };
+    if (room.status !== 'Available') return { success: false, error: 'Room is no longer available' };
+
     // Create a new User for the tenant
     const dummyEmail = `${tenantName.replace(/\s+/g, '').toLowerCase()}${Date.now()}@example.com`;
     const newUser = await prisma.user.create({
@@ -99,7 +110,17 @@ export async function createReservation(formData: FormData) {
         room: { connect: { room_number: roomIdStr } }
       }
     });
+
+    await prisma.room.update({
+      where: { room_number: roomIdStr },
+      data: { status: 'Booked' }
+    });
     
+    revalidatePath('/');
+    revalidatePath('/api/rooms');
+    revalidatePath('/admin/reservations');
+    revalidatePath('/admin/rooms');
+
     return { success: true };
   } catch (error) {
     console.error('Error creating reservation:', error);

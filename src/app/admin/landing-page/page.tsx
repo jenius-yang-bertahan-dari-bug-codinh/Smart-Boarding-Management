@@ -125,7 +125,7 @@ export default function LandingPageManagement() {
 
           <div className="p-8">
             {activeConfigTab === 'Hero Section' && (
-              <div className="max-w-3xl">
+              <div className="w-full">
                 <h2 className="text-lg font-semibold text-blue-900 mb-6">Hero Configuration</h2>
                 
                 <div className="space-y-6">
@@ -294,6 +294,26 @@ export default function LandingPageManagement() {
           </div>
         </div>
       </main>
+
+      {/* ══════ GLOBAL FOOTER ══════ */}
+      <footer className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 py-5">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-black text-blue-900 uppercase tracking-widest">Papikost</p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
+              &copy; 2024 Papikost Management System. All rights reserved.
+            </p>
+          </div>
+          <div className="flex items-center gap-5">
+            {['Contact Us'].map((link) => (
+              <a key={link} href="#" onClick={(e) => { e.preventDefault(); showToast(`Opening ${link}…`); }}
+                className="text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
+                {link}
+              </a>
+            ))}
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -14,6 +14,7 @@ function CheckoutContent() {
   
   const [rooms, setRooms] = useState<Room[]>([]);
   const [room, setRoom] = useState<Room | null>(null);
+  const [roomUnavailable, setRoomUnavailable] = useState(false);
 
   React.useEffect(() => {
     fetch('/api/rooms')
@@ -22,7 +23,7 @@ function CheckoutContent() {
         const mapped = data.map((r: any) => ({
           id: r.id.toString(),
           name: `Room ${r.room_number} - ${r.type}`,
-          price: `$${r.price}/mo`,
+          price: `Rp ${Number(r.price).toLocaleString('id-ID')}/bln`,
           status: r.status,
           features: r.features,
           imageUrl: r.imageUrl
@@ -30,11 +31,17 @@ function CheckoutContent() {
         setRooms(mapped);
         const selected = mapped.find((r: Room) => r.id === roomId) || mapped[0];
         setRoom(selected);
+        // If room is not available, redirect back
+        if (selected && selected.status?.toLowerCase() !== 'available') {
+          setRoomUnavailable(true);
+          alert('This room is no longer available for booking.');
+          router.push('/');
+        }
       });
-  }, [roomId]);
+  }, [roomId, router]);
 
-  const pricePerMonth = room ? parseInt(room.price.replace(/[^0-9]/g, '')) || 250 : 250;
-  const serviceFee = 5;
+  const pricePerMonth = room ? parseInt(room.price.replace(/[^0-9]/g, '')) || 1000000 : 1000000;
+  const serviceFee = 50000;
   const totalCost = pricePerMonth + serviceFee;
 
   // Form states with pre-filled mock data
@@ -68,8 +75,9 @@ function CheckoutContent() {
       });
       const data = await response.json();
       if (data.success) {
-        alert(`Booking confirmed for ${room.name}! Total paid: $${totalCost}.`);
+        alert(`Booking confirmed for ${room.name}! Total paid: Rp ${totalCost.toLocaleString('id-ID')}.`);
         router.push('/');
+        router.refresh();
       } else {
         alert(`Checkout failed: ${data.error}`);
       }
@@ -319,18 +327,18 @@ function CheckoutContent() {
               <div className="space-y-3 pt-3 border-t border-slate-100">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-500 font-medium">Price per month</span>
-                  <span className="text-slate-800 font-bold">${pricePerMonth}</span>
+                  <span className="text-slate-800 font-bold">Rp {pricePerMonth.toLocaleString('id-ID')}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-500 font-medium">Service Fee</span>
-                  <span className="text-slate-800 font-bold">${serviceFee}</span>
+                  <span className="text-slate-800 font-bold">Rp {serviceFee.toLocaleString('id-ID')}</span>
                 </div>
               </div>
 
               {/* Total Cost */}
               <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                 <span className="text-base font-extrabold text-slate-900">Total</span>
-                <span className="text-2xl font-black text-blue-900">${totalCost}</span>
+                <span className="text-2xl font-black text-blue-900">Rp {totalCost.toLocaleString('id-ID')}</span>
               </div>
 
               {/* Final Actions */}

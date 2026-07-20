@@ -14,7 +14,7 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
       startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     } else if (filter === 'This Month') {
       startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    } else if (filter === 'This Year') {
+    } else if (filter === 'This Year') {  
       startDate = new Date(now.getFullYear(), 0, 1);
     }
 
@@ -25,7 +25,7 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
         payment_date: { gte: startDate }
       }
     });
-    const totalRevenue = payments.reduce((acc, curr) => acc + curr.amount, 0);
+    const totalRevenue = payments.reduce((acc: number, curr: { amount: number }) => acc + curr.amount, 0);
 
     // 2. Occupancy Rate
     const totalRooms = await prisma.room.count();
@@ -59,7 +59,7 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
     });
 
     const recentActivities = [
-      ...recentPayments.map(p => ({
+      ...recentPayments.map((p: typeof recentPayments[0]) => ({
         id: `p-${p.id}`,
         type: 'payment',
         title: 'Payment Received',
@@ -67,7 +67,7 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
         amount: p.amount,
         time: p.payment_date.toISOString().split('T')[0]
       })),
-      ...recentComplaints.map(c => ({
+      ...recentComplaints.map((c: typeof recentComplaints[0]) => ({
         id: `c-${c.id}`,
         type: 'maintenance',
         title: 'Maintenance Request',
@@ -91,7 +91,7 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
 
     // Generate Monthly Data
     const monthlyTotals = new Array(12).fill(0);
-    allPayments.forEach(p => {
+    allPayments.forEach((p: typeof allPayments[0]) => {
       const monthIndex = p.payment_date.getMonth();
       monthlyTotals[monthIndex] += p.amount;
     });
@@ -111,7 +111,7 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
     const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
     const weeklyTotals = new Array(6).fill(0);
     
-    allPayments.forEach(p => {
+    allPayments.forEach((p: typeof allPayments[0]) => {
       const diffTime = nowTime - p.payment_date.getTime();
       const weekIndex = Math.floor(diffTime / oneWeekMs);
       if (weekIndex >= 0 && weekIndex < 6) {

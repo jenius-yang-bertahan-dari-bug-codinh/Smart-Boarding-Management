@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -23,7 +23,7 @@ import {
   CircleDot
 } from 'lucide-react';
 import Logo from '@/components/Logo';
-import RoleSwitcher from '@/components/RoleSwitcher';
+import MemberSidebar from '@/components/MemberSidebar';
 
 export default function FinancialHub() {
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -31,25 +31,80 @@ export default function FinancialHub() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isPaying, setIsPaying] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    fetch('/api/payments')
-      .then((res) => {
-        if (!res.ok) {
-          router.push('/login');
-          throw new Error('Not authenticated');
-        }
-        return res.json();
-      })
-      .then((data) => {
-        setTransactions(data.payments);
-        setCurrentBalance(data.currentBalance);
-        setUser(data.user);
-        setLoading(false);
-      })
-      .catch((err) => console.error(err));
+  // Helper: extract redirect_url from gateway_reference (handles both old and new format)
+  const getRedirectUrl = (gatewayRef: string | null) => {
+    if (!gatewayRef) return null;
+    // New format: "order_id|redirect_url", Old format: just the URL
+    const parts = gatewayRef.split('|');
+    return parts.length > 1 ? parts[1] : parts[0];
+  };
+
+  // Fetch payment data from server
+  const fetchPayments = useCallback(async () => {
+    try {
+      const res = await fetch('/api/payments');
+      if (!res.ok) {
+        router.push('/login');
+        return;
+      }
+      const data = await res.json();
+      setTransactions(data.payments);
+      setCurrentBalance(data.currentBalance);
+      setUser(data.user);
+    } catch (err) {
+      console.error('Error fetching payments:', err);
+    } finally {
+      setLoading(false);
+    }
   }, [router]);
+
+  // Check payment status from Midtrans API and refresh data
+  const checkPaymentStatus = useCallback(async () => {
+    // Only check if there are pending/overdue payments with gateway_reference
+    const pendingWithGateway = transactions.filter(
+      (t) => (t.status === 'pending' || t.status === 'overdue') && t.gateway_reference
+    );
+    if (pendingWithGateway.length === 0) return;
+
+    setIsChecking(true);
+    try {
+      const res = await fetch('/api/payments/check-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentIds: pendingWithGateway.map((t) => t.id)
+        })
+      });
+      const data = await res.json();
+      if (data.updated && data.updated.length > 0) {
+        // Payment status changed — refresh all data
+        await fetchPayments();
+      }
+    } catch (err) {
+      console.error('Error checking payment status:', err);
+    } finally {
+      setIsChecking(false);
+    }
+  }, [transactions, fetchPayments]);
+
+  // Initial data load
+  useEffect(() => {
+    fetchPayments();
+  }, [fetchPayments]);
+
+  // Auto-check payment status when user returns to tab (after paying on Midtrans)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !isChecking) {
+        checkPaymentStatus();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [checkPaymentStatus, isChecking]);
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans font-semibold text-slate-500">Loading payments...</div>;
@@ -59,114 +114,7 @@ export default function FinancialHub() {
     <main className="min-h-screen bg-slate-50/50 flex flex-col md:flex-row font-sans selection:bg-blue-500 selection:text-white">
       
       {/* Left-Side Navigation Sidebar */}
-      <aside className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-slate-100 flex flex-col py-6 px-4 shrink-0 justify-between md:min-h-screen">
-        <div>
-          {/* Top Brand Section: Logo + Text */}
-          <div className="flex items-center gap-2.5 px-2 mb-6">
-            <Logo size={32} />
-            <span className="text-xl font-bold text-blue-900 tracking-tight">
-              SmartStay
-            </span>
-          </div>
-
-          {/* User Profile Avatar Section */}
-          <div className="flex flex-col items-center mb-6 py-4 border-y border-slate-100/60">
-            <img
-              src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
-              alt={user?.name || "Member Avatar"}
-              className="w-16 h-16 rounded-full object-cover border-2 border-slate-100 shadow-sm mb-2"
-            />
-            <span className="text-xs font-semibold text-slate-400">Welcome back,</span>
-            <span className="text-sm font-bold text-blue-900 mt-0.5">{user?.name}</span>
-            <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full mt-1.5 uppercase tracking-wider">
-              Premium Member
-            </span>
-          </div>
-
-          {/* Vertical Navigation Links */}
-          <nav className="space-y-1">
-            {/* Overview */}
-            <Link 
-              href="/dashboard" 
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-blue-900 hover:bg-slate-50 font-semibold text-sm transition-all"
-            >
-              <LayoutDashboard className="w-4.5 h-4.5 stroke-[1.8]" />
-              <span>Overview</span>
-            </Link>
-
-            {/* Payments (Active) */}
-            <a 
-              href="#" 
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-blue-50/80 text-blue-900 font-semibold text-sm transition-all"
-            >
-              <CreditCard className="w-4.5 h-4.5 stroke-[2.2]" />
-              <span>Payments</span>
-            </a>
-
-            {/* Service Requests */}
-            <Link 
-              href="/service-requests" 
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-blue-900 hover:bg-slate-50 font-semibold text-sm transition-all"
-            >
-              <Wrench className="w-4.5 h-4.5 stroke-[1.8]" />
-              <span>Service Requests</span>
-            </Link>
-
-            {/* Announcements */}
-            <Link 
-              href="/announcements" 
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-blue-900 hover:bg-slate-50 font-semibold text-sm transition-all"
-            >
-              <Megaphone className="w-4.5 h-4.5 stroke-[1.8]" />
-              <span>Announcements</span>
-            </Link>
-
-            {/* Settings */}
-            <a 
-              href="#" 
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-blue-900 hover:bg-slate-50 font-semibold text-sm transition-all"
-            >
-              <Settings className="w-4.5 h-4.5 stroke-[1.8]" />
-              <span>Settings</span>
-            </a>
-          </nav>
-        </div>
-
-        {/* Sidebar Footer Section */}
-        <div className="mt-8 pt-4 border-t border-slate-100 space-y-4">
-          {/* Emergency Support Button */}
-          <button 
-            type="button"
-            onClick={() => alert('Emergency dispatch team has been notified. We will contact you immediately.')}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-orange-500/10 hover:shadow-lg hover:shadow-orange-500/20 text-xs sm:text-sm cursor-pointer"
-          >
-            <AlertTriangle className="w-4.5 h-4.5 stroke-[2.2]" />
-            <span>Emergency Support</span>
-          </button>
-
-          {/* Additional Links */}
-          <div className="space-y-1">
-            <a 
-              href="#" 
-              className="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 hover:text-blue-900 hover:bg-slate-50 font-semibold text-xs sm:text-sm transition-all"
-            >
-              <HelpCircle className="w-4.5 h-4.5 text-slate-400 stroke-[1.8]" />
-              <span>Help Center</span>
-            </a>
-            <button 
-              type="button"
-              onClick={async () => {
-                await fetch('/api/auth/logout', { method: 'POST' });
-                window.location.href = '/login';
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 hover:text-rose-600 hover:bg-rose-50/50 font-semibold text-xs sm:text-sm transition-all cursor-pointer text-left"
-            >
-              <LogOut className="w-4 h-4 text-slate-400 stroke-[1.8]" />
-              <span>Sign Out</span>
-            </button>
-          </div>
-        </div>
-      </aside>
+      <MemberSidebar activeTab="Payments" user={user} onRefresh={fetchPayments} />
 
       {/* Main Right-Side Content Area */}
       <section className="flex-grow p-6 sm:p-8 lg:p-10 overflow-y-auto">
@@ -182,9 +130,8 @@ export default function FinancialHub() {
             </p>
           </div>
           
-          {/* Functional top-right action buttons & Role Switcher */}
+          {/* Functional top-right action buttons */}
           <div className="flex items-center gap-2.5">
-            <RoleSwitcher currentRole="guest" />
             <button 
               onClick={() => alert('Exporting transaction history to PDF...')}
               className="w-10 h-10 bg-white border border-slate-200/80 hover:bg-slate-50 rounded-full flex items-center justify-center text-slate-600 hover:text-blue-900 transition-colors shadow-xs cursor-pointer"
@@ -216,7 +163,7 @@ export default function FinancialHub() {
                     Current Balance
                   </span>
                   <span className="text-3xl font-black text-blue-900 block mt-1">
-                    ${currentBalance.toFixed(2)}
+                    Rp {currentBalance.toLocaleString('id-ID')}
                   </span>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-900 flex items-center justify-center">
@@ -239,11 +186,12 @@ export default function FinancialHub() {
                 type="button"
                 disabled={currentBalance <= 0 || isPaying}
                 onClick={async () => {
-                  const pendingTx = transactions.find(t => t.status === 'pending');
+                  const pendingTx = transactions.find(t => t.status === 'pending' || t.status === 'overdue');
                   if (!pendingTx) return;
                   
-                  if (pendingTx.gateway_reference) {
-                    window.open(pendingTx.gateway_reference, '_blank');
+                  const redirectUrl = getRedirectUrl(pendingTx.gateway_reference);
+                  if (redirectUrl) {
+                    window.open(redirectUrl, '_blank');
                     return;
                   }
 
@@ -263,38 +211,10 @@ export default function FinancialHub() {
                     : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                 }`}
               >
-                {isPaying ? 'Connecting...' : (currentBalance > 0 ? 'Pay Now' : 'All Paid')}
+                {isPaying ? 'Connecting...' : isChecking ? 'Checking...' : (currentBalance > 0 ? 'Pay Now' : 'All Paid')}
               </button>
             </div>
 
-            {/* Payment Method Card */}
-            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                <h2 className="text-sm font-bold text-slate-800">
-                  Payment Method
-                </h2>
-                <button 
-                  onClick={() => alert('Opening payment method editor...')}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline transition-colors"
-                >
-                  Edit
-                </button>
-              </div>
-
-              <div className="flex items-center gap-3.5 p-3 rounded-xl border border-slate-100 bg-slate-50/30">
-                <div className="w-10 h-8 rounded bg-slate-100 border border-slate-200/50 flex items-center justify-center shrink-0">
-                  <span className="text-[10px] font-black text-slate-500 tracking-wider">VISA</span>
-                </div>
-                <div className="flex-grow">
-                  <h3 className="text-xs sm:text-sm font-bold text-slate-800">
-                    Visa ending in &bull;&bull;&bull;&bull; 4242
-                  </h3>
-                  <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block mt-0.5">
-                    Auto-pay enabled
-                  </span>
-                </div>
-              </div>
-            </div>
 
           </div>
 
@@ -340,18 +260,19 @@ export default function FinancialHub() {
                       {/* Right Block: Amount + Status */}
                       <div className="text-right flex flex-col items-end">
                         <span className={`text-sm font-black block ${tx.status === 'pending' ? 'text-orange-500' : 'text-slate-800'}`}>
-                          ${tx.amount.toFixed(2)}
+                          Rp {tx.amount.toLocaleString('id-ID')}
                         </span>
                         
                         <div className="flex items-center gap-2 mt-1">
-                          {tx.status === 'pending' && (
+                          {(tx.status === 'pending' || tx.status === 'overdue') && (
                             <button
                               type="button"
                               disabled={isPaying}
                               onClick={async (e) => {
                                 e.preventDefault();
-                                if (tx.gateway_reference) {
-                                  window.open(tx.gateway_reference, '_blank');
+                                const redirectUrl = getRedirectUrl(tx.gateway_reference);
+                                if (redirectUrl) {
+                                  window.open(redirectUrl, '_blank');
                                   return;
                                 }
                                 setIsPaying(true);
@@ -359,7 +280,7 @@ export default function FinancialHub() {
                                 const res = await generatePaymentLink(tx.id);
                                 if (res.success && res.redirect_url) {
                                   // Update local state so gateway_reference is populated
-                                  setTransactions(transactions.map(t => t.id === tx.id ? { ...t, gateway_reference: res.redirect_url } : t));
+                                  setTransactions(transactions.map(t => t.id === tx.id ? { ...t, gateway_reference: `new|${res.redirect_url}` } : t));
                                   window.open(res.redirect_url, '_blank');
                                 } else {
                                   alert('Failed to generate Midtrans link');

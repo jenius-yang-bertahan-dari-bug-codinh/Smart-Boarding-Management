@@ -34,9 +34,9 @@ export async function GET() {
     const member = user.members.length > 0 ? user.members[0] : null;
     const payments = member ? member.payments : [];
     
-    // Calculate current balance (sum of pending payments)
+    // Calculate current balance (sum of pending and overdue payments)
     const currentBalance = payments
-      .filter((p: any) => p.status === 'pending')
+      .filter((p: any) => p.status === 'pending' || p.status === 'overdue')
       .reduce((sum: number, p: any) => sum + p.amount, 0);
 
     return NextResponse.json({
