@@ -174,7 +174,7 @@ export async function getNotifications() {
       include: { member: { include: { room: true } } }
     });
 
-    let notifs = [];
+    let notifs: any[] = [];
     let idCounter = 1;
 
     complaints.forEach(c => {
