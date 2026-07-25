@@ -133,7 +133,7 @@ async function main() {
   }
 
   // 5. Complaints
-  const complaints = [];
+  const complaints: any[] = [];
   for (const c of complaints) {
     await prisma.complaint.create({ data: c });
   }
@@ -157,13 +157,13 @@ async function main() {
   }
 
   // 7. MaintenanceSchedules
-  const maintenanceSchedules = [];
+  const maintenanceSchedules: any[] = [];
   for (const ms of maintenanceSchedules) {
     await prisma.maintenanceSchedule.create({ data: ms });
   }
 
   // 8. MaintenanceRooms
-  const maintenanceRooms = [];
+  const maintenanceRooms: any[] = [];
   for (const mr of maintenanceRooms) {
     await prisma.maintenanceRoom.create({ data: mr });
   }
