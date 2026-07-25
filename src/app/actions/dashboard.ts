@@ -77,14 +77,14 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
         type: 'maintenance',
         title: 'Maintenance Request',
         details: `Unit ${c.member?.room?.room_number ?? 'Unknown'} \u2022 ${c.category}`,
-        time: c.created_at ? c.created_at.toISOString() : new Date().toISOString()
+        time: new Date().toISOString()
       })),
       ...recentMembers.map((m: typeof recentMembers[0]) => ({
         id: `m-${m.id}`,
         type: 'member',
         title: 'New Member Sign-up',
         details: `${m.name} \u2022 Unit ${m.room?.room_number ?? 'Unknown'}`,
-        time: m.created_at ? (m as any).created_at.toISOString() : new Date().toISOString() // Assuming created_at exists or using fallback
+        time: new Date().toISOString()
       }))
     ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 3);
 
