@@ -17,7 +17,8 @@ import {
   Clock,
   Home as HomeIcon,
   Settings,
-  CheckCircle
+  CheckCircle,
+  User
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 import MemberSidebar from '@/components/MemberSidebar';
@@ -101,8 +102,32 @@ export default function MemberDashboard() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [checkPaymentStatus, isChecking]);
 
+  let dueDateText = "Paid";
+  let isOverdue = false;
+  let nextBillingText = "N/A";
+  if (user?.memberProfile?.due_date) {
+    const today = new Date();
+    const due = new Date(user.memberProfile.due_date);
+    const diffTime = due.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) {
+      dueDateText = `Overdue by ${Math.abs(diffDays)} days`;
+      isOverdue = true;
+    } else if (diffDays === 0) {
+      dueDateText = "Due today";
+    } else {
+      dueDateText = `Due in ${diffDays} days`;
+    }
+    nextBillingText = due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans font-semibold text-slate-500">Loading your dashboard...</div>;
+  }
+
+  if (!user) {
+    return null; // Don't render dashboard until user data is populated or redirect happens
   }
 
   return (
@@ -117,15 +142,19 @@ export default function MemberDashboard() {
         {/* Header Block with property tag */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
-            {user.avatar_url && (
+            {user.avatar_url ? (
               <img
                 src={user.avatar_url}
                 alt={user.name || "Member Avatar"}
-                className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-blue-600 shadow-md shrink-0"
+                className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-blue-600 shadow-md shrink-0 bg-white"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80";
+                  (e.target as HTMLImageElement).src = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
                 }}
               />
+            ) : (
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-slate-200 shadow-sm shrink-0 bg-slate-100 flex items-center justify-center text-slate-400">
+                <User className="w-6 h-6 sm:w-7 sm:h-7" />
+              </div>
             )}
             <div>
               <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
@@ -143,6 +172,8 @@ export default function MemberDashboard() {
           </div>
         </div>
 
+
+
         {/* Main Status & Active Bills Row */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
           
@@ -158,9 +189,11 @@ export default function MemberDashboard() {
                     Active Bills
                   </span>
                 </div>
-                <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-md">
-                  Due in 3 days
-                </span>
+                {(user.memberProfile?.pendingPayments?.length > 0) && (
+                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md ${isOverdue ? 'text-red-600 bg-red-50' : 'text-orange-600 bg-orange-50'}`}>
+                    {dueDateText}
+                  </span>
+                )}
               </div>
 
               <div className="mt-4">
@@ -202,12 +235,12 @@ export default function MemberDashboard() {
               >
                 {isPaying ? 'Connecting...' : isChecking ? 'Checking...' : 'Pay Now'}
               </button>
-              <a 
-                href="#" 
+              <Link 
+                href="/payments" 
                 className="text-xs font-bold text-slate-500 hover:text-blue-900 hover:underline transition-colors ml-5"
               >
                 View Details
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -257,41 +290,30 @@ export default function MemberDashboard() {
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Card 1: AC Cleaning */}
-            <div className="flex items-center justify-between border border-slate-100 hover:border-slate-200 rounded-xl p-4 bg-slate-50/30 hover:bg-slate-50 transition-all cursor-pointer group">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                  <Wind className="w-5 h-5 stroke-[1.8]" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-extrabold text-slate-800">
-                    AC Cleaning
-                  </h3>
-                  <p className="text-xs text-slate-500 font-semibold mt-0.5">
-                    Scheduled: Nov 15
-                  </p>
-                </div>
+            {(!user.memberProfile?.pendingComplaints || user.memberProfile.pendingComplaints.length === 0) ? (
+              <div className="col-span-full py-8 text-center text-slate-500 font-medium bg-slate-50 rounded-xl border border-slate-100">
+                There is no upcoming maintenance.
               </div>
-              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-900 transition-colors" />
-            </div>
-
-            {/* Card 2: Fogging */}
-            <div className="flex items-center justify-between border border-slate-100 hover:border-slate-200 rounded-xl p-4 bg-slate-50/30 hover:bg-slate-50 transition-all cursor-pointer group">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                  <Sparkles className="w-5 h-5 stroke-[1.8]" />
+            ) : (
+              user.memberProfile.pendingComplaints.map((complaint: any) => (
+                <div key={complaint.id} onClick={() => router.push('/service-requests')} className="flex items-center justify-between border border-slate-100 hover:border-slate-200 rounded-xl p-4 bg-slate-50/30 hover:bg-slate-50 transition-all cursor-pointer group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                      <Wrench className="w-5 h-5 stroke-[1.8]" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-extrabold text-slate-800">
+                        {complaint.category}
+                      </h3>
+                      <p className="text-xs text-slate-500 font-semibold mt-0.5">
+                        Status: <span className="capitalize">{complaint.status.replace('_', ' ')}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-900 transition-colors" />
                 </div>
-                <div>
-                  <h3 className="text-sm font-extrabold text-slate-800">
-                    Monthly Fogging
-                  </h3>
-                  <p className="text-xs text-slate-500 font-semibold mt-0.5">
-                    Scheduled: Nov 20
-                  </p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-900 transition-colors" />
-            </div>
+              ))
+            )}
           </div>
         </div>
 

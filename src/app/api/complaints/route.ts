@@ -32,13 +32,22 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
+    const uAny = user as any;
     const member = user.members.length > 0 ? user.members[0] : null;
+    const mAny = member as any;
     const complaints = member ? member.complaints : [];
 
     return NextResponse.json({
       complaints,
       user: {
+        id: user.id,
+        email: user.email,
         name: member?.name || payload.name,
+        role: user.role,
+        avatar_url: mAny?.avatar_url || uAny?.avatar_url || null,
+        memberProfile: member ? {
+          phone: member.phone,
+        } : null
       }
     })
   } catch (error: any) {

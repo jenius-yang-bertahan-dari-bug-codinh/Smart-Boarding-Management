@@ -110,7 +110,7 @@ const Navbar: React.FC = () => {
   return (
     <header className="fixed top-0 left-0 right-0 w-full bg-white dark:bg-slate-900 shadow-[0_2px_8px_rgba(0,0,0,0.04)] z-50 transition-colors">
       <div className="max-w-7xl mx-auto px-6 lg:px-8 h-20 flex items-center justify-between">
-        {/* Sisi Kiri: Logo dengan Ikon Rumah Baru */}
+        {/* Left Side: Logo with New Home Icon */}
         <div className="flex items-center gap-2.5">
           <Link href="/" className="flex items-center gap-2.5" onClick={() => setIsMobileMenuOpen(false)}>
             <Logo size={36} />

@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getDashboardStats } from '@/app/actions/dashboard';
-import { generateMonthlyInvoices, broadcastAnnouncement } from '@/app/actions/quick-actions';
+import { syncAutoBilling, broadcastAnnouncement, onboardResident } from '@/app/actions/quick-actions';
 import { getAdminRooms, assignMemberToRoom } from '@/app/actions/properties';
 import { getAdminMembers } from '@/app/actions/members';
 import { getAdminMaintenance, resolveMaintenanceTicket } from '@/app/actions/maintenance';
@@ -61,6 +61,17 @@ export default function AdminDashboard() {
     { id: 2, title: 'Maintenance Alert', message: 'AC broken in Room 305.', time: '1h ago', unread: true },
     { id: 3, title: 'Payment Received', message: 'John Smith paid Rp 1.400.000.', time: '2h ago', unread: false },
   ]);
+
+  const formatRelativeTime = (dateStr: string) => {
+    if (dateStr === 'Recent') return 'Recent';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return 'Recent';
+    const diff = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+  };
 
   // Toast Notification State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -176,6 +187,11 @@ export default function AdminDashboard() {
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [selectedMemberId, setSelectedMemberId] = useState('');
   const [newResidentUnit, setNewResidentUnit] = useState('');
+  const [moveInDate, setMoveInDate] = useState('');
+
+  const [registerName, setRegisterName] = useState('');
+  const [registerEmail, setRegisterEmail] = useState('');
+  const [registerPhone, setRegisterPhone] = useState('');
 
   const [invoiceAmount, setInvoiceAmount] = useState('1000000');
 
@@ -216,33 +232,79 @@ export default function AdminDashboard() {
   const currentChartData = chartView === 'Monthly' ? monthlyData : weeklyData;
 
   const handleExport = () => {
-    showToast('Preparing spreadsheet report... Excel file exported successfully!', 'success');
+    // Generate CSV and download
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + "Metric,Value\n"
+      + `Total Revenue,${dashboardData?.totalRevenue || 0}\n`
+      + `Occupancy Rate,${dashboardData?.occupancyRate || '0%'}\n`
+      + `Active Maintenance,${dashboardData?.activeMaintenance || 0}\n`
+      + `New Reservations,${dashboardData?.newReservations || 0}\n`;
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `dashboard_report_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast('Report generated and downloaded successfully!', 'success');
   };
 
   const handleAddResidentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedMemberId || !newResidentUnit) {
-      showToast('Please select a resident and a room.', 'error');
+    if (!selectedMemberId || !newResidentUnit || !moveInDate) {
+      showToast('Please select a resident, a room, and a move-in date.', 'error');
       return;
     }
-    const res = await assignMemberToRoom(parseInt(selectedMemberId), parseInt(newResidentUnit));
+    const res = await assignMemberToRoom(parseInt(selectedMemberId), parseInt(newResidentUnit), moveInDate);
     if (res.success) {
       showToast(`Resident successfully assigned to room!`, 'success');
       setActiveModal(null);
-      setSelectedMemberId(''); setNewResidentUnit('');
+      setSelectedMemberId(''); setNewResidentUnit(''); setMoveInDate('');
+      
+      // refresh lists
+      getAdminRooms().then(r => r.success && setAvailableRooms(r.data));
     } else {
       showToast(res.error || 'Failed to assign resident', 'error');
     }
   };
 
-  const handleGenerateInvoicesSubmit = async (e: React.FormEvent) => {
+  const handleRegisterResidentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await generateMonthlyInvoices(parseFloat(invoiceAmount));
+    if (!registerName || !registerEmail || !registerPhone || !newResidentUnit || !moveInDate) {
+      showToast('Please fill out all fields.', 'error');
+      return;
+    }
+    const res = await onboardResident({
+      name: registerName,
+      email: registerEmail,
+      phone: registerPhone,
+      roomId: parseInt(newResidentUnit),
+      moveInDate
+    });
+
     if (res.success) {
-      showToast(`Successfully generated ${res.count} invoices!`, 'success');
+      showToast(`New resident successfully registered and assigned!`, 'success');
+      setActiveModal(null);
+      setRegisterName(''); setRegisterEmail(''); setRegisterPhone(''); setNewResidentUnit(''); setMoveInDate('');
+      
+      // refresh lists
+      getAdminRooms().then(r => r.success && setAvailableRooms(r.data));
+      getAdminMembers().then(m => m.success && setActiveMembers(m.data.filter((mem: any) => mem.status === 'active')));
+    } else {
+      showToast(res.error || 'Failed to register resident', 'error');
+    }
+  };
+
+  const handleSyncBillingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await syncAutoBilling();
+    if (res.success) {
+      showToast(`Successfully synced! Generated ${res.count} invoices.`, 'success');
       setActiveModal(null);
     } else {
-      showToast(res.error || 'Failed to generate invoices', 'error');
+      showToast(res.error || 'Failed to sync billing', 'error');
     }
   };
 
@@ -722,59 +784,34 @@ export default function AdminDashboard() {
               </h2>
 
               <div className="space-y-4">
-                {/* Event 1 */}
-                <div className="flex items-start gap-3.5">
-                  <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                    <CheckCircle className="w-4 h-4" />
-                  </div>
-                  <div className="flex-grow min-w-0">
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-                      Payment Received
-                    </p>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">
-                      Unit 402 &bull; Rp 1.400.000
-                    </p>
-                  </div>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap">
-                    2m ago
-                  </span>
-                </div>
-
-                {/* Event 2 */}
-                <div className="flex items-start gap-3.5">
-                  <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                    <UserPlus className="w-4 h-4" />
-                  </div>
-                  <div className="flex-grow min-w-0">
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-                      New Member Sign-up
-                    </p>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">
-                      Alex Rivera &bull; Suite 12B
-                    </p>
-                  </div>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap">
-                    1h ago
-                  </span>
-                </div>
-
-                {/* Event 3 */}
-                <div className="flex items-start gap-3.5">
-                  <div className="w-8 h-8 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
-                    <Wrench className="w-4 h-4" />
-                  </div>
-                  <div className="flex-grow min-w-0">
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-                      Maintenance Resolved
-                    </p>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">
-                      Unit 105 &bull; Electrical Fix
-                    </p>
-                  </div>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap">
-                    3h ago
-                  </span>
-                </div>
+                {(!dashboardData?.recentActivities || dashboardData.recentActivities.length === 0) ? (
+                  <p className="text-xs text-slate-500 text-center py-4">No recent activities.</p>
+                ) : (
+                  dashboardData.recentActivities.map((activity: any) => (
+                    <div key={activity.id} className="flex items-start gap-3.5">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                        activity.type === 'payment' ? 'bg-emerald-50 text-emerald-600' :
+                        activity.type === 'member' ? 'bg-blue-50 text-blue-600' :
+                        'bg-orange-50 text-orange-600'
+                      }`}>
+                        {activity.type === 'payment' && <CheckCircle className="w-4 h-4" />}
+                        {activity.type === 'member' && <UserPlus className="w-4 h-4" />}
+                        {activity.type === 'maintenance' && <Wrench className="w-4 h-4" />}
+                      </div>
+                      <div className="flex-grow min-w-0">
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                          {activity.title}
+                        </p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">
+                          {activity.details}
+                        </p>
+                      </div>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap">
+                        {formatRelativeTime(activity.time)}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
 
               {/* View All Activity button */}
@@ -785,6 +822,7 @@ export default function AdminDashboard() {
               >
                 View All Activity
               </button>
+
             </div>
 
             {/* Module 2: Quick Actions */}
@@ -794,37 +832,54 @@ export default function AdminDashboard() {
               </h2>
 
               <div className="space-y-3">
-                {/* Add Resident */}
+                {/* Sync Auto-Billing */}
+                <button
+                  type="button"
+                  onClick={() => setActiveModal('generate_invoice')}
+                  className="w-full flex items-center gap-3.5 border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50/50 p-3 rounded-xl transition-all cursor-pointer group"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                    <FileSpreadsheet className="w-4.5 h-4.5" />
+                  </div>
+                  <div className="text-left">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                      Sync Auto-Billing
+                    </span>
+                    <span className="text-[9px] text-slate-400 dark:text-slate-500 block mt-0.5">Automate monthly invoicing</span>
+                  </div>
+                </button>
+
+                {/* Register New Resident */}
+                <button
+                  type="button"
+                  onClick={() => setActiveModal('register_resident')}
+                  className="w-full flex items-center gap-3.5 border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50/50 p-3 rounded-xl transition-all cursor-pointer group"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                    <UserPlus className="w-4.5 h-4.5" />
+                  </div>
+                  <div className="text-left">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                      Register Resident
+                    </span>
+                    <span className="text-[9px] text-slate-400 dark:text-slate-500 block mt-0.5">Onboard a brand new guest</span>
+                  </div>
+                </button>
+
+                {/* Assign Resident */}
                 <button
                   type="button"
                   onClick={() => setActiveModal('add_resident')}
                   className="w-full flex items-center gap-3.5 border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50/50 p-3 rounded-xl transition-all cursor-pointer group"
                 >
                   <div className="w-9 h-9 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
-                    <UserPlus className="w-4.5 h-4.5" />
+                    <Building className="w-4.5 h-4.5" />
                   </div>
                   <div className="text-left">
                     <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                      Add Resident
+                      Assign Room
                     </span>
-                    <span className="text-[9px] text-slate-400 dark:text-slate-500 block mt-0.5">Onboard a new guest</span>
-                  </div>
-                </button>
-
-                {/* Generate Invoice */}
-                <button
-                  type="button"
-                  onClick={() => setActiveModal('generate_invoice')}
-                  className="w-full flex items-center gap-3.5 border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50/50 p-3 rounded-xl transition-all cursor-pointer group"
-                >
-                  <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
-                    <FileSpreadsheet className="w-4.5 h-4.5" />
-                  </div>
-                  <div className="text-left">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                      Generate Invoice
-                    </span>
-                    <span className="text-[9px] text-slate-400 dark:text-slate-500 block mt-0.5">Calculate dues and utility dues</span>
+                    <span className="text-[9px] text-slate-400 dark:text-slate-500 block mt-0.5">Assign an existing member</span>
                   </div>
                 </button>
 
@@ -864,34 +919,12 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Module 3: Smart System Status */}
-            {/* <div className="bg-blue-950 text-white rounded-2xl p-6 shadow-md relative overflow-hidden group"> */}
-              {/* Radial gradient background accent */}
-              {/* <div className="absolute -bottom-8 -right-8 w-24 h-24 bg-blue-500/25 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform"></div>
-
-              <div className="flex items-center gap-2 mb-4">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                  Smart System Online
-                </span>
-              </div>
-
-              <p className="text-xs text-blue-200/90 leading-relaxed mb-5 font-medium">
-                All 142 digital locks and environment sensors are reporting status: normal.
-              </p>
-
-              <button
-                type="button"
-                onClick={() => showToast('Loading interactive hardware sensor map...', 'info')}
-                className="w-full bg-white/10 hover:bg-white/15 active:bg-white/20 text-white border border-white/10 text-xs font-bold py-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                <Cpu className="w-4 h-4 shrink-0" />
-                <span>View Hardware Map</span>
-              </button>
-            </div> */}
 
             {/* Module 4: Admin Guide */}
-            <div className="bg-gradient-to-br from-indigo-900 to-slate-900 border border-indigo-500/30 rounded-2xl p-6 shadow-lg relative overflow-hidden group">
+            <div 
+              onClick={() => router.push('/admin/guide')}
+              className="bg-gradient-to-br from-indigo-900 to-slate-900 border border-indigo-500/30 rounded-2xl p-6 shadow-lg relative overflow-hidden group cursor-pointer hover:border-indigo-400/50 transition-colors"
+            >
               <div className="absolute -top-12 -right-12 w-32 h-32 bg-teal-500/20 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-700"></div>
               
               <div className="flex items-start justify-between relative z-10">
@@ -907,13 +940,10 @@ export default function AdminDashboard() {
                   <p className="text-xs text-indigo-200/70 mb-4 max-w-[200px] leading-relaxed">
                     Learn how to manage rooms, residents, and automated billing.
                   </p>
-                  <Link 
-                    href="/admin/guide"
-                    className="inline-flex items-center gap-1.5 text-xs text-teal-400 hover:text-teal-300 font-bold transition-colors w-fit group/link"
-                  >
+                  <div className="inline-flex items-center gap-1.5 text-xs text-teal-400 hover:text-teal-300 font-bold transition-colors w-fit group/link">
                     Read documentation
                     <ArrowUpRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
-                  </Link>
+                  </div>
                 </div>
               </div>
             </div>
@@ -924,7 +954,110 @@ export default function AdminDashboard() {
 
       </main>
 
-      {/* Quick Action Modal Dialog for Add Resident */}
+    {/* Quick Action Modal Dialog for Register New Resident */}
+      {activeModal === 'register_resident' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-6 sticky top-0 bg-white dark:bg-slate-900 z-10">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                Register New Resident
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => setActiveModal(null)} 
+                className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:text-slate-500 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleRegisterResidentSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  value={registerName}
+                  onChange={(e) => setRegisterName(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-blue-950 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={registerEmail}
+                  onChange={(e) => setRegisterEmail(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-blue-950 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Phone Number</label>
+                <input
+                  type="tel"
+                  required
+                  value={registerPhone}
+                  onChange={(e) => setRegisterPhone(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-blue-950 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Assigned Unit</label>
+                <select
+                  required
+                  value={newResidentUnit}
+                  onChange={(e) => setNewResidentUnit(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-blue-950 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none"
+                >
+                  <option value="">Select an available room...</option>
+                  {availableRooms.filter(r => r.status !== 'Active Member' && r.status !== 'Maintenance').map(room => (
+                    <option key={room.id} value={room.id}>
+                      Unit {room.roomNo} - {room.type} (Rp {Number(room.price.replace(/\D/g,'')).toLocaleString('id-ID')})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Move-In Date (Billing Cycle)</label>
+                <input
+                  type="date"
+                  required
+                  value={moveInDate}
+                  onChange={(e) => setMoveInDate(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-blue-950 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none"
+                />
+                <p className="mt-2 text-[10px] text-slate-500 font-medium leading-relaxed">
+                  Default password for new users will be <strong className="text-slate-700 dark:text-slate-300">password123</strong>. They can change it after login.
+                </p>
+              </div>
+
+              <div className="pt-4 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-md transition-all cursor-pointer flex items-center gap-2"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Register Resident
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Action Modal Dialog for Assign Resident */}
       {activeModal === 'add_resident' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
           <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 animate-in zoom-in-95">
@@ -980,11 +1113,25 @@ export default function AdminDashboard() {
                 </select>
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Move-In Date (Billing Cycle)</label>
+                <input
+                  type="date"
+                  required
+                  value={moveInDate}
+                  onChange={(e) => setMoveInDate(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-blue-950 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none"
+                />
+                <p className="mt-2 text-[10px] text-slate-500 font-medium leading-relaxed">
+                  This date will be used as the monthly recurring due date for auto-billing.
+                </p>
+              </div>
+
               <div className="pt-4 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setActiveModal(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 transition-all cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1000,53 +1147,49 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Quick Action Modal Dialog for Generate Invoices */}
+    {/* Quick Action Modal Dialog for Sync Billing */}
       {activeModal === 'generate_invoice' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
           <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 animate-in zoom-in-95">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-6">
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                Generate Invoices
+                Sync Auto-Billing
               </h3>
               <button 
                 type="button" 
                 onClick={() => setActiveModal(null)} 
-                className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:text-slate-500 cursor-pointer"
+                className="text-slate-400 dark:text-slate-500 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-              This will generate pending payments for all active members.
+              This will automatically check all residents and generate pending payments ONLY for those who have passed their monthly due date.
             </p>
 
-            <form onSubmit={handleGenerateInvoicesSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Standard Invoice Amount (Rp)</label>
-                <input
-                  type="number"
-                  required
-                  placeholder="e.g. 1000000"
-                  value={invoiceAmount}
-                  onChange={(e) => setInvoiceAmount(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-blue-950 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-950"
-                />
+            <form onSubmit={handleSyncBillingSubmit} className="space-y-4">
+              <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+                 <p className="text-xs text-blue-800 dark:text-blue-300 font-medium">
+                   <strong className="block mb-1">Intelligent Automation</strong>
+                   The system evaluates each member's specific move-in date and room rate. If a member's billing cycle is due today or past due, it will bill them and advance their next due date by 1 month.
+                 </p>
               </div>
 
               <div className="pt-4 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setActiveModal(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 transition-all cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-blue-900 hover:bg-blue-950 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-md transition-all cursor-pointer"
+                  className="bg-blue-900 hover:bg-blue-950 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-md transition-all cursor-pointer flex items-center gap-2"
                 >
-                  Generate Now
+                  <CheckCircle className="w-4 h-4" />
+                  Run Sync Now
                 </button>
               </div>
             </form>
@@ -1243,16 +1386,22 @@ export default function AdminDashboard() {
               <div className="px-6 pt-4 pb-3">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Payments</p>
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                      <CheckCircle className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Payment Received</p>
-                      <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Unit 402 &bull; Rp 1.400.000</p>
-                    </div>
-                    <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">2m ago</span>
-                  </div>
+                  {(!dashboardData?.recentActivities || dashboardData.recentActivities.filter((a:any) => a.type === 'payment').length === 0) ? (
+                    <p className="text-xs text-slate-400 pb-2">No recent payment activity.</p>
+                  ) : (
+                    dashboardData.recentActivities.filter((a:any) => a.type === 'payment').map((p: any) => (
+                      <div key={p.id} className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                          <CheckCircle className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{p.title}</p>
+                          <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{p.details}</p>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">{formatRelativeTime(p.time)}</span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -1345,12 +1494,9 @@ export default function AdminDashboard() {
             </p>
           </div>
           <div className="flex items-center gap-5">
-            {['Contact Us'].map((link) => (
-              <a key={link} href="#" onClick={(e) => { e.preventDefault(); showToast(`Opening ${link}…`, 'info'); }}
-                className="text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
-                {link}
+            <a href="mailto:adventurecreature@gmail.com" className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
+                Contact Us
               </a>
-            ))}
           </div>
         </div>
       </footer>
@@ -1379,7 +1525,70 @@ export default function AdminDashboard() {
               )}
             </div>
           </aside>
+          {/* All Activity Modal */}
+      {activeModal === 'all_activity' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full p-6 sm:p-8 animate-in zoom-in-95 flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-6 shrink-0">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                All Recent Activity
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => setActiveModal(null)} 
+                className="text-slate-400 dark:text-slate-500 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto pr-2 space-y-4 text-center py-10">
+               <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-400 mb-4">
+                 <CheckCircle className="w-6 h-6" />
+               </div>
+               <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">All activity logs are up to date.</p>
+               <p className="text-xs text-slate-500">Historical data fetching is currently in maintenance mode.</p>
+            </div>
+          </div>
         </div>
+      )}
+
+      {/* Hardware Map Modal */}
+      {activeModal === 'hardware_map' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full p-6 sm:p-8 animate-in zoom-in-95 flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-6 shrink-0">
+              <div className="flex items-center gap-3">
+                <Cpu className="w-5 h-5 text-emerald-400" />
+                <h3 className="text-lg font-bold text-white">
+                  Interactive Hardware Map
+                </h3>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setActiveModal(null)} 
+                className="text-slate-500 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 min-h-[400px] flex items-center justify-center border border-slate-800/50 rounded-xl bg-slate-950/50 relative overflow-hidden">
+               <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                 <Cpu className="w-64 h-64 text-emerald-500" />
+               </div>
+               <div className="relative z-10 text-center">
+                 <div className="flex items-center justify-center gap-2 mb-2">
+                   <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></span>
+                   <span className="text-emerald-400 font-bold tracking-widest text-sm">SYSTEM ONLINE</span>
+                 </div>
+                 <p className="text-slate-400 text-xs">All 142 sensors (Locks & Env) are operating normally.</p>
+                 <p className="text-slate-500 text-[10px] mt-4">2D Floor Plan mapping is currently disabled for maintenance.</p>
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
       )}
     </div>
   );

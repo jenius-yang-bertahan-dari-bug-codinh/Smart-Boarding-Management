@@ -12,13 +12,20 @@ export async function getAdminBilling(trendFilter: string = '6_months') {
       orderBy: { payment_date: 'desc' }
     });
 
+    // Filter logic: Keep all 'paid' invoices for income tracking.
+    // But for 'pending' or 'overdue', only include them if the member is still active.
+    const validPayments = payments.filter(p => {
+      if (p.status === 'paid') return true;
+      return p.member && p.member.status === 'active';
+    });
+
     let incomeSum = 0;
     let pendingSum = 0;
     let pendingCount = 0;
     let overdueSum = 0;
     let overdueCount = 0;
 
-    const mappedInvoices = payments.map(p => {
+    const mappedInvoices = validPayments.map(p => {
       let initials = 'U';
       if (p.member?.name) {
         const parts = p.member.name.split(' ');

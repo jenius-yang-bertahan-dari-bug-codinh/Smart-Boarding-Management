@@ -8,12 +8,14 @@ datasource db {
 }
 
 model User {
-  id       Int      @id @default(autoincrement())
-  email    String   @unique
-  password String
-  role       String   @default("guest") // e.g., admin, guest, etc
-  avatar_url String?
-  members    Member[]
+  id                 Int       @id @default(autoincrement())
+  email              String    @unique
+  password           String
+  role               String    @default("guest") // e.g., admin, guest, etc
+  avatar_url         String?
+  reset_token        String?
+  reset_token_expiry DateTime?
+  members            Member[]
 }
 
 model Room {

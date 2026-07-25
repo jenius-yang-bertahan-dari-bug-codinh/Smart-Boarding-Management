@@ -2,6 +2,8 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import bcrypt from 'bcryptjs';
+import { sendEmail } from '@/lib/email';
 
 export async function getAdminReservations() {
   try {
@@ -24,11 +26,12 @@ export async function getAdminReservations() {
         id: `#RSV-${m.id.toString().padStart(4, '0')}`,
         tenant: m.name,
         initials,
-        color: m.status === 'active' ? 'bg-blue-500' : (m.status === 'pending' ? 'bg-emerald-500' : 'bg-slate-500'),
+        color: m.status === 'active' ? 'bg-blue-500' : (m.status === 'approved' ? 'bg-indigo-500' : (m.status === 'pending' ? 'bg-emerald-500' : 'bg-slate-500')),
         room: m.room ? `Room ${m.room.room_number}` : 'Unknown Room',
         term: m.due_date ? `Due: ${m.due_date.toISOString().split('T')[0]}` : 'Flexible',
+        rawDueDate: m.due_date ? m.due_date.toISOString() : null,
         amount: m.room ? `Rp ${Number(m.room.price).toLocaleString('id-ID')}` : 'N/A',
-        status: m.status === 'active' ? 'Confirmed' : (m.status === 'pending' ? 'Pending' : 'Cancelled')
+        status: m.status === 'active' ? 'Confirmed' : (m.status === 'approved' ? 'Approved (Unpaid)' : (m.status === 'pending' ? 'Pending' : 'Cancelled'))
       };
     });
 
@@ -44,20 +47,58 @@ export async function updateReservationStatus(id: number, status: string) {
   try {
     const member = await prisma.member.update({
       where: { id },
-      data: { status }
+      data: { status },
+      include: {
+        user: true // Include user to get the email address
+      }
     });
 
-    if (status === 'active') {
-      // Also update payment to completed
-      await prisma.payment.updateMany({
-        where: { member_id: id },
-        data: { status: 'completed' }
+    if (status === 'active' || status === 'approved') {
+      // 1. Generate the unique password
+      const crypto = require('crypto');
+      const rawPassword = crypto.randomBytes(4).toString('hex');
+      const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
+      // 2. Upgrade user role and update password
+      await prisma.user.update({
+        where: { id: member.user_id },
+        data: { 
+          role: 'tenant',
+          password: hashedPassword 
+        }
       });
-      // And update room to Occupied
-      await prisma.room.update({
-        where: { id: member.room_id },
-        data: { status: 'Occupied' }
-      });
+      
+      // 3. Send email to the user if they have a valid user account
+      if (member.user && member.user.email) {
+        const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login`;
+        const emailHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
+            <h2 style="color: #1e3a8a;">Welcome to Papikost! 🎉</h2>
+            <p style="color: #475569; font-size: 16px;">Hello <strong>${member.name}</strong>,</p>
+            <p style="color: #475569; font-size: 16px;">Good news! Your reservation has been approved by the Admin.</p>
+            <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p style="margin: 0 0 10px 0; color: #334155;"><strong>Your Login Credentials:</strong></p>
+              <p style="margin: 0 0 5px 0; color: #475569;">Email: <strong>${member.user.email}</strong></p>
+              <p style="margin: 0; color: #475569;">Password: <strong>${rawPassword}</strong></p>
+            </div>
+            <p style="color: #b91c1c; font-size: 14px; font-weight: bold; background-color: #fef2f2; padding: 10px; border-radius: 6px; border-left: 4px solid #ef4444;">
+              ⚠️ SECURITY NOTICE: For your safety, we strongly recommend changing this auto-generated password immediately after your first login via the Profile & Settings menu.
+            </p>
+            <p style="color: #475569; font-size: 16px;">Please log in to your dashboard and complete your first payment to officially check in and secure your room.</p>
+            <a href="${loginUrl}" style="display: inline-block; background-color: #1e3a8a; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; margin-top: 10px;">Login to Dashboard</a>
+            <p style="color: #94a3b8; font-size: 12px; margin-top: 30px;">Best regards,<br>Papikost Management</p>
+          </div>
+        `;
+        
+        await sendEmail(
+          member.user.email,
+          'Your Papikost Reservation is Approved! 🏠',
+          emailHtml
+        );
+      }
+      
+      // NOTE: We no longer auto-update payment to 'completed' or room to 'Occupied' here.
+      // That will happen after the user successfully pays via Midtrans in the dashboard.
     } else if (status.toLowerCase() === 'cancelled' || status === 'inactive') {
       await prisma.room.update({
         where: { id: member.room_id },

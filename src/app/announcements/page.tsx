@@ -235,78 +235,28 @@ export default function AnnouncementsPage() {
               </div>
 
               <div className="space-y-4 divide-y divide-slate-100">
-                {/* Event 1 (Personalized or Unit Priority) */}
-                <div className="pt-0 flex items-start justify-between gap-2">
-                  <div>
-                    <span className="text-xs font-extrabold text-amber-800 block">
-                      Jul 20th • {user?.memberProfile?.room ? `Room ${user.memberProfile.room.room_number}` : 'Unit Inspection'}
-                    </span>
-                    <h4 className="text-xs sm:text-sm font-bold text-slate-800 mt-1">
-                      AC Unit &amp; Filter Deep Servicing
-                    </h4>
-                    <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">
-                      10:00 AM - 11:30 AM
-                    </span>
-                  </div>
-                  <span className="text-[9px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded shrink-0">
-                    My Room
-                  </span>
-                </div>
-
-                {/* Event 2 (Personalized or Unit Priority) */}
-                {user?.memberProfile?.complaints && user.memberProfile.complaints.length > 0 ? (
-                  <div className="pt-4 flex items-start justify-between gap-2">
-                    <div>
-                      <span className="text-xs font-extrabold text-amber-800 block">
-                        Scheduled • {user.memberProfile.room ? `Room ${user.memberProfile.room.room_number}` : 'Unit Ticket'}
-                      </span>
-                      <h4 className="text-xs sm:text-sm font-bold text-slate-800 mt-1">
-                        {user.memberProfile.complaints[0].category} ({user.memberProfile.complaints[0].status})
-                      </h4>
-                      <span className="text-[10px] text-slate-400 font-semibold block mt-0.5 line-clamp-1">
-                        {user.memberProfile.complaints[0].description}
+                {user?.memberProfile?.complaints?.filter((c: any) => c.status !== 'resolved').length > 0 ? (
+                  user.memberProfile.complaints.filter((c: any) => c.status !== 'resolved').map((complaint: any, index: number) => (
+                    <div key={complaint.id} className={`${index > 0 ? 'pt-4' : 'pt-0'} flex items-start justify-between gap-2`}>
+                      <div>
+                        <span className="text-xs font-extrabold text-amber-800 block">
+                          Ticket {complaint.tracking_id} • {user.memberProfile.room ? `Room ${user.memberProfile.room.room_number}` : 'Unit Ticket'}
+                        </span>
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-800 mt-1 capitalize">
+                          {complaint.category} ({complaint.status.replace('_', ' ')})
+                        </h4>
+                        <span className="text-[10px] text-slate-400 font-semibold block mt-0.5 line-clamp-2">
+                          {complaint.description}
+                        </span>
+                      </div>
+                      <span className="text-[9px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded shrink-0 mt-1">
+                        My Room
                       </span>
                     </div>
-                    <span className="text-[9px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded shrink-0">
-                      My Room
-                    </span>
-                  </div>
+                  ))
                 ) : (
-                  <div className="pt-4 flex items-start justify-between gap-2">
-                    <div>
-                      <span className="text-xs font-extrabold text-blue-900 block">
-                        Jul 22nd • Common Area
-                      </span>
-                      <h4 className="text-xs sm:text-sm font-bold text-slate-800 mt-1">
-                        Elevator B Safety Inspection
-                      </h4>
-                      <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">
-                        08:00 AM - 12:00 PM
-                      </span>
-                    </div>
-                    <span className="text-[9px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded shrink-0">
-                      Building
-                    </span>
-                  </div>
+                  <div className="py-6 text-center text-slate-500 text-sm font-medium">No upcoming maintenance for your room.</div>
                 )}
-
-                {/* Event 3 (General Building) */}
-                <div className="pt-4 flex items-start justify-between gap-2">
-                  <div>
-                    <span className="text-xs font-extrabold text-blue-900 block">
-                      Jul 25th • Facade
-                    </span>
-                    <h4 className="text-xs sm:text-sm font-bold text-slate-800 mt-1">
-                      Exterior Glass Pressure Washing
-                    </h4>
-                    <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">
-                      09:00 AM - 04:00 PM
-                    </span>
-                  </div>
-                  <span className="text-[9px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded shrink-0">
-                    Building
-                  </span>
-                </div>
               </div>
 
               {/* View Full Calendar link */}

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, ArrowRight, ScanFace, Fingerprint, ArrowLeft, Mail, CheckCircle } from 'lucide-react';
 import Logo from '@/components/Logo';
+import { forgotPassword } from '@/app/actions/auth';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const [isForgotOpen, setIsForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSuccess, setForgotSuccess] = useState(false);
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -193,7 +195,7 @@ export default function LoginPage() {
                   </div>
                   <h4 className="font-extrabold text-slate-800 text-base">Check Your Gmail!</h4>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    We are preparing our live Gmail / SMTP server integration. When activated, a confirmation link &amp; OTP will be sent directly to <span className="font-bold text-blue-900">{forgotEmail}</span>.
+                    A password reset link has been sent to <span className="font-bold text-blue-900">{forgotEmail}</span>. Please check your inbox (and spam folder) and follow the instructions to reset your password.
                   </p>
                   <button
                     type="button"
@@ -205,15 +207,25 @@ export default function LoginPage() {
                 </div>
               ) : (
                 <form 
-                  onSubmit={(e) => {
+                  onSubmit={async (e) => {
                     e.preventDefault();
                     if (!forgotEmail) return;
-                    setForgotSuccess(true);
+                    setIsForgotLoading(true);
+                    try {
+                      await forgotPassword(forgotEmail);
+                      // Always show success to prevent email enumeration
+                      setForgotSuccess(true);
+                    } catch (error) {
+                      console.error(error);
+                      alert('An error occurred. Please try again.');
+                    } finally {
+                      setIsForgotLoading(false);
+                    }
                   }} 
                   className="space-y-4"
                 >
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    Enter your registered email address below. Once connected to Gmail SMTP, we will send a password reset link directly to your inbox to securely recover your account.
+                    Enter your registered email address below. We will send a password reset link directly to your inbox to securely recover your account.
                   </p>
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
@@ -238,9 +250,10 @@ export default function LoginPage() {
                     </button>
                     <button
                       type="submit"
-                      className="px-5 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+                      disabled={isForgotLoading}
+                      className="px-5 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-md transition-all cursor-pointer disabled:opacity-50"
                     >
-                      Send Gmail Reset Link
+                      {isForgotLoading ? 'Sending...' : 'Send Reset Link'}
                     </button>
                   </div>
                 </form>

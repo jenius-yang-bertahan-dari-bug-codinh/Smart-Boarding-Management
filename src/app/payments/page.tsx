@@ -20,7 +20,8 @@ import {
   WashingMachine,
   ArrowRight,
   ShieldCheck,
-  CircleDot
+  CircleDot,
+  X
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 import MemberSidebar from '@/components/MemberSidebar';
@@ -32,6 +33,7 @@ export default function FinancialHub() {
   const [loading, setLoading] = useState(true);
   const [isPaying, setIsPaying] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const router = useRouter();
 
   // Helper: extract redirect_url from gateway_reference (handles both old and new format)
@@ -106,6 +108,27 @@ export default function FinancialHub() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [checkPaymentStatus, isChecking]);
 
+  // Derived state
+  let dueDateText = "Paid";
+  let isOverdue = false;
+  let nextBillingText = "N/A";
+  if (user?.memberProfile?.due_date) {
+    const today = new Date();
+    const due = new Date(user.memberProfile.due_date);
+    const diffTime = due.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) {
+      dueDateText = `Overdue by ${Math.abs(diffDays)} days`;
+      isOverdue = true;
+    } else if (diffDays === 0) {
+      dueDateText = "Due today";
+    } else {
+      dueDateText = `Due in ${diffDays} days`;
+    }
+    nextBillingText = due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans font-semibold text-slate-500">Loading payments...</div>;
   }
@@ -153,7 +176,7 @@ export default function FinancialHub() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
           {/* Left Column (Account Summary) */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="lg:col-span-6 space-y-6">
             
             {/* Current Balance Card */}
             <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col relative overflow-hidden">
@@ -172,14 +195,16 @@ export default function FinancialHub() {
               </div>
 
               {/* Status information */}
-              <div className="mt-6 flex flex-wrap items-center gap-2.5">
-                <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md">
-                  Due in 5 days
-                </span>
-                <span className="text-xs text-slate-400 font-semibold">
-                  Next billing: Oct 1st
-                </span>
-              </div>
+              {currentBalance > 0 && (
+                <div className="mt-6 flex flex-wrap items-center gap-2.5">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${isOverdue ? 'text-red-600 bg-red-50' : 'text-orange-600 bg-orange-50'}`}>
+                    {dueDateText}
+                  </span>
+                  <span className="text-xs text-slate-400 font-semibold">
+                    Next billing: {nextBillingText}
+                  </span>
+                </div>
+              )}
 
               {/* Pay Now Button */}
               <button
@@ -219,7 +244,7 @@ export default function FinancialHub() {
           </div>
 
           {/* Right Column (Transaction History) */}
-          <div className="lg:col-span-8">
+          <div className="lg:col-span-6">
             
             {/* Transaction History Panel */}
             <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 sm:p-8">
@@ -227,19 +252,18 @@ export default function FinancialHub() {
                 <h2 className="text-lg font-bold text-slate-800">
                   Transaction History
                 </h2>
-                <a 
-                  href="#" 
-                  onClick={(e) => { e.preventDefault(); alert('Opening complete transaction list...'); }}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 transition-colors"
+                <button 
+                  onClick={(e) => { e.preventDefault(); setIsHistoryModalOpen(true); }}
+                  className="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 transition-colors cursor-pointer"
                 >
                   <span>View All</span>
                   <ArrowRight className="w-3.5 h-3.5" />
-                </a>
+                </button>
               </div>
 
               {/* Transactions List */}
               <div className="divide-y divide-slate-100/70">
-                {transactions.map((tx) => {
+                {transactions.slice(0, 1).map((tx) => {
                   return (
                     <div key={tx.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
                       {/* Left Block: Icon + Details */}
@@ -313,6 +337,84 @@ export default function FinancialHub() {
         </div>
 
       </section>
+
+      {/* Full Transaction History Modal */}
+      {isHistoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <h2 className="text-xl font-bold text-slate-800">
+                All Transactions
+              </h2>
+              <button 
+                onClick={() => setIsHistoryModalOpen(false)}
+                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-6 divide-y divide-slate-100/70">
+              {transactions.length === 0 ? (
+                <div className="py-8 text-center text-slate-500 font-medium">No transactions found.</div>
+              ) : (
+                transactions.map((tx) => (
+                  <div key={tx.id} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${tx.status === 'pending' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'}`}>
+                        <CreditCard className="w-5 h-5 stroke-[1.8]" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-extrabold text-slate-800">Payment</h3>
+                        <p className="text-xs text-slate-400 font-semibold mt-0.5">
+                          {new Date(tx.payment_date).toLocaleDateString()} &bull; <span className="text-slate-500">{tx.payment_method}</span>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right flex flex-col items-end">
+                      <span className={`text-sm font-black block ${tx.status === 'pending' ? 'text-orange-500' : 'text-slate-800'}`}>
+                        Rp {tx.amount.toLocaleString('id-ID')}
+                      </span>
+                      <div className="flex items-center gap-2 mt-1">
+                        {(tx.status === 'pending' || tx.status === 'overdue') && (
+                          <button
+                            type="button"
+                            disabled={isPaying}
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              const redirectUrl = getRedirectUrl(tx.gateway_reference);
+                              if (redirectUrl) {
+                                window.open(redirectUrl, '_blank');
+                                return;
+                              }
+                              setIsPaying(true);
+                              const { generatePaymentLink } = await import('@/app/actions/midtrans');
+                              const res = await generatePaymentLink(tx.id);
+                              if (res.success && res.redirect_url) {
+                                setTransactions(transactions.map(t => t.id === tx.id ? { ...t, gateway_reference: `new|${res.redirect_url}` } : t));
+                                window.open(res.redirect_url, '_blank');
+                              } else {
+                                alert('Failed to generate Midtrans link');
+                              }
+                              setIsPaying(false);
+                            }}
+                            className="text-[10px] bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white px-2 py-0.5 rounded-md font-bold transition-colors cursor-pointer"
+                          >
+                            Pay
+                          </button>
+                        )}
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          <CircleDot className={`w-2.5 h-2.5 ${tx.status === 'pending' ? 'text-orange-500 fill-orange-500/10' : 'text-emerald-500 fill-emerald-500/10'}`} />
+                          {tx.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </main>
   );

@@ -22,6 +22,21 @@ const getFeatureIcon = (feature: string) => {
 
 const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Parse images (handle both legacy string and new JSON array)
+  let images: string[] = [];
+  try {
+    const parsed = JSON.parse(room.imageUrl);
+    if (Array.isArray(parsed)) {
+      images = parsed;
+    } else {
+      images = [room.imageUrl];
+    }
+  } catch (e) {
+    images = [room.imageUrl];
+  }
+
   const currentStatus = room.status?.toLowerCase() || '';
   const isAvailable = currentStatus === 'available';
   const isPending = currentStatus === 'booked' || currentStatus === 'pending';
@@ -37,7 +52,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
       {/* Image Block with Absolute Badge */}
       <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-100 dark:bg-slate-900">
         <img
-          src={room.imageUrl}
+          src={images[0]}
           alt={room.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
@@ -117,32 +132,54 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}>
           <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full max-h-[95vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
-            {/* Image Slider Mockup */}
+            {/* Image Slider */}
             <div className="relative h-64 sm:h-80 w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
               <img
-                src={room.imageUrl}
-                alt={room.name}
-                className="w-full h-full object-cover"
+                src={images[currentImageIndex]}
+                alt={`${room.name} - image ${currentImageIndex + 1}`}
+                className="w-full h-full object-cover transition-all duration-300"
               />
               <button 
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setCurrentImageIndex(0);
+                }}
                 className="absolute top-4 right-4 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 p-2 rounded-xl shadow-sm transition-colors text-slate-700 dark:text-slate-200"
               >
                 <X className="w-5 h-5" />
               </button>
               
-              <button className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 p-2 rounded-xl shadow-sm transition-colors text-slate-700 dark:text-slate-200">
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 p-2 rounded-xl shadow-sm transition-colors text-slate-700 dark:text-slate-200">
-                <ChevronRight className="w-5 h-5" />
-              </button>
-              
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-blue-600"></div>
-                <div className="w-2 h-2 rounded-full bg-white/70"></div>
-                <div className="w-2 h-2 rounded-full bg-white/70"></div>
-              </div>
+              {images.length > 1 && (
+                <>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentImageIndex(prev => prev === 0 ? images.length - 1 : prev - 1);
+                    }}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 p-2 rounded-xl shadow-sm transition-colors text-slate-700 dark:text-slate-200"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentImageIndex(prev => prev === images.length - 1 ? 0 : prev + 1);
+                    }}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 p-2 rounded-xl shadow-sm transition-colors text-slate-700 dark:text-slate-200"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                  
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
+                    {images.map((_, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`w-2 h-2 rounded-full transition-colors ${idx === currentImageIndex ? 'bg-blue-600' : 'bg-white/70'}`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Modal Content */}

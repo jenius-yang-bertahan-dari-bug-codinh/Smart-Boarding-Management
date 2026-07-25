@@ -118,6 +118,21 @@ export async function POST(req: Request) {
               payment_date: new Date()
             }
           });
+
+          // Check-in Trigger: If this was the first payment and member was only 'approved'
+          if (member.status === 'approved') {
+            await prisma.member.update({
+              where: { id: member.id },
+              data: { status: 'active' }
+            });
+            await prisma.room.update({
+              where: { id: member.room_id },
+              data: { status: 'Occupied' }
+            });
+            // Update local object so subsequent loop iterations know it's active
+            member.status = 'active';
+          }
+
           updatedPayments.push({ id: payment.id, newStatus: 'paid' });
         }
       } catch (midtransError: any) {

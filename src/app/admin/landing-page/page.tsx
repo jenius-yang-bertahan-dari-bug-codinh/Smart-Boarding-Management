@@ -2,7 +2,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { getAdminLandingConfig } from '@/app/actions/landing';
+import { getAdminLandingConfig, updateFacilities } from '@/app/actions/landing';
+import { addRoom } from '@/app/actions/properties';
 import Link from 'next/link';
 import AdminNavbar from '@/components/AdminNavbar';
 import { useRouter } from 'next/navigation';
@@ -19,13 +20,16 @@ import {
   Wifi,
   WashingMachine,
   ShieldCheck,
-  Dumbbell
+  Dumbbell,
+  Car,
+  Coffee,
+  Tv
 } from 'lucide-react';
 
 export default function LandingPageManagement() {
   const router = useRouter();
   // Page specific tabs
-  const [activeConfigTab, setActiveConfigTab] = useState<'Hero Section' | 'Facilities' | 'Rooms'>('Hero Section');
+  const [activeConfigTab, setActiveConfigTab] = useState<'Hero Section' | 'Facilities'>('Hero Section');
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -45,21 +49,113 @@ export default function LandingPageManagement() {
     getAdminLandingConfig().then(res => {
       if(res.success && res.data) {
         setFacilities(res.data.facilities);
-        setRooms(res.data.rooms);
       }
       setIsLoading(false);
     });
   }, []);
 
-  // Rooms data
-  
+  // Add Facility Modal State
+  const [isFacilityModalOpen, setIsFacilityModalOpen] = useState(false);
+  const [newFacilityName, setNewFacilityName] = useState('');
+  const [newFacilityDesc, setNewFacilityDesc] = useState('');
+  const [newFacilityIcon, setNewFacilityIcon] = useState('Wifi');
 
+  const handleAddFacility = async () => {
+    if (!newFacilityName || !newFacilityDesc) return;
+    const newFacility = {
+      id: Date.now(),
+      name: newFacilityName,
+      description: newFacilityDesc,
+      icon: newFacilityIcon
+    };
+    
+    const updatedFacilities = [...facilities, newFacility];
+    setFacilities(updatedFacilities);
+    setIsFacilityModalOpen(false);
+    setNewFacilityName('');
+    setNewFacilityDesc('');
+    setNewFacilityIcon('Wifi');
+
+    const res = await updateFacilities(updatedFacilities);
+    if (res.success) {
+      showToast('Facility added successfully!');
+    } else {
+      showToast('Failed to save facility.');
+    }
+  };
+
+  const handleDeleteFacility = async (id: number) => {
+    if (window.confirm('Are you sure you want to delete this facility?')) {
+      const updatedFacilities = facilities.filter(f => f.id !== id);
+      setFacilities(updatedFacilities);
+      
+      const res = await updateFacilities(updatedFacilities);
+      if (res.success) {
+        showToast('Facility deleted successfully!');
+      } else {
+        showToast('Failed to delete facility.');
+      }
+    }
+  };
+
+  // Add Room Modal State
+  const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
+  const [newRoomNumber, setNewRoomNumber] = useState('');
+  const [newRoomType, setNewRoomType] = useState('Standard');
+  const [newRoomFloor, setNewRoomFloor] = useState('1');
+  const [newRoomPrice, setNewRoomPrice] = useState('');
+  const [newRoomFeatures, setNewRoomFeatures] = useState('AC, WiFi');
+  
+  const handleAddRoom = async () => {
+    if (!newRoomNumber || !newRoomPrice) {
+      showToast('Room number and price are required!');
+      return;
+    }
+
+    const priceNum = parseInt(newRoomPrice.replace(/[^0-9]/g, ''), 10);
+    const floorNum = parseInt(newRoomFloor, 10);
+    const featuresArray = newRoomFeatures.split(',').map(f => f.trim()).filter(f => f);
+
+    const payload = {
+      room_number: newRoomNumber,
+      floor: floorNum || 1,
+      type: newRoomType,
+      price: priceNum || 0,
+      features: JSON.stringify(featuresArray),
+      imageUrl: '/assets/rooms/room_101.png', // Default placeholder
+    };
+
+    const res = await addRoom(payload);
+    if (res.success && res.data) {
+      showToast('Room added successfully!');
+      setIsRoomModalOpen(false);
+      // Reset form
+      setNewRoomNumber('');
+      setNewRoomPrice('');
+      
+      // Update local state by converting server object to local list format
+      const formattedRoom = {
+        id: res.data.id,
+        name: `Room ${res.data.room_number} - ${res.data.type}`,
+        image: res.data.imageUrl || '/assets/rooms/default.jpg',
+        price: `Rp ${Number(res.data.price).toLocaleString('id-ID')}`,
+        amenities: res.data.features ? JSON.parse(res.data.features) : [],
+      };
+      setRooms([...rooms, formattedRoom]);
+    } else {
+      showToast(res.error || 'Failed to add room.');
+    }
+  };
+  
   const getFacilityIcon = (iconName: string) => {
     switch (iconName) {
       case 'Wifi': return <Wifi className="w-5 h-5" />;
       case 'WashingMachine': return <WashingMachine className="w-5 h-5" />;
       case 'ShieldCheck': return <ShieldCheck className="w-5 h-5" />;
       case 'Dumbbell': return <Dumbbell className="w-5 h-5" />;
+      case 'Car': return <Car className="w-5 h-5" />;
+      case 'Coffee': return <Coffee className="w-5 h-5" />;
+      case 'Tv': return <Tv className="w-5 h-5" />;
       default: return null;
     }
   };
@@ -108,19 +204,19 @@ export default function LandingPageManagement() {
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
           {/* Sub Navigation */}
           <div className="flex items-center border-b border-slate-200 dark:border-slate-700 px-6 pt-4 gap-6 bg-slate-50/50">
-            {(['Hero Section', 'Facilities', 'Rooms'] as const).map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveConfigTab(tab)}
-                className={`pb-3 text-sm font-semibold border-b-2 transition-colors ${
-                  activeConfigTab === tab 
-                    ? 'border-blue-900 text-blue-900' 
-                    : 'border-transparent text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:text-slate-300'
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
+              {['Hero Section', 'Facilities'].map((tab) => (
+                <button 
+                  key={tab}
+                  onClick={() => setActiveConfigTab(tab as any)}
+                  className={`py-3 sm:py-4 px-2 border-b-2 font-semibold text-sm transition-colors whitespace-nowrap ${
+                    activeConfigTab === tab 
+                      ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400' 
+                      : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
           </div>
 
           <div className="p-8">
@@ -173,7 +269,10 @@ export default function LandingPageManagement() {
                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Facilities Configuration</h2>
                     <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Manage the key features and amenities highlighted to potential residents.</p>
                   </div>
-                  <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors">
+                  <button 
+                    onClick={() => setIsFacilityModalOpen(true)}
+                    className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors"
+                  >
                     <Plus className="w-4 h-4" /> Add Facility
                   </button>
                 </div>
@@ -201,7 +300,12 @@ export default function LandingPageManagement() {
                           <td className="py-4 px-4 text-right">
                             <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-blue-600 rounded transition-colors"><Edit2 className="w-4 h-4" /></button>
-                              <button className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 rounded transition-colors"><Trash2 className="w-4 h-4" /></button>
+                              <button 
+                                onClick={() => handleDeleteFacility(facility.id)}
+                                className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 rounded transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -216,77 +320,13 @@ export default function LandingPageManagement() {
                     Page Live & Syncing
                   </div>
                   <div className="flex items-center gap-3">
-                    <button className="px-6 py-2.5 rounded-lg text-sm font-semibold border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 transition-colors">
-                      Preview Landing Page
-                    </button>
-                    <button 
-                      onClick={() => showToast('Facilities changes saved!')}
-                      className="px-6 py-2.5 rounded-lg text-sm font-semibold bg-[#0A2558] hover:bg-[#0A2558]/90 text-white transition-colors"
+                    <Link 
+                      href="/"
+                      target="_blank"
+                      className="px-6 py-2.5 rounded-lg text-sm font-semibold border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 transition-colors"
                     >
-                      Save Changes
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeConfigTab === 'Rooms' && (
-              <div>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                  <div>
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Rooms Section Configuration</h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Manage the room availability catalog displayed on your public landing page.</p>
-                  </div>
-                  <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors">
-                    <Plus className="w-4 h-4" /> Add New Room
-                  </button>
-                </div>
-
-                <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
-                  <table className="w-full text-left border-collapse bg-white dark:bg-slate-900">
-                    <thead className="bg-slate-100 dark:bg-slate-800">
-                      <tr>
-                        <th className="py-3 px-4 text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">Room Image</th>
-                        <th className="py-3 px-4 text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">Room Name</th>
-                        <th className="py-3 px-4 text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">Starting Price</th>
-                        <th className="py-3 px-4 text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider">Amenities</th>
-                        <th className="py-3 px-4 text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {rooms.map((room) => (
-                        <tr key={room.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 transition-colors">
-                          <td className="py-4 px-4">
-                            <img src={room.image} alt={room.name} className="w-16 h-12 rounded-lg object-cover border border-slate-200 dark:border-slate-700" />
-                          </td>
-                          <td className="py-4 px-4 text-sm font-bold text-slate-800 dark:text-slate-200">{room.name}</td>
-                          <td className="py-4 px-4 text-sm font-bold text-blue-900">{room.price} <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 font-normal">/mo</span></td>
-                          <td className="py-4 px-4">
-                            <div className="flex gap-1.5 flex-wrap">
-                              {room.amenities.map(amenity => (
-                                <span key={amenity} className="bg-blue-50 text-blue-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">{amenity}</span>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="py-4 px-4 text-right">
-                            {/* Empty actions matching mockup */}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <button 
-                    onClick={() => showToast('Rooms changes saved!')}
-                    className="w-full sm:w-auto bg-[#0A2558] hover:bg-[#0A2558]/90 text-white font-semibold py-3 px-8 rounded-lg transition-colors"
-                  >
-                    Save Changes
-                  </button>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
-                    <div className="w-3.5 h-3.5 rounded-full border border-slate-400 flex items-center justify-center text-[8px] font-bold">i</div>
-                    Last updated: Oct 24, 2024 at 10:45 AM
+                      Preview Landing Page
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -305,15 +345,76 @@ export default function LandingPageManagement() {
             </p>
           </div>
           <div className="flex items-center gap-5">
-            {['Contact Us'].map((link) => (
-              <a key={link} href="#" onClick={(e) => { e.preventDefault(); showToast(`Opening ${link}…`); }}
-                className="text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
-                {link}
+            <a href="mailto:adventurecreature@gmail.com" className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
+                Contact Us
               </a>
-            ))}
           </div>
         </div>
       </footer>
+      {/* Add Facility Modal */}
+      {isFacilityModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Add New Facility</h3>
+              <button onClick={() => setIsFacilityModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Facility Name</label>
+                <input 
+                  type="text" 
+                  value={newFacilityName}
+                  onChange={(e) => setNewFacilityName(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-white"
+                  placeholder="e.g. Free Coffee"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Description</label>
+                <textarea 
+                  value={newFacilityDesc}
+                  onChange={(e) => setNewFacilityDesc(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-white"
+                  placeholder="e.g. Enjoy freshly brewed coffee every morning..."
+                  rows={3}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Select Icon</label>
+                <select 
+                  value={newFacilityIcon}
+                  onChange={(e) => setNewFacilityIcon(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-white"
+                >
+                  <option value="Wifi">Wi-Fi</option>
+                  <option value="WashingMachine">Washing Machine</option>
+                  <option value="ShieldCheck">Security / Shield</option>
+                  <option value="Dumbbell">Gym / Fitness</option>
+                  <option value="Car">Parking / Car</option>
+                  <option value="Coffee">Cafe / Coffee</option>
+                  <option value="Tv">TV / Entertainment</option>
+                </select>
+                <div className="mt-3 flex items-center gap-2 text-sm text-slate-500">
+                  <span>Icon Preview:</span>
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                    {getFacilityIcon(newFacilityIcon)}
+                  </div>
+                </div>
+              </div>
+              <button 
+                onClick={handleAddFacility}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition-colors mt-2"
+              >
+                Add Facility
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

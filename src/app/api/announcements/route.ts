@@ -10,6 +10,7 @@ export async function GET() {
 
     let userName = 'Guest';
     let memberData = null;
+    let fullUser = null;
 
     if (token) {
       try {
@@ -32,6 +33,7 @@ export async function GET() {
           const member = user.members?.length > 0 ? user.members[0] : null;
           userName = member?.name || (payload.name as string);
           memberData = member;
+          fullUser = user;
         }
       } catch (e) {
         // ignore auth error for announcements
@@ -49,10 +51,16 @@ export async function GET() {
 
     return NextResponse.json({ 
       announcements, 
-      user: { 
+      user: fullUser ? {
+        id: fullUser.id,
+        email: fullUser.email,
         name: userName,
-        memberProfile: memberData
-      } 
+        role: fullUser.role,
+        avatar_url: memberData?.avatar_url || fullUser.avatar_url || null,
+        memberProfile: memberData ? {
+          ...memberData
+        } : null
+      } : { name: userName }
     })
   } catch (error: any) {
     console.error('Announcements API error:', error)

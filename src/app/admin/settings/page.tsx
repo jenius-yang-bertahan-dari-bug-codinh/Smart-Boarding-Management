@@ -9,7 +9,7 @@ import AdminNavbar from '@/components/AdminNavbar';
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'security' | 'appearance'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'security'>('profile');
   const [toast, setToast] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -36,7 +36,6 @@ export default function SettingsPage() {
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'security', label: 'Security', icon: Shield },
-    { id: 'appearance', label: 'Appearance', icon: Paintbrush },
   ] as const;
 
   return (
@@ -169,23 +168,7 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {activeTab === 'appearance' && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-lg font-bold text-slate-900 mb-1">Appearance</h2>
-                    <p className="text-xs font-semibold text-slate-500 mb-6">Customize the UI theme.</p>
-                  </div>
-                  <div>
-                    <div className="border-2 border-blue-600 bg-blue-50/50 p-4 rounded-xl flex flex-col items-center justify-center gap-2 max-w-[160px]">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-100 text-blue-600">
-                        <Sun className="w-5 h-5" />
-                      </div>
-                      <span className="text-sm font-bold text-blue-900">Light Mode</span>
-                      <span className="text-[10px] text-blue-500 font-semibold">Active</span>
-                    </div>
-                  </div>
-                </div>
-              )}
+
 
               <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end">
                 <button type="submit" className="bg-blue-900 hover:bg-blue-950 text-white text-sm font-bold px-6 py-2.5 rounded-xl transition-all shadow-md">
@@ -207,12 +190,9 @@ export default function SettingsPage() {
             </p>
           </div>
           <div className="flex items-center gap-5">
-            {['Contact Us'].map((link) => (
-              <a key={link} href="#" onClick={(e) => { e.preventDefault(); showToast(`Opening ${link}…`); }}
-                className="text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
-                {link}
+            <a href="mailto:adventurecreature@gmail.com" className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
+                Contact Us
               </a>
-            ))}
           </div>
         </div>
       </footer>
