@@ -72,19 +72,19 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
         details: `Unit ${p.member?.room?.room_number ?? 'Unknown'} \u2022 Rp ${p.amount.toLocaleString('id-ID')}`,
         time: p.payment_date.toISOString()
       })),
-      ...recentComplaints.map((c: typeof recentComplaints[0]) => ({
+      ...recentComplaints.map((c: typeof recentComplaints[0], i) => ({
         id: `c-${c.id}`,
         type: 'maintenance',
         title: 'Maintenance Request',
         details: `Unit ${c.member?.room?.room_number ?? 'Unknown'} \u2022 ${c.category}`,
-        time: new Date().toISOString()
+        time: new Date(Date.now() - (i + 1) * 1000).toISOString()
       })),
-      ...recentMembers.map((m: typeof recentMembers[0]) => ({
+      ...recentMembers.map((m: typeof recentMembers[0], i) => ({
         id: `m-${m.id}`,
         type: 'member',
         title: 'New Member Sign-up',
         details: `${m.name} \u2022 Unit ${m.room?.room_number ?? 'Unknown'}`,
-        time: new Date().toISOString()
+        time: new Date(Date.now() - (i + 1) * 2000).toISOString()
       }))
     ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 3);
 
@@ -174,7 +174,16 @@ export async function getNotifications() {
       include: { member: { include: { room: true } } }
     });
 
-    let notifs: any[] = [];
+    type NotificationItem = {
+      id: number;
+      title: string;
+      message: string;
+      time: string;
+      unread: boolean;
+      type: string;
+      timestamp: number;
+    };
+    let notifs: NotificationItem[] = [];
     let idCounter = 1;
 
     complaints.forEach(c => {
