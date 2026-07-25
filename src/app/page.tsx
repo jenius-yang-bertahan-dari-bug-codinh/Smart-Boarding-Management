@@ -8,6 +8,19 @@ import prisma from '@/lib/prisma';
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
+  const profile = await prisma.boardingHouseProfile.findFirst();
+  let facilities = [
+      { id: 1, name: 'High-Speed Wi-Fi', description: 'Stay connected with dedicated gigabit fiber internet...', icon: 'Wifi' },
+      { id: 2, name: 'Laundry Services', description: '24/7 self-service laundry room equipped...', icon: 'WashingMachine' },
+      { id: 3, name: '24/7 Security', description: 'Advanced biometric access...', icon: 'ShieldCheck' },
+      { id: 4, name: 'Modern Gym', description: 'Fully equipped fitness center...', icon: 'Dumbbell' }
+  ];
+  if (profile && profile.facilities) {
+    try {
+      facilities = JSON.parse(profile.facilities);
+    } catch(e) {}
+  }
+
   const rooms = await prisma.room.findMany({ orderBy: { id: 'asc' } });
   
   const formattedRooms = rooms.map(room => {
@@ -23,7 +36,7 @@ export default async function Home() {
     return {
       id: room.id.toString(),
       name: `Room ${room.room_number} - ${room.type}`,
-      price: `Rp ${Number(room.price).toLocaleString('id-ID')}/bln`,
+      price: `Rp ${Number(room.price).toLocaleString('id-ID')}/mo`,
       status: room.status,
       features: parsedFeatures,
       imageUrl: room.imageUrl || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800',
@@ -41,7 +54,7 @@ export default async function Home() {
         <Hero />
         
         {/* Facilities Section */}
-        <Facilities />
+        <Facilities items={facilities} />
 
         {/* Room Section */}
         <section id="rooms" className="py-16 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 transition-colors">

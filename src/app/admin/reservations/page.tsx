@@ -39,12 +39,7 @@ const STATUS_STYLES: Record<ResvStatus, string> = {
 
 
 type CalEvent = { day: number; label: string; variant: 'blue' | 'orange' | 'red' };
-const CAL_EVENTS: CalEvent[] = [
-  { day: 1,  label: 'Check-in: R-102',   variant: 'blue'   },
-  { day: 4,  label: 'Check-out: R-305',  variant: 'orange' },
-  { day: 6,  label: 'Check-in: R-101',   variant: 'blue'   },
-  { day: 6,  label: 'Late check-in',     variant: 'red'    },
-];
+
 
 /* ══════════════════════════════════════════════════════════ */
 export default function ReservationsPage() {
@@ -83,11 +78,27 @@ export default function ReservationsPage() {
   const [bookingModal, setBookingModal] = useState(false);
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
   const [approvals, setApprovals] = useState<any[]>([]);
-  const [dateRange, setDateRange] = useState({ start: '2024-10-01', end: '2024-10-31' });
+
   const [statusFilter, setStatusFilter] = useState('All');
 
   // Calendar State and Logic
-  const [currentMonth, setCurrentMonth] = useState(new Date(2024, 9, 1)); // Oct 2024 as default to match existing data
+  const [currentMonth, setCurrentMonth] = useState(new Date()); // Oct 2024 as default to match existing data
+  const dynamicEvents = React.useMemo(() => {
+    const events: CalEvent[] = [];
+    reservations.forEach((r: any) => {
+      if (r.rawDueDate && r.status !== 'Cancelled') {
+        const d = new Date(r.rawDueDate);
+        if (d.getMonth() === currentMonth.getMonth() && d.getFullYear() === currentMonth.getFullYear()) {
+          events.push({
+            day: d.getDate(),
+            label: `${r.status === 'Confirmed' ? 'Payment Due' : 'Check-in'}: ${r.room.replace('Room ', 'R-')}`,
+            variant: r.status === 'Confirmed' ? 'orange' : 'blue'
+          });
+        }
+      }
+    });
+    return events;
+  }, [reservations, currentMonth]);
   const prevMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
   const nextMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
 
@@ -182,6 +193,27 @@ export default function ReservationsPage() {
     link.click();
     document.body.removeChild(link);
     showToast('Exporting CSV...');
+  };
+
+  const handleExportExcel = async () => {
+    if (!reservations.length) {
+      showToast('No reservations to export');
+      return;
+    }
+    const XLSX = await import('xlsx');
+    const data = reservations.map(r => ({
+      'Reservation ID': r.id,
+      'Tenant Name': r.tenant,
+      'Room #': r.room,
+      'Lease Term': r.term,
+      'Amount': r.amount,
+      'Status': r.status
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Reservations');
+    XLSX.writeFile(workbook, `reservations_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+    showToast('Exporting Excel...');
   };
 
   const filteredReservations = reservations.filter(r => statusFilter === 'All' || r.status === statusFilter);
@@ -359,23 +391,7 @@ export default function ReservationsPage() {
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            {/* Date range selector */}
-            <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-1 shadow-xs">
-              <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500 ml-2" />
-              <input 
-                type="date" 
-                value={dateRange.start} 
-                onChange={(e) => setDateRange(prev => ({...prev, start: e.target.value}))}
-                className="text-slate-700 dark:text-slate-300 font-semibold text-sm bg-transparent border-none focus:outline-none cursor-pointer w-[120px]"
-              />
-              <span className="text-slate-300 font-medium">–</span>
-              <input 
-                type="date" 
-                value={dateRange.end} 
-                onChange={(e) => setDateRange(prev => ({...prev, end: e.target.value}))}
-                className="text-slate-700 dark:text-slate-300 font-semibold text-sm bg-transparent border-none focus:outline-none cursor-pointer w-[120px]"
-              />
-            </div>
+
 
             {/* New Booking */}
             <button type="button" onClick={() => setBookingModal(true)} className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-md shadow-orange-500/15 cursor-pointer transition-all">
@@ -421,9 +437,9 @@ export default function ReservationsPage() {
                   {week.map((cell, ci) => {
                     const today = new Date();
                     const isToday = !cell.prev && !cell.next && cell.d === today.getDate() && currentMonth.getMonth() === today.getMonth() && currentMonth.getFullYear() === today.getFullYear();
-                    // Keep mock events only for October 2024 to show something
-                    const events = (!cell.prev && !cell.next && currentMonth.getMonth() === 9 && currentMonth.getFullYear() === 2024) 
-                                     ? CAL_EVENTS.filter((e) => e.day === cell.d) 
+                    // Map dynamic events for the current date cell
+                    const events = (!cell.prev && !cell.next) 
+                                     ? dynamicEvents.filter((e) => e.day === cell.d) 
                                      : [];
                     return (
                       <div
@@ -471,8 +487,7 @@ export default function ReservationsPage() {
             <div className="flex items-center gap-4 mt-4">
               {[
                 { color: 'bg-blue-500',   label: 'Check-in'      },
-                { color: 'bg-orange-400', label: 'Check-out'     },
-                { color: 'bg-rose-500',   label: 'Late Check-in' },
+                { color: 'bg-orange-400', label: 'Payment Due'   },
               ].map(({ color, label }) => (
                 <div key={label} className="flex items-center gap-1.5">
                   <span className={`w-2.5 h-2.5 rounded-sm ${color}`} />
@@ -529,13 +544,7 @@ export default function ReservationsPage() {
               ))}
             </div>
 
-            {/* View All */}
-            <div className="text-center mt-5 pt-4 border-t border-slate-100 dark:border-slate-800">
-              <button type="button" onClick={() => showToast('Opening all reservation requests…')} className="text-blue-700 hover:text-blue-900 text-xs font-bold hover:underline cursor-pointer flex items-center gap-1 mx-auto">
-                View All Requests
-                <ArrowUpRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
+
           </div>
 
         </div>
@@ -558,7 +567,11 @@ export default function ReservationsPage() {
               </div>
               <button type="button" onClick={handleExportCSV} className="flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 text-slate-600 dark:text-slate-400 dark:text-slate-500 text-xs font-bold px-3.5 py-2 rounded-xl cursor-pointer transition-all">
                 <Download className="w-3.5 h-3.5" />
-                Export CSV
+                CSV
+              </button>
+              <button type="button" onClick={handleExportExcel} className="flex items-center gap-1.5 border border-emerald-200 dark:border-emerald-800 hover:border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-400 text-xs font-bold px-3.5 py-2 rounded-xl cursor-pointer transition-all">
+                <Download className="w-3.5 h-3.5" />
+                Excel
               </button>
             </div>
           </div>

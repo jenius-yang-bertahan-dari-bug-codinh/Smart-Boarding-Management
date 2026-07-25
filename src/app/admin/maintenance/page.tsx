@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import {
   Bell, Settings, Search, ChevronDown, ChevronLeft, ChevronRight,
   Plus, Download, ClipboardList, OctagonAlert, Timer, Wrench,
-  Filter, Zap, Check, X, MessageSquareWarning, CircleAlert,
+  Filter, Check, X, MessageSquareWarning, CircleAlert,
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 import AdminNavbar from '@/components/AdminNavbar';
@@ -134,6 +134,29 @@ export default function MaintenancePage() {
     link.click();
     link.remove();
     showToast('CSV Exported!');
+  };
+
+  const handleExportExcel = async () => {
+    if (!filtered.length) {
+      showToast('No requests to export');
+      return;
+    }
+    const XLSX = await import('xlsx');
+    const data = filtered.map(r => ({
+      'Ticket ID': r.id,
+      'Date': r.date,
+      'Member': r.member,
+      'Unit': r.unit,
+      'Type': r.type,
+      'Summary': r.summary,
+      'Priority': r.priority,
+      'Status': r.status
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Maintenance');
+    XLSX.writeFile(workbook, `maintenance_requests_${new Date().toISOString().split('T')[0]}.xlsx`);
+    showToast('Excel Exported!');
   };
 
   const handleAssignTechnician = (id: string) => {
@@ -319,7 +342,10 @@ export default function MaintenancePage() {
               <Plus className="w-4 h-4 stroke-[2.5]" /> New Request
             </button>
             <button type="button" onClick={handleExportCSV} className="flex items-center gap-2 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 text-slate-700 dark:text-slate-300 text-sm font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-all shadow-xs">
-              <Download className="w-4 h-4 text-slate-500 dark:text-slate-400 dark:text-slate-500" /> Export CSV
+              <Download className="w-4 h-4 text-slate-500" /> CSV
+            </button>
+            <button type="button" onClick={handleExportExcel} className="flex items-center gap-2 border border-emerald-200 dark:border-emerald-800 hover:border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-400 text-sm font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-all shadow-xs">
+              <Download className="w-4 h-4 text-emerald-500" /> Excel
             </button>
           </div>
         </div>
@@ -581,25 +607,12 @@ export default function MaintenancePage() {
             </p>
           </div>
           <div className="flex items-center gap-5">
-            {['Contact Us'].map((link) => (
-              <a key={link} href="#" onClick={(e) => { e.preventDefault(); showToast(`Opening ${link}…`); }}
-                className="text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
-                {link}
+            <a href="mailto:adventurecreature@gmail.com" className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
+                Contact Us
               </a>
-            ))}
           </div>
         </div>
       </footer>
-
-      {/* ── Floating Action Button (FAB) ── */}
-      <button
-        type="button"
-        onClick={() => setNewModal(true)}
-        title="Quick new request"
-        className="fixed bottom-8 right-8 z-40 w-14 h-14 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-orange-500/30 hover:shadow-2xl hover:shadow-orange-500/40 hover:-translate-y-0.5 transition-all cursor-pointer"
-      >
-        <Zap className="w-6 h-6 stroke-[2.2] fill-white" />
-      </button>
 
     </div>
   );

@@ -248,81 +248,85 @@ export default function ServiceRequests() {
           <div className={`space-y-6 ${isDrawerOpen ? 'xl:col-span-4' : 'xl:col-span-5'}`}>
             
             {/* Timeline Card */}
-            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded">
-                    REQ-2023-894
-                  </span>
-                  <h3 className="text-sm font-bold text-slate-800">
-                    Request Details: HVAC Maintenance
-                  </h3>
-                </div>
-                <button className="text-slate-400 hover:text-slate-600 cursor-pointer">
-                  <MoreVertical className="w-4.5 h-4.5" />
-                </button>
-              </div>
-
-              {/* Vertical Timeline */}
-              <div className="relative pl-6 space-y-6">
-                {/* Line background */}
-                <div className="absolute left-2 top-2 bottom-2 w-0.5 bg-slate-100"></div>
-
-                {/* Step 1 */}
-                <div className="relative flex items-start gap-3.5">
-                  <div className="absolute -left-6 top-0.5 w-4.5 h-4.5 rounded-full bg-blue-50 text-blue-900 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-4 h-4 fill-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs sm:text-sm font-bold text-slate-800">Request Received</h4>
-                    <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Oct 24, 09:41 AM</p>
-                  </div>
-                </div>
-
-                {/* Step 2 */}
-                <div className="relative flex items-start gap-3.5">
-                  <div className="absolute -left-6 top-0.5 w-4.5 h-4.5 rounded-full bg-blue-50 text-blue-900 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-4 h-4 fill-white" />
-                  </div>
-                  <div className="w-full">
-                    <h4 className="text-xs sm:text-sm font-bold text-slate-800">Assigned to Technician</h4>
-                    <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Oct 24, 11:30 AM</p>
-                    
-                    {/* Technician card summary */}
-                    <div className="mt-3 flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 bg-slate-50/50 max-w-xs">
-                      <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center border border-slate-300 shrink-0">
-                        <User className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h5 className="text-[11px] font-bold text-slate-800">Michael R.</h5>
-                        <p className="text-[9px] text-slate-400 font-semibold">HVAC Specialist</p>
-                      </div>
+            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm min-h-[300px]">
+              {selectedComplaint ? (
+                <>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded">
+                        {selectedComplaint.tracking_id}
+                      </span>
+                      <h3 className="text-sm font-bold text-slate-800">
+                        Request Details: {selectedComplaint.category}
+                      </h3>
                     </div>
                   </div>
-                </div>
 
-                {/* Step 3 */}
-                <div className="relative flex items-start gap-3.5">
-                  <div className="absolute -left-[22px] top-1 w-3.5 h-3.5 rounded-full border-2 border-blue-900 bg-white flex items-center justify-center shrink-0">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-900 animate-pulse" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs sm:text-sm font-bold text-blue-900">In Progress</h4>
-                    <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Technician is currently on site.</p>
-                  </div>
-                </div>
+                  {/* Vertical Timeline */}
+                  <div className="relative pl-6 space-y-6 mt-6">
+                    {/* Line background */}
+                    <div className="absolute left-2 top-2 bottom-2 w-0.5 bg-slate-100"></div>
 
-                {/* Step 4 */}
-                <div className="relative flex items-start gap-3.5">
-                  <div className="absolute -left-[22px] top-1 w-3.5 h-3.5 rounded-full border border-slate-300 bg-slate-50 flex items-center justify-center shrink-0">
-                  </div>
-                  <div>
-                    <h4 className="text-xs sm:text-sm font-bold text-slate-400">Resolution</h4>
-                    <p className="text-[10px] text-slate-300 font-semibold mt-0.5">Awaiting completion</p>
-                  </div>
-                </div>
+                    {/* Step 1: Received */}
+                    <div className="relative flex items-start gap-3.5">
+                      <div className="absolute -left-6 top-0.5 w-4.5 h-4.5 rounded-full bg-blue-50 text-blue-900 flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="w-4 h-4 fill-white" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-800">Request Received</h4>
+                        <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Submitted successfully</p>
+                      </div>
+                    </div>
 
-              </div>
+                    {/* Step 2: In Progress */}
+                    <div className="relative flex items-start gap-3.5">
+                      {selectedComplaint.status === 'in_progress' ? (
+                        <div className="absolute -left-[22px] top-1 w-3.5 h-3.5 rounded-full border-2 border-blue-900 bg-white flex items-center justify-center shrink-0">
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-900 animate-pulse" />
+                        </div>
+                      ) : selectedComplaint.status === 'resolved' ? (
+                        <div className="absolute -left-6 top-0.5 w-4.5 h-4.5 rounded-full bg-blue-50 text-blue-900 flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="w-4 h-4 fill-white" />
+                        </div>
+                      ) : (
+                        <div className="absolute -left-[22px] top-1 w-3.5 h-3.5 rounded-full border border-slate-300 bg-slate-50 flex items-center justify-center shrink-0">
+                        </div>
+                      )}
+                      
+                      <div>
+                        <h4 className={`text-xs sm:text-sm font-bold ${selectedComplaint.status !== 'pending' ? 'text-blue-900' : 'text-slate-400'}`}>In Progress</h4>
+                        <p className={`text-[10px] font-semibold mt-0.5 ${selectedComplaint.status !== 'pending' ? 'text-slate-500' : 'text-slate-300'}`}>
+                          {selectedComplaint.status === 'in_progress' ? 'Technician is working on this.' : 'Awaiting admin to process.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Step 3: Resolution */}
+                    <div className="relative flex items-start gap-3.5">
+                      {selectedComplaint.status === 'resolved' ? (
+                        <div className="absolute -left-[22px] top-1 w-3.5 h-3.5 rounded-full border-2 border-emerald-500 bg-white flex items-center justify-center shrink-0">
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        </div>
+                      ) : (
+                        <div className="absolute -left-[22px] top-1 w-3.5 h-3.5 rounded-full border border-slate-300 bg-slate-50 flex items-center justify-center shrink-0">
+                        </div>
+                      )}
+                      <div>
+                        <h4 className={`text-xs sm:text-sm font-bold ${selectedComplaint.status === 'resolved' ? 'text-emerald-600' : 'text-slate-400'}`}>Resolution</h4>
+                        <p className={`text-[10px] font-semibold mt-0.5 ${selectedComplaint.status === 'resolved' ? 'text-slate-500' : 'text-slate-300'}`}>
+                          {selectedComplaint.status === 'resolved' ? 'Issue has been resolved.' : 'Awaiting completion'}
+                        </p>
+                      </div>
+                    </div>
+
+                  </div>
+                </>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-slate-400 pt-10">
+                  <WrenchIcon className="w-8 h-8 mb-3 opacity-20" />
+                  <p className="text-sm font-semibold">No active service request selected.</p>
+                </div>
+              )}
             </div>
 
             {/* Recent History Card */}
