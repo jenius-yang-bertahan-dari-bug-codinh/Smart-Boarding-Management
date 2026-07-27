@@ -45,9 +45,37 @@ export async function getAdminReservations() {
 
 export async function updateReservationStatus(id: number, status: string) {
   try {
+    // Fetch current member to check for preferred room
+    const currentMember = await prisma.member.findUnique({
+      where: { id }
+    });
+
+    let room_id = undefined;
+    if (currentMember && currentMember.preferred_room_name) {
+      const match = currentMember.preferred_room_name.match(/Room\s+(\d+)/i);
+      if (match) {
+        const roomNum = match[1];
+        const room = await prisma.room.findFirst({ where: { room_number: roomNum } });
+        if (room) {
+          room_id = room.id;
+          
+          // Mark room as occupied if the status is active/approved
+          if (status === 'active' || status === 'approved') {
+            await prisma.room.update({
+              where: { id: room.id },
+              data: { status: 'Occupied' }
+            });
+          }
+        }
+      }
+    }
+
     const member = await prisma.member.update({
       where: { id },
-      data: { status },
+      data: { 
+        status,
+        ...(room_id ? { room_id } : {})
+      },
       include: {
         user: true // Include user to get the email address
       }
