@@ -57,8 +57,46 @@ export async function assignMemberToRoom(memberId: number, roomId: number, moveI
       return { success: false, error: 'Room is not available' };
     }
 
-    // Determine due_date
-    const dueDate = moveInDate ? new Date(moveInDate) : new Date();
+    const newRoom = room;
+
+    // Check if member already has a room
+    const member = await prisma.member.findUnique({
+      where: { id: memberId },
+      include: { room: true }
+    });
+
+    if (member && member.room_id) {
+      // Release old room
+      await prisma.room.update({
+        where: { id: member.room_id },
+        data: { status: 'Available' }
+      });
+
+      // Handle billing for transfer
+      if (member.room && newRoom.price > member.room.price) {
+        const priceDifference = newRoom.price - member.room.price;
+        const now = new Date();
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const billingMonth = `${monthNames[now.getMonth()]} ${now.getFullYear()} (Room Transfer)`;
+        
+        const paymentDueDate = new Date();
+        paymentDueDate.setDate(paymentDueDate.getDate() + 7);
+
+        await prisma.payment.create({
+          data: {
+            member_id: member.id,
+            amount: priceDifference,
+            payment_method: 'midtrans',
+            status: 'pending',
+            due_date: paymentDueDate,
+            billing_month: billingMonth
+          }
+        });
+      }
+    }
+
+    // Determine due_date (lease end date)
+    const dueDate = moveInDate ? new Date(moveInDate) : (member?.due_date || new Date());
 
     // Assign member to room and set them active
     await prisma.member.update({

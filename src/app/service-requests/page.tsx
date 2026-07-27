@@ -159,6 +159,7 @@ export default function ServiceRequests() {
                       <option value="hvac">HVAC / Air Conditioning</option>
                       <option value="electrical">Electrical</option>
                       <option value="appliance">Appliance Maintenance</option>
+                      <option value="room_transfer">Room Transfer Request</option>
                       <option value="other">Other / Complaint</option>
                     </select>
                     <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4.5 h-4.5 pointer-events-none" />
@@ -176,7 +177,7 @@ export default function ServiceRequests() {
                     rows={4}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Please describe the issue in detail, including location and when it started..."
+                    placeholder={category === 'room_transfer' ? "Please specify the room number you wish to transfer to and the reason for the transfer..." : "Please describe the issue in detail, including location and when it started..."}
                     className="w-full bg-white border border-slate-200 focus:border-blue-600 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-600 transition-all font-medium resize-none"
                   />
                 </div>
