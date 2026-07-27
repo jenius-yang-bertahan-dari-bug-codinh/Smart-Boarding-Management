@@ -371,37 +371,7 @@ export default function AdminDashboard() {
           </div>
           
           <div className="flex items-center gap-3 relative">
-            {/* Last 30 Days Dropdown */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
-                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2 shadow-xs transition-all cursor-pointer"
-              >
-                <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                <span>{selectedFilter}</span>
-                <ChevronDown className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-              </button>
 
-              {filterDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl shadow-lg z-50 p-1.5 animate-in fade-in slide-in-from-top-2">
-                  {['Today', 'Last 7 Days', 'Last 30 Days', 'This Month', 'This Year'].map((filter) => (
-                    <button
-                      key={filter}
-                      type="button"
-                      onClick={() => {
-                        setSelectedFilter(filter);
-                        setFilterDropdownOpen(false);
-                        showToast(`Filtered dashboard to: ${filter}`, 'info');
-                      }}
-                      className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 rounded-lg transition-all"
-                    >
-                      {filter}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
 
             {/* Export Report teal button */}
             <button
