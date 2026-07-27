@@ -838,22 +838,6 @@ export default function AdminDashboard() {
                   </div>
                 </button>
 
-                {/* Assign Resident */}
-                <button
-                  type="button"
-                  onClick={() => setActiveModal('add_resident')}
-                  className="w-full flex items-center gap-3.5 border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50/50 p-3 rounded-xl transition-all cursor-pointer group"
-                >
-                  <div className="w-9 h-9 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
-                    <Building className="w-4.5 h-4.5" />
-                  </div>
-                  <div className="text-left">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                      Assign Room
-                    </span>
-                    <span className="text-[9px] text-slate-400 dark:text-slate-500 block mt-0.5">Assign an existing member</span>
-                  </div>
-                </button>
 
                 {/* Open Maintenance */}
                 <button
