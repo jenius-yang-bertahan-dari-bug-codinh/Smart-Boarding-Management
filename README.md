@@ -2,6 +2,7 @@
 
 > A full-stack web application for managing modern boarding houses (kos-kosan). Built for landlords and property managers who want to automate operations, track residents, and monitor payments — all from one dashboard.
 
+
 ---
 
 ## ✨ Features
