@@ -27,6 +27,7 @@ import {
 import Logo from '@/components/Logo';
 import MemberSidebar from '@/components/MemberSidebar';
 import { validateClientImageFile } from '@/lib/file-security';
+import { getAvailableRooms } from '@/app/actions/properties';
 
 export default function ServiceRequests() {
   const [category, setCategory] = useState('');
@@ -35,6 +36,8 @@ export default function ServiceRequests() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [showAllHistory, setShowAllHistory] = useState(false);
+  const [availableRooms, setAvailableRooms] = useState<any[]>([]);
+  const [selectedRoom, setSelectedRoom] = useState<string>('');
   
   const [complaints, setComplaints] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
@@ -65,6 +68,11 @@ export default function ServiceRequests() {
 
   useEffect(() => {
     fetchComplaints();
+    getAvailableRooms().then((res) => {
+      if (res.success) {
+        setAvailableRooms(res.data || []);
+      }
+    });
   }, [router]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,20 +96,27 @@ export default function ServiceRequests() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    let finalDescription = description;
+    if (category === 'room_transfer' && selectedRoom) {
+      finalDescription = `[TRANSFER_TO:${selectedRoom}] ${description}`;
+    }
+
     const res = await fetch('/api/complaints', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ category, description, photo_url: photoUrl })
+      body: JSON.stringify({ category, description: finalDescription, photo_url: photoUrl })
     });
     if (res.ok) {
       alert('Request submitted successfully!');
       setCategory('');
       setDescription('');
+      setSelectedRoom('');
       setPhotoUrl(null);
       setFileName(null);
       fetchComplaints();
     } else {
-      alert('Failed to submit request');
+      alert('Failed to submit request.');
     }
   };
 
@@ -165,6 +180,37 @@ export default function ServiceRequests() {
                     <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4.5 h-4.5 pointer-events-none" />
                   </div>
                 </div>
+
+                {category === 'room_transfer' && (
+                  <>
+                    <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl text-xs sm:text-sm">
+                      <p className="font-bold flex items-center gap-2 mb-1"><AlertTriangle className="w-4 h-4" /> Warning / Peringatan</p>
+                      Jika kamu pindah ke ruangan yang lebih mahal, maka harus membayar penuh tagihan baru. Jika ruangan lebih murah, maka tidak ada pengembalian dana ke member. Disarankan pindah pada saat kontrak kos sudah habis!
+                    </div>
+                    <div>
+                      <label htmlFor="selectedRoom" className="block text-slate-700 text-xs sm:text-sm font-semibold mb-1.5">
+                        Destination Room
+                      </label>
+                      <div className="relative">
+                        <select
+                          id="selectedRoom"
+                          required
+                          value={selectedRoom}
+                          onChange={(e) => setSelectedRoom(e.target.value)}
+                          className="w-full appearance-none bg-white border border-slate-200 focus:border-blue-600 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-600 transition-all font-medium pr-10"
+                        >
+                          <option value="">Select a room...</option>
+                          {availableRooms.map((r: any) => (
+                            <option key={r.id} value={r.id}>
+                              Room {r.room_number} - {r.type} (Rp {r.price.toLocaleString('id-ID')})
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4.5 h-4.5 pointer-events-none" />
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {/* Description */}
                 <div>

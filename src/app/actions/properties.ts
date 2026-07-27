@@ -47,6 +47,20 @@ export async function getAdminRooms() {
   }
 }
 
+export async function getAvailableRooms() {
+  try {
+    const rooms = await prisma.room.findMany({
+      where: { status: 'Available' },
+      orderBy: { room_number: 'asc' },
+      select: { id: true, room_number: true, type: true, price: true }
+    });
+    return { success: true, data: rooms };
+  } catch (error) {
+    console.error('Error fetching available rooms:', error);
+    return { success: false, error: 'Failed to fetch available rooms' };
+  }
+}
+
 export async function assignMemberToRoom(memberId: number, roomId: number, moveInDate?: string) {
   try {
     const room = await prisma.room.findUnique({ 
@@ -72,9 +86,9 @@ export async function assignMemberToRoom(memberId: number, roomId: number, moveI
         data: { status: 'Available' }
       });
 
-      // Handle billing for transfer
+      // Handle billing for transfer (bill full amount if more expensive, reset due date)
       if (member.room && newRoom.price > member.room.price) {
-        const priceDifference = newRoom.price - member.room.price;
+        const fullPrice = newRoom.price;
         const now = new Date();
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const billingMonth = `${monthNames[now.getMonth()]} ${now.getFullYear()} (Room Transfer)`;
@@ -85,13 +99,18 @@ export async function assignMemberToRoom(memberId: number, roomId: number, moveI
         await prisma.payment.create({
           data: {
             member_id: member.id,
-            amount: priceDifference,
+            amount: fullPrice,
             payment_method: 'midtrans',
             status: 'pending',
             due_date: paymentDueDate,
             billing_month: billingMonth
           }
         });
+
+        // Reset the lease due_date to +1 month because they pay full
+        const newLeaseDate = new Date();
+        newLeaseDate.setMonth(newLeaseDate.getMonth() + 1);
+        moveInDate = newLeaseDate.toISOString(); // Override moveInDate for the logic below
       }
     }
 

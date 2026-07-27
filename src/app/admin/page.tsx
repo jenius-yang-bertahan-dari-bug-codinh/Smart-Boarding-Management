@@ -6,7 +6,7 @@ import { getDashboardStats } from '@/app/actions/dashboard';
 import { syncAutoBilling, broadcastAnnouncement, onboardResident } from '@/app/actions/quick-actions';
 import { getAdminRooms, assignMemberToRoom } from '@/app/actions/properties';
 import { getAdminMembers } from '@/app/actions/members';
-import { getAdminMaintenance, resolveMaintenanceTicket } from '@/app/actions/maintenance';
+import { getAdminMaintenance, resolveMaintenanceTicket, approveRoomTransfer } from '@/app/actions/maintenance';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
@@ -1223,22 +1223,43 @@ export default function AdminDashboard() {
                       </div>
                       
                       {ticket.status !== 'Resolved' && (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            const res = await resolveMaintenanceTicket(ticket.id);
-                            if (res.success) {
-                              showToast(`Marked ticket ${ticket.id} as resolved!`, 'success');
-                              setMaintenanceTickets(tickets => tickets.map(t => t.id === ticket.id ? { ...t, status: 'Resolved' } : t));
-                            } else {
-                              showToast(res.error || 'Failed to resolve ticket', 'error');
-                            }
-                          }}
-                          className="shrink-0 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 p-2 rounded-lg transition-colors"
-                          title="Mark as Resolved"
-                        >
-                          <Check className="w-4 h-4" />
-                        </button>
+                        ticket.type === 'room_transfer' && ticket.transferToRoomId ? (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (confirm(`Approve room transfer to Room ID ${ticket.transferToRoomId}? This will automatically move the member and generate billing if applicable.`)) {
+                                const res = await approveRoomTransfer(ticket.id, ticket.transferToRoomId);
+                                if (res.success) {
+                                  showToast(`Room transfer approved! Member has been moved.`, 'success');
+                                  setMaintenanceTickets(tickets => tickets.map(t => t.id === ticket.id ? { ...t, status: 'Resolved' } : t));
+                                } else {
+                                  showToast(res.error || 'Failed to approve room transfer', 'error');
+                                }
+                              }
+                            }}
+                            className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-sm whitespace-nowrap"
+                            title="Approve Room Transfer"
+                          >
+                            Approve Transfer
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const res = await resolveMaintenanceTicket(ticket.id);
+                              if (res.success) {
+                                showToast(`Marked ticket ${ticket.id} as resolved!`, 'success');
+                                setMaintenanceTickets(tickets => tickets.map(t => t.id === ticket.id ? { ...t, status: 'Resolved' } : t));
+                              } else {
+                                showToast(res.error || 'Failed to resolve ticket', 'error');
+                              }
+                            }}
+                            className="shrink-0 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 p-2 rounded-lg transition-colors"
+                            title="Mark as Resolved"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                        )
                       )}
                     </div>
                   </div>
