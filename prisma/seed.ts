@@ -1,223 +1,241 @@
-// AUTO-GENERATED SEED FILE
-// Generated on 2026-07-25T06:46:34.535Z
-import { PrismaClient, Prisma } from '@prisma/client';
+// SEED FILE – 2026 demo data for PapiKost
+// Includes: 1 admin, 4 active tenants, rooms, payments (Jan–Jul 2026), complaints, announcements
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Inserting records...');
+  console.log('🌱 Starting seed...');
 
-  // 1. BoardingHouseProfile
-  const profiles = [
-  {
-    "id": 1,
-    "name": "PapiKost",
-    "description": "",
-    "facilities": "[{\"id\":1,\"name\":\"High-Speed Wi-Fi\",\"description\":\"Stay connected with dedicated gigabit fiber internet...\",\"icon\":\"Wifi\"},{\"id\":2,\"name\":\"Laundry Services\",\"description\":\"24/7 self-service laundry room equipped...\",\"icon\":\"WashingMachine\"},{\"id\":3,\"name\":\"24/7 Security\",\"description\":\"Advanced biometric access...\",\"icon\":\"ShieldCheck\"},{\"id\":4,\"name\":\"Modern Gym\",\"description\":\"Fully equipped fitness center...\",\"icon\":\"Dumbbell\"},{\"id\":1784710003148,\"name\":\"Cafe\",\"description\":\"Cafe\",\"icon\":\"Coffee\"}]",
-    "maps_location_url": null,
-    "contact_info": ""
-  }
-];
-  for (const p of profiles) {
-    await prisma.boardingHouseProfile.create({ data: p });
-  }
+  // ─── 1. BoardingHouseProfile ───────────────────────────────────────────────
+  await prisma.boardingHouseProfile.create({
+    data: {
+      id: 1,
+      name: 'PapiKost',
+      description: 'Premium kost management system for modern living.',
+      facilities: JSON.stringify([
+        { id: 1, name: 'High-Speed Wi-Fi', description: 'Dedicated gigabit fiber internet for all residents.', icon: 'Wifi' },
+        { id: 2, name: 'Laundry Services', description: '24/7 self-service laundry room.', icon: 'WashingMachine' },
+        { id: 3, name: '24/7 Security', description: 'Advanced biometric access control.', icon: 'ShieldCheck' },
+        { id: 4, name: 'Modern Gym', description: 'Fully equipped fitness center.', icon: 'Dumbbell' },
+        { id: 5, name: 'Café', description: 'In-house café open from 7 AM to 10 PM.', icon: 'Coffee' },
+      ]),
+      maps_location_url: null,
+      contact_info: '+62 21 1234 5678',
+    },
+  });
 
-  // 2. Users
-  const users = [
-  {
-    "id": 2,
-    "email": "papikost123@gmail.com",
-    "password": "$2b$10$X8zsdhKdYRCHAVdlIgQG1evyO1FqSfHTNB0j76RFdoIR2G7ZVgi9W",
-    "role": "admin",
-    "avatar_url": null,
-    "reset_token": null,
-    "reset_token_expiry": null
-  },
-  {
-    "id": 15,
-    "email": "adventurecreature99@gmail.com",
-    "password": "$2b$10$KovLiXtohC7RWeYd62eEhe9OiCrd2P8/X4chmLvA6u5ReQOCIKwVS",
-    "role": "tenant",
-    "avatar_url": "",
-    "reset_token": null,
-    "reset_token_expiry": null
-  }
-];
-  for (const u of users) {
-    await prisma.user.create({ data: u });
-  }
+  // ─── 2. Users ─────────────────────────────────────────────────────────────
+  const adminPass = await bcrypt.hash('admin123', 10);
+  const tenantPass = await bcrypt.hash('tenant123', 10);
 
-  // 3. Rooms
-  const rooms = [
-  {
-    "id": 1,
-    "room_number": "101",
-    "floor": 1,
-    "type": "Deluxe",
-    "price": 1600000,
-    "status": "Occupied",
-    "features": "[\"Double Bed\",\"En-suite\",\"Workspace\"]",
-    "imageUrl": "/assets/rooms/room_101.png"
-  },
-  {
-    "id": 2,
-    "room_number": "102",
-    "floor": 1,
-    "type": "Suite",
-    "price": 1400000,
-    "status": "Available",
-    "features": "[\"Queen Bed\",\"Smart TV\",\"Sofa\"]",
-    "imageUrl": "/assets/rooms/room_102.png"
-  },
-  {
-    "id": 7,
-    "room_number": "103",
-    "floor": 1,
-    "type": "Suite",
-    "price": 2000000,
-    "status": "Available",
-    "features": "[\"AC\",\"WiFi\",\"Private Bathroom\"]",
-    "imageUrl": "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80"
-  },
-  {
-    "id": 8,
-    "room_number": "104",
-    "floor": 1,
-    "type": "Deluxe",
-    "price": 1650000,
-    "status": "Available",
-    "features": "[\"AC\",\"WiFi\",\"Private Bathroom\"]",
-    "imageUrl": "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80"
-  },
-  {
-    "id": 9,
-    "room_number": "105",
-    "floor": 1,
-    "type": "Standard",
-    "price": 1300000,
-    "status": "Available",
-    "features": "[\"AC\",\"WiFi\",\"Private Bathroom\"]",
-    "imageUrl": "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80"
-  },
-  {
-    "id": 10,
-    "room_number": "106",
-    "floor": 1,
-    "type": "VIP",
-    "price": 5000000,
-    "status": "Available",
-    "features": "[\"AC\",\"WiFi\",\"Private Bathroom\"]",
-    "imageUrl": "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80"
-  }
-];
-  for (const r of rooms) {
-    await prisma.room.create({ data: r });
-  }
+  const admin = await prisma.user.create({
+    data: {
+      id: 1,
+      email: 'papikost123@gmail.com',
+      password: adminPass,
+      role: 'admin',
+    },
+  });
 
-  // 4. Members
-  const members = [
-  {
-    "id": 14,
-    "user_id": 15,
-    "room_id": 1,
-    "name": "Fathan",
-    "phone": "+6287838079999",
-    "status": "active",
-    "due_date": new Date("2026-07-31T00:00:00.000Z"),
-    "id_number": "1234567890123456",
-    "avatar_url": ""
-  }
-];
-  for (const m of members) {
-    await prisma.member.create({ data: m });
-  }
+  const u1 = await prisma.user.create({ data: { email: 'fathan@example.com', password: tenantPass, role: 'tenant' } });
+  const u2 = await prisma.user.create({ data: { email: 'ayu@example.com', password: tenantPass, role: 'tenant' } });
+  const u3 = await prisma.user.create({ data: { email: 'budi@example.com', password: tenantPass, role: 'tenant' } });
+  const u4 = await prisma.user.create({ data: { email: 'sari@example.com', password: tenantPass, role: 'tenant' } });
 
-  // 5. Complaints
-  const complaints: Prisma.ComplaintUncheckedCreateInput[] = [];
-  for (const c of complaints) {
-    await prisma.complaint.create({ data: c });
-  }
+  // ─── 3. Rooms ─────────────────────────────────────────────────────────────
+  const r101 = await prisma.room.create({
+    data: {
+      room_number: '101', floor: 1, type: 'Deluxe', price: 1600000, status: 'Occupied',
+      features: JSON.stringify(['Double Bed', 'En-suite Bathroom', 'Workspace', 'AC']),
+      imageUrl: '/assets/rooms/room_101.png',
+    },
+  });
+  const r102 = await prisma.room.create({
+    data: {
+      room_number: '102', floor: 1, type: 'Suite', price: 2000000, status: 'Occupied',
+      features: JSON.stringify(['Queen Bed', 'Smart TV', 'Sofa', 'AC', 'Mini Kitchen']),
+      imageUrl: '/assets/rooms/room_102.png',
+    },
+  });
+  const r103 = await prisma.room.create({
+    data: {
+      room_number: '103', floor: 1, type: 'Standard', price: 1300000, status: 'Occupied',
+      features: JSON.stringify(['Single Bed', 'AC', 'WiFi', 'Private Bathroom']),
+      imageUrl: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80',
+    },
+  });
+  const r104 = await prisma.room.create({
+    data: {
+      room_number: '104', floor: 1, type: 'Deluxe', price: 1650000, status: 'Occupied',
+      features: JSON.stringify(['Double Bed', 'AC', 'WiFi', 'Private Bathroom', 'Balcony']),
+      imageUrl: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80',
+    },
+  });
+  await prisma.room.create({
+    data: {
+      room_number: '105', floor: 2, type: 'Standard', price: 1300000, status: 'Available',
+      features: JSON.stringify(['Single Bed', 'AC', 'WiFi', 'Shared Bathroom']),
+      imageUrl: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80',
+    },
+  });
+  await prisma.room.create({
+    data: {
+      room_number: '106', floor: 2, type: 'VIP', price: 5000000, status: 'Available',
+      features: JSON.stringify(['King Bed', 'Smart TV', 'Jacuzzi', 'AC', 'Mini Kitchen', 'Balcony']),
+      imageUrl: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80',
+    },
+  });
 
-  // 6. Payments
-  const payments = [
-  {
-    "id": 16,
-    "member_id": 14,
-    "amount": 1650000,
-    "payment_method": "bank_transfer",
-    "status": "paid",
-    "payment_date": new Date("2026-07-24T11:23:56.488Z"),
-    "due_date": new Date("2026-07-24T10:57:24.329Z"),
-    "billing_month": null,
-    "gateway_reference": "INV-16-1784891169177|https://app.sandbox.midtrans.com/snap/v4/redirection/db91d839-c11a-43fb-b71d-d98fb8a0ef1c"
-  }
-];
-  for (const p of payments) {
-    await prisma.payment.create({ data: p });
-  }
+  // ─── 4. Members ───────────────────────────────────────────────────────────
+  // due_date = 2026-08-01 (next billing cycle starts August)
+  const m1 = await prisma.member.create({
+    data: {
+      user_id: u1.id, room_id: r101.id,
+      name: 'Fathan Raditya', phone: '+6287838079999',
+      status: 'active', due_date: new Date('2026-08-01'),
+      join_date: new Date('2026-01-01'), id_number: '3201234567890001',
+    },
+  });
+  const m2 = await prisma.member.create({
+    data: {
+      user_id: u2.id, room_id: r102.id,
+      name: 'Ayu Lestari', phone: '+6281234560001',
+      status: 'active', due_date: new Date('2026-08-01'),
+      join_date: new Date('2026-02-01'), id_number: '3201234567890002',
+    },
+  });
+  const m3 = await prisma.member.create({
+    data: {
+      user_id: u3.id, room_id: r103.id,
+      name: 'Budi Santoso', phone: '+6281234560002',
+      status: 'active', due_date: new Date('2026-08-01'),
+      join_date: new Date('2026-03-01'), id_number: '3201234567890003',
+    },
+  });
+  const m4 = await prisma.member.create({
+    data: {
+      user_id: u4.id, room_id: r104.id,
+      name: 'Sari Wulandari', phone: '+6281234560003',
+      status: 'active', due_date: new Date('2026-08-01'),
+      join_date: new Date('2026-04-01'), id_number: '3201234567890004',
+    },
+  });
 
-  // 7. MaintenanceSchedules
-  const maintenanceSchedules: Prisma.MaintenanceScheduleUncheckedCreateInput[] = [];
-  for (const ms of maintenanceSchedules) {
-    await prisma.maintenanceSchedule.create({ data: ms });
-  }
+  // ─── 5. Payments ──────────────────────────────────────────────────────────
+  // Spread paid payments across Jan–Jul 2026 so the revenue chart has data
+  // in all 7 months. Mix different members.
+  const paidPayments = [
+    // January 2026
+    { member_id: m1.id, amount: r101.price, month: 'January 2026',  payDate: '2026-01-05', dueDate: '2026-01-05' },
+    // February 2026
+    { member_id: m1.id, amount: r101.price, month: 'February 2026', payDate: '2026-02-05', dueDate: '2026-02-05' },
+    { member_id: m2.id, amount: r102.price, month: 'February 2026', payDate: '2026-02-07', dueDate: '2026-02-07' },
+    // March 2026
+    { member_id: m1.id, amount: r101.price, month: 'March 2026',    payDate: '2026-03-05', dueDate: '2026-03-05' },
+    { member_id: m2.id, amount: r102.price, month: 'March 2026',    payDate: '2026-03-06', dueDate: '2026-03-06' },
+    { member_id: m3.id, amount: r103.price, month: 'March 2026',    payDate: '2026-03-10', dueDate: '2026-03-10' },
+    // April 2026
+    { member_id: m1.id, amount: r101.price, month: 'April 2026',    payDate: '2026-04-05', dueDate: '2026-04-05' },
+    { member_id: m2.id, amount: r102.price, month: 'April 2026',    payDate: '2026-04-04', dueDate: '2026-04-04' },
+    { member_id: m3.id, amount: r103.price, month: 'April 2026',    payDate: '2026-04-08', dueDate: '2026-04-08' },
+    { member_id: m4.id, amount: r104.price, month: 'April 2026',    payDate: '2026-04-07', dueDate: '2026-04-07' },
+    // May 2026
+    { member_id: m1.id, amount: r101.price, month: 'May 2026',      payDate: '2026-05-05', dueDate: '2026-05-05' },
+    { member_id: m2.id, amount: r102.price, month: 'May 2026',      payDate: '2026-05-03', dueDate: '2026-05-03' },
+    { member_id: m3.id, amount: r103.price, month: 'May 2026',      payDate: '2026-05-07', dueDate: '2026-05-07' },
+    { member_id: m4.id, amount: r104.price, month: 'May 2026',      payDate: '2026-05-06', dueDate: '2026-05-06' },
+    // June 2026
+    { member_id: m1.id, amount: r101.price, month: 'June 2026',     payDate: '2026-06-05', dueDate: '2026-06-05' },
+    { member_id: m2.id, amount: r102.price, month: 'June 2026',     payDate: '2026-06-04', dueDate: '2026-06-04' },
+    { member_id: m3.id, amount: r103.price, month: 'June 2026',     payDate: '2026-06-06', dueDate: '2026-06-06' },
+    { member_id: m4.id, amount: r104.price, month: 'June 2026',     payDate: '2026-06-05', dueDate: '2026-06-05' },
+    // July 2026 – already paid
+    { member_id: m1.id, amount: r101.price, month: 'July 2026',     payDate: '2026-07-05', dueDate: '2026-07-05' },
+    { member_id: m2.id, amount: r102.price, month: 'July 2026',     payDate: '2026-07-04', dueDate: '2026-07-04' },
+  ];
 
-  // 8. MaintenanceRooms
-  const maintenanceRooms: Prisma.MaintenanceRoomUncheckedCreateInput[] = [];
-  for (const mr of maintenanceRooms) {
-    await prisma.maintenanceRoom.create({ data: mr });
-  }
-
-  // 9. Announcements
-  const announcements = [
-  {
-    "id": 1,
-    "title": "Test",
-    "body": "PERHATIAN REKAN SATU KOST",
-    "expiry_date": new Date("2026-08-21T02:53:27.256Z")
-  },
-  {
-    "id": 2,
-    "title": "TEST2",
-    "body": "mbut",
-    "expiry_date": new Date("2026-07-23T02:56:14.841Z")
-  },
-  {
-    "id": 3,
-    "title": "TEST3",
-    "body": "woi bayar kost\n",
-    "expiry_date": new Date("2026-07-23T02:56:57.970Z")
-  },
-  {
-    "id": 4,
-    "title": "UNTUK MASALAH AC",
-    "body": "klo ada apa apa tolong tulis di maintenance",
-    "expiry_date": new Date("2026-07-23T02:58:06.682Z")
-  },
-  {
-    "id": 5,
-    "title": "sadf",
-    "body": "asdfsdafads",
-    "expiry_date": new Date("2026-07-23T02:58:13.691Z")
-  },
-  {
-    "id": 6,
-    "title": "sadfsdafds",
-    "body": "sadfdsaf",
-    "expiry_date": new Date("2026-07-23T02:58:17.534Z")
-  },
-  {
-    "id": 7,
-    "title": "SIGMA",
-    "body": "SIGMA",
-    "expiry_date": new Date("2026-07-23T02:58:24.852Z")
-  }
-];
-  for (const a of announcements) {
-    await prisma.announcement.create({ data: a });
+  for (const p of paidPayments) {
+    await prisma.payment.create({
+      data: {
+        member_id: p.member_id,
+        amount: p.amount,
+        payment_method: 'bank_transfer',
+        status: 'paid',
+        payment_date: new Date(p.payDate),
+        due_date: new Date(p.dueDate),
+        billing_month: p.month,
+        gateway_reference: null,
+      } as any,
+    });
   }
 
-  console.log('Seed completed successfully!');
+  // Pending invoices for July 2026 (members 3 & 4 haven't paid yet)
+  await prisma.payment.create({
+    data: {
+      member_id: m3.id,
+      amount: r103.price,
+      payment_method: 'midtrans',
+      status: 'pending',
+      payment_date: new Date('2026-07-27'),
+      due_date: new Date('2026-08-01'),
+      billing_month: 'July 2026',
+      gateway_reference: null,
+    } as any,
+  });
+  await prisma.payment.create({
+    data: {
+      member_id: m4.id,
+      amount: r104.price,
+      payment_method: 'midtrans',
+      status: 'pending',
+      payment_date: new Date('2026-07-27'),
+      due_date: new Date('2026-08-01'),
+      billing_month: 'July 2026',
+      gateway_reference: null,
+    } as any,
+  });
+
+  // ─── 6. Complaints ────────────────────────────────────────────────────────
+  await prisma.complaint.create({
+    data: {
+      member_id: m3.id,
+      category: 'Plumbing',
+      description: 'Kran air di kamar mandi menetes terus dan tidak bisa ditutup rapat.',
+      status: 'pending',
+      tracking_id: 'REQ-20260001',
+    },
+  });
+  await prisma.complaint.create({
+    data: {
+      member_id: m1.id,
+      category: 'Electrical',
+      description: 'Saklar lampu kamar tidak berfungsi dengan baik, lampu berkedip-kedip.',
+      status: 'in_progress',
+      tracking_id: 'REQ-20260002',
+    },
+  });
+
+  // ─── 7. Announcements ─────────────────────────────────────────────────────
+  await prisma.announcement.create({
+    data: {
+      title: 'Jadwal Pemadaman Listrik',
+      body: 'PLN akan melakukan pemadaman listrik pada hari Sabtu, 2 Agustus 2026 pukul 08.00–14.00. Mohon persiapkan power bank dan penerangan cadangan.',
+      expiry_date: new Date('2026-08-03'),
+    },
+  });
+  await prisma.announcement.create({
+    data: {
+      title: 'Pembersihan Kolam & Gym — Agustus',
+      body: 'Jadwal rutin kebersihan fasilitas bersama (gym dan area parkir) akan dilakukan setiap Minggu pertama bulan Agustus. Mohon tidak meninggalkan barang pribadi di area umum.',
+      expiry_date: new Date('2026-08-10'),
+    },
+  });
+
+  console.log('✅ Seed completed successfully!');
+  console.log('   Admin email: papikost123@gmail.com  (password: admin123)');
+  console.log('   Tenants: fathan@, ayu@, budi@, sari@ @example.com (password: tenant123)');
 }
 
 main()

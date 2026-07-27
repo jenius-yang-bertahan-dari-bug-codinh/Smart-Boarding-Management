@@ -42,7 +42,8 @@ export async function onboardResident(data: { name: string; email: string; phone
         name,
         phone,
         status: 'active',
-        due_date: new Date(moveInDate)
+        due_date: new Date(moveInDate),
+        join_date: new Date()
       }
     });
 
@@ -73,29 +74,47 @@ export async function syncAutoBilling() {
 
     const payments = [];
     const now = new Date();
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'];
 
     for (const member of activeMembers) {
       if (!member.room || !member.due_date) continue;
-      
-      // If today is past or equal to the due_date
+
+      // Only generate if the due date has passed (i.e., billing cycle has elapsed)
       if (now >= member.due_date) {
+        // Build billing_month label for the current cycle (e.g. "July 2026")
+        const billingLabel = `${monthNames[member.due_date.getMonth()]} ${member.due_date.getFullYear()}`;
+
+        // Check if an invoice for this exact billing month already exists — prevent duplicates
+        const existing = await (prisma.payment as any).findFirst({
+          where: {
+            member_id: member.id,
+            billing_month: billingLabel,
+            status: { in: ['pending', 'paid'] },
+          },
+        });
+        if (existing) continue; // already billed for this month
+
         const payment = await prisma.payment.create({
           data: {
             member_id: member.id,
             amount: member.room.price,
-            payment_method: 'Pending',
-            status: 'pending'
-          }
+            payment_method: 'midtrans',
+            status: 'pending',
+            payment_date: now,
+            due_date: member.due_date,
+            billing_month: billingLabel,
+            gateway_reference: null,
+          } as any,
         });
         payments.push(payment);
 
-        // Advance due_date by 1 month
+        // Advance due_date by 1 month for the next cycle
         const nextDueDate = new Date(member.due_date);
         nextDueDate.setMonth(nextDueDate.getMonth() + 1);
-
         await prisma.member.update({
           where: { id: member.id },
-          data: { due_date: nextDueDate }
+          data: { due_date: nextDueDate },
         });
       }
     }

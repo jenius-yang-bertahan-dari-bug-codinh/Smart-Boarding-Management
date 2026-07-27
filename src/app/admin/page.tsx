@@ -90,8 +90,8 @@ export default function AdminDashboard() {
     leaseAgreement: { name: string; size: string; date: string; url: string } | null;
     houseRules: { name: string; size: string; date: string; url: string } | null;
   }>({
-    leaseAgreement: { name: 'lease-agreement-v2.pdf', size: '2.4 MB', date: '2024-07-01', url: '/lease-agreement.pdf' },
-    houseRules: { name: 'house-rules-official.pdf', size: '1.8 MB', date: '2024-06-15', url: '/house-rules.pdf' },
+    leaseAgreement: { name: 'lease-agreement-v2.pdf', size: '2.4 MB', date: '2026-07-01', url: '/lease-agreement.pdf' },
+    houseRules: { name: 'house-rules-official.pdf', size: '1.8 MB', date: '2026-06-15', url: '/house-rules.pdf' },
   });
 
   useEffect(() => {
@@ -209,6 +209,12 @@ export default function AdminDashboard() {
 
   const [dashboardData, setDashboardData] = useState<any>(null);
   useEffect(() => {
+    // Auto-billing: silently generate invoices for any members past their due date
+    syncAutoBilling().then(res => {
+      if (res.success && res.count > 0) {
+        showToast(`Auto-billing: ${res.count} new invoice(s) generated automatically.`, 'info');
+      }
+    });
     getDashboardStats(selectedFilter).then(res => {
       if(res.success) setDashboardData(res.data);
     });
@@ -216,7 +222,7 @@ export default function AdminDashboard() {
       if(res.success && res.data) setAvailableRooms(res.data);
     });
     getAdminMembers().then(res => {
-      if(res.success && res.data) setActiveMembers(res.data.filter((m: any) => m.status === 'active'));
+      if(res.success && res.data) setActiveMembers(res.data.filter((m: any) => m.status === 'Active' || m.status === 'Pending'));
     });
     getAdminMaintenance().then(res => {
       if(res.success && res.data) setMaintenanceTickets(res.data);
@@ -291,7 +297,7 @@ export default function AdminDashboard() {
       
       // refresh lists
       getAdminRooms().then(r => r.success && setAvailableRooms(r.data));
-      getAdminMembers().then(m => m.success && setActiveMembers(m.data.filter((mem: any) => mem.status === 'active')));
+      getAdminMembers().then(m => m.success && setActiveMembers(m.data.filter((mem: any) => mem.status === 'Active' || mem.status === 'Pending')));
     } else {
       showToast(res.error || 'Failed to register resident', 'error');
     }
@@ -360,7 +366,7 @@ export default function AdminDashboard() {
               System Overview
             </h1>
             <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1 text-sm sm:text-base font-semibold">
-              Operational heartbeat for August 2024
+              Operational heartbeat for {new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}
             </p>
           </div>
           
@@ -416,7 +422,7 @@ export default function AdminDashboard() {
           <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
             <div className="flex items-center justify-between mb-4">
               <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                Total Revenue
+                Total Income
               </span>
               <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
                 <DollarSign className="w-4.5 h-4.5" />
@@ -424,14 +430,10 @@ export default function AdminDashboard() {
             </div>
             <div>
               <span className="text-2xl font-black text-slate-900 dark:text-white block tracking-tight">
-                {dashboardData ? '$' + dashboardData.totalRevenue.toLocaleString() : '...'}
+                {dashboardData ? 'Rp ' + dashboardData.totalRevenue.toLocaleString('id-ID') : '...'}
               </span>
               <div className="mt-2.5 flex items-center gap-1">
-                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">
-                  <ArrowUpRight className="w-3 h-3" />
-                  +12.5%
-                </span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">from last month</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">All-time accumulated income</span>
               </div>
             </div>
           </div>
@@ -608,7 +610,7 @@ export default function AdminDashboard() {
             <div className="mt-6 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
               <span className="font-semibold flex items-center gap-1 text-emerald-600">
                 <TrendingUp className="w-3.5 h-3.5" />
-                Growth is up 12% compared to Q1 2024
+                Growth is up 12% compared to Q1 2026
               </span>
               <span className="font-semibold">Amounts in IDR (Rupiah)</span>
             </div>
@@ -1420,10 +1422,10 @@ export default function AdminDashboard() {
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{m.name}</p>
                           <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
-                            {m.status === 'active' ? 'Active Member' : m.status}{m.room ? ` \u2022 Unit ${m.room}` : ''}
+                            {m.status === 'Active' ? 'Active Member' : m.status}{m.room ? ` • Unit ${m.room}` : ''}
                           </p>
                         </div>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${m.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${m.status === 'Active' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
                           {m.status}
                         </span>
                       </div>

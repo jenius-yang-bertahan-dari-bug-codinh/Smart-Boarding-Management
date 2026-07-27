@@ -496,7 +496,29 @@ export default function BillingPage() {
                   </div>
                 )}
               </div>
-              <button type="button" onClick={() => showToast('Downloading invoice report…')}
+              <button type="button" onClick={() => {
+                if (!invoices.length) {
+                  showToast('No invoices to export');
+                  return;
+                }
+                const headers = ['Invoice ID', 'Member', 'Amount', 'For Month', 'Due Date', 'Status'];
+                const csvContent = [
+                  headers.join(','),
+                  ...invoices.map((inv: any) => 
+                    [inv.id, `"${inv.member}"`, `"${inv.amount}"`, `"${inv.billingMonth}"`, `"${inv.dueDate}"`, inv.status].join(',')
+                  )
+                ].join('\n');
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `invoice_report_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showToast('Exporting CSV...');
+              }}
                 className="p-2 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 text-slate-500 dark:text-slate-400 dark:text-slate-500 rounded-xl cursor-pointer transition-all">
                 <Download className="w-4 h-4" />
               </button>
@@ -596,7 +618,7 @@ export default function BillingPage() {
                         <button type="button" title="View invoice" onClick={() => {
                           setEditId(inv.rawId);
                           setEditInvIdStr(inv.id);
-                          setEditAmount(inv.amount.replace('$', '').replace(',', ''));
+                          setEditAmount(inv.amount.replace('Rp ', '').replace(/\./g, '').replace(',', ''));
                           setEditStatus(inv.status);
                           setEditDueDate(inv.dueDate);
                           setEditBillingMonth(inv.billingMonth);

@@ -46,92 +46,101 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
   const mockDescription = "Experience premium comfort in our Deluxe Room. Meticulously designed for the modern resident, this space features a plush double bed, a dedicated ergonomic study area, and a pristine en-suite bathroom. Generous natural light and minimalist furnishings create a serene environment perfect for both focused work and relaxation.";
   const mockLocation = "North Wing, 1st Floor";
 
+  const bookNowHref = `/register?roomId=${room.id}&roomName=${encodeURIComponent(room.name)}&roomPrice=${encodeURIComponent(room.price)}`;
+
   return (
     <>
+      {/* ── Room Card ── */}
       <article className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-slate-100 dark:border-slate-700 flex flex-col group">
-      {/* Image Block with Absolute Badge */}
-      <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-100 dark:bg-slate-900">
-        <img
-          src={images[0]}
-          alt={room.name}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-        <span className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1.5 shadow-sm backdrop-blur-md ${
-            isAvailable
-              ? 'bg-emerald-50/95 text-emerald-700 border border-emerald-100/50'
-              : isPending
-              ? 'bg-amber-50/95 text-amber-700 border border-amber-100/50'
-              : 'bg-rose-50/95 text-rose-700 border border-rose-100/50'
-          }`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${
-            isAvailable
-              ? 'bg-emerald-500 animate-pulse'
-              : isPending
-              ? 'bg-amber-500 animate-pulse'
-              : 'bg-rose-500'
-          }`} />
-          {displayStatus}
-        </span>
-      </div>
+        {/* Image Block */}
+        <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-100 dark:bg-slate-900">
+          <img
+            src={images[0]}
+            alt={room.name}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          <span className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1.5 shadow-sm backdrop-blur-md ${
+              isAvailable
+                ? 'bg-emerald-50/95 text-emerald-700 border border-emerald-100/50'
+                : isPending
+                ? 'bg-amber-50/95 text-amber-700 border border-amber-100/50'
+                : 'bg-rose-50/95 text-rose-700 border border-rose-100/50'
+            }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${
+              isAvailable
+                ? 'bg-emerald-500 animate-pulse'
+                : isPending
+                ? 'bg-amber-500 animate-pulse'
+                : 'bg-rose-500'
+            }`} />
+            {displayStatus}
+          </span>
+        </div>
 
-      {/* Content Block */}
-      <div className="p-5 flex-1 flex flex-col justify-between">
-        <div>
-          {/* Title and Price */}
-          <div className="flex items-center justify-between gap-2">
-            <h4 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-              {room.name}
-            </h4>
-            <div className="text-blue-600 dark:text-blue-400 font-extrabold text-lg shrink-0">
-              {room.price}
+        {/* Content Block */}
+        <div className="p-5 flex-1 flex flex-col justify-between">
+          <div>
+            {/* Title and Price */}
+            <div className="flex items-center justify-between gap-2">
+              <h4 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                {room.name}
+              </h4>
+              <div className="text-blue-600 dark:text-blue-400 font-extrabold text-lg shrink-0">
+                {room.price}
+              </div>
+            </div>
+
+            {/* Features Pills */}
+            <div className="mt-4 flex flex-wrap gap-2">
+              {room.features.map((feature, idx) => (
+                <span
+                  key={idx}
+                  className="bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-600/50 text-slate-600 dark:text-slate-300 text-xs px-2.5 py-1 rounded-lg flex items-center gap-1.5 font-medium"
+                >
+                  {getFeatureIcon(feature)}
+                  {feature}
+                </span>
+              ))}
             </div>
           </div>
 
-          {/* Features Pills */}
-          <div className="mt-4 flex flex-wrap gap-2">
-            {room.features.map((feature, idx) => (
-              <span
-                key={idx}
-                className="bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-600/50 text-slate-600 dark:text-slate-300 text-xs px-2.5 py-1 rounded-lg flex items-center gap-1.5 font-medium"
+          <div className="mt-6 flex flex-col gap-4">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="text-blue-700 dark:text-blue-400 font-semibold text-sm hover:underline w-fit text-left"
+            >
+              View Details &rarr;
+            </button>
+            {isAvailable ? (
+              <Link
+                href={bookNowHref}
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-xl text-sm transition-all duration-200 shadow-xs hover:shadow-md cursor-pointer text-center block"
               >
-                {getFeatureIcon(feature)}
-                {feature}
-              </span>
-            ))}
+                Book Now
+              </Link>
+            ) : isPending ? (
+              <button disabled className="w-full bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-400 font-semibold py-2.5 rounded-xl text-sm transition-all duration-200 cursor-not-allowed text-center block opacity-90">
+                Waiting for Approval
+              </button>
+            ) : (
+              <button disabled className="w-full bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-700 text-rose-700 dark:text-rose-400 font-semibold py-2.5 rounded-xl text-sm transition-all duration-200 cursor-not-allowed text-center block opacity-90">
+                Occupied
+              </button>
+            )}
           </div>
         </div>
+      </article>
 
-        <div className="mt-6 flex flex-col gap-4">
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="text-blue-700 dark:text-blue-400 font-semibold text-sm hover:underline w-fit text-left"
-          >
-            View Details &rarr;
-          </button>
-          {isAvailable ? (
-            <Link
-              href={`/checkout?roomId=${room.id}`}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-xl text-sm transition-all duration-200 shadow-xs hover:shadow-md cursor-pointer text-center block"
-            >
-              Book Now
-            </Link>
-          ) : isPending ? (
-             <button disabled className="w-full bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-400 font-semibold py-2.5 rounded-xl text-sm transition-all duration-200 cursor-not-allowed text-center block opacity-90">
-              Waiting for Approval
-            </button>
-          ) : (
-            <button disabled className="w-full bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-700 text-rose-700 dark:text-rose-400 font-semibold py-2.5 rounded-xl text-sm transition-all duration-200 cursor-not-allowed text-center block opacity-90">
-              Occupied
-            </button>
-          )}
-        </div>
-      </div>
-    </article>
-
-      {/* Modal */}
+      {/* ── Detail Modal ── */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full max-h-[95vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm"
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full max-h-[95vh] overflow-y-auto shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
             {/* Image Slider */}
             <div className="relative h-64 sm:h-80 w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
               <img
@@ -139,7 +148,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
                 alt={`${room.name} - image ${currentImageIndex + 1}`}
                 className="w-full h-full object-cover transition-all duration-300"
               />
-              <button 
+              <button
                 onClick={() => {
                   setIsModalOpen(false);
                   setCurrentImageIndex(0);
@@ -148,10 +157,10 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
               >
                 <X className="w-5 h-5" />
               </button>
-              
+
               {images.length > 1 && (
                 <>
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setCurrentImageIndex(prev => prev === 0 ? images.length - 1 : prev - 1);
@@ -160,7 +169,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setCurrentImageIndex(prev => prev === images.length - 1 ? 0 : prev + 1);
@@ -169,11 +178,11 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
                   >
                     <ChevronRight className="w-5 h-5" />
                   </button>
-                  
+
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
                     {images.map((_, idx) => (
-                      <div 
-                        key={idx} 
+                      <div
+                        key={idx}
                         className={`w-2 h-2 rounded-full transition-colors ${idx === currentImageIndex ? 'bg-blue-600' : 'bg-white/70'}`}
                       />
                     ))}
@@ -204,7 +213,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
                 </div>
               </div>
 
-              <div className="border-t border-slate-100 dark:border-slate-700/50 my-6"></div>
+              <div className="border-t border-slate-100 dark:border-slate-700/50 my-6" />
 
               <div className="flex flex-wrap gap-2.5">
                 {room.features.map((feature, idx) => (
@@ -227,6 +236,26 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
                 </p>
               </div>
             </div>
+
+            {/* Modal Footer — Book Now button */}
+            <div className="px-6 sm:px-8 pb-6 sm:pb-8">
+              {isAvailable ? (
+                <Link
+                  href={bookNowHref}
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl text-sm transition-all duration-200 shadow-md hover:shadow-lg cursor-pointer text-center block"
+                >
+                  Book Now — Register as Resident
+                </Link>
+              ) : (
+                <div className={`w-full py-3 rounded-xl text-sm font-bold text-center ${
+                  isPending
+                    ? 'bg-amber-50 border border-amber-200 text-amber-700'
+                    : 'bg-rose-50 border border-rose-200 text-rose-700'
+                }`}>
+                  {isPending ? 'Waiting for Approval' : 'Room Occupied'}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -235,4 +264,3 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
 };
 
 export default RoomCard;
-

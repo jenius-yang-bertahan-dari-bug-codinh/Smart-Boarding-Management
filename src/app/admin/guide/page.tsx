@@ -124,29 +124,28 @@ const guide = [
     accentLight: '#fef3c7',
     title: 'Billing & Invoices',
     emoji: '💳',
-    summary: 'Invoices are automatic. Your main job is to verify payments.',
+    summary: 'Invoices are generated automatically every month. Your only job is to verify payments.',
     steps: [
       {
-        title: 'How invoices are generated',
-        body: 'The system auto-creates invoices 5 days before each monthly due date. Each invoice includes rent, utilities (if metered), and any add-ons.',
+        title: 'How invoices are generated automatically',
+        body: 'Every time you open the Admin Dashboard, the system silently checks all active residents. If a resident\'s monthly due date has passed and no invoice exists for that month yet, a new invoice is created automatically — no manual action needed. You will see a notification if new invoices were just generated.',
+        tip: 'Duplicate invoices are prevented automatically. Even if the dashboard is opened multiple times, each resident will only ever receive one invoice per billing month.',
+      },
+      {
+        title: 'Manual override with "Sync Auto-Billing"',
+        body: 'The "Sync Auto-Billing" button in Quick Actions is a manual override. Click it any time to force an immediate billing check — useful after onboarding a new resident mid-month or if you want to generate invoices without waiting for a dashboard reload.',
       },
       {
         title: 'How residents pay',
-        body: 'Residents receive the invoice by email and can upload payment proof through their resident portal. You do not need to chase them manually.',
-      },
-      {
-        title: 'How to verify a payment',
-        body: 'Open "Billing" in the nav bar → filter by "Pending" status → click the invoice → click "Verify" to mark it as Paid. Done.',
-        warning: 'Always verify payment proofs within 24 hours. Proofs older than 3 days trigger an automatic reminder to the admin.',
+        body: 'Residents log in to their dashboard and click "Pay Now" to be redirected to the Midtrans payment gateway. Payments are reconciled automatically — no manual verification required for online payments.',
       },
       {
         title: 'Invoice status meanings',
         body: null,
         list: [
-          { label: 'Unpaid', desc: 'Invoice sent. No payment uploaded yet.' },
-          { label: 'Pending', desc: 'Resident uploaded proof — waiting for your verification.' },
-          { label: 'Paid', desc: 'Payment confirmed and recorded.' },
-          { label: 'Overdue', desc: 'Past the due date with no payment received.' },
+          { label: 'Unpaid', desc: 'Invoice created. Resident has not paid yet.' },
+          { label: 'Paid', desc: 'Payment confirmed and recorded automatically by the payment gateway.' },
+          { label: 'Overdue', desc: 'Past the due date with no payment received. The system auto-upgrades from Unpaid to Overdue.' },
         ],
       },
     ],

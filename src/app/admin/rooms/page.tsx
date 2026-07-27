@@ -298,7 +298,7 @@ export default function RoomsPage() {
                           setNewRoomNumber(room.roomNo);
                           setNewRoomFloor(room.floor.replace('Floor ', ''));
                           setNewRoomType(room.type);
-                          setNewRoomPrice(room.price.replace('$', '').replace(/,/g, ''));
+                          setNewRoomPrice(room.price.replace('Rp ', '').replace(/\./g, '').replace(/,/g, ''));
                           setEditRoomStatus(isOccupied ? 'Occupied' : (isMaintenance ? 'Maintenance' : 'Available'));
                           setActiveModal('edit_room');
                         }}
