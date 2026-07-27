@@ -125,10 +125,12 @@ export async function POST(req: Request) {
               where: { id: member.id },
               data: { status: 'active' }
             });
-            await prisma.room.update({
-              where: { id: member.room_id },
-              data: { status: 'Occupied' }
-            });
+            if (member.room_id) {
+              await prisma.room.update({
+                where: { id: member.room_id },
+                data: { status: 'Occupied' }
+              });
+            }
             // Update local object so subsequent loop iterations know it's active
             member.status = 'active';
           }

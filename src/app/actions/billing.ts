@@ -19,6 +19,10 @@ export async function getAdminBilling(trendFilter: string = '6_months') {
       return p.member && p.member.status === 'active';
     });
 
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
     let incomeSum = 0;
     let pendingSum = 0;
     let pendingCount = 0;
@@ -33,7 +37,6 @@ export async function getAdminBilling(trendFilter: string = '6_months') {
       }
 
       // Auto-update to overdue if past due date
-      const now = new Date();
       let currentStatus = p.status;
       
       const pAny = p as any; // Bypass TS check due to missing Prisma typings refresh
@@ -47,7 +50,11 @@ export async function getAdminBilling(trendFilter: string = '6_months') {
 
       // Aggregate metrics
       if (currentStatus === 'paid') {
-        incomeSum += p.amount;
+        const paymentDate = new Date(p.payment_date);
+        // Only sum income for the current month
+        if (paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear) {
+          incomeSum += p.amount;
+        }
       } else if (currentStatus === 'pending') {
         pendingSum += p.amount;
         pendingCount++;
@@ -90,7 +97,6 @@ export async function getAdminBilling(trendFilter: string = '6_months') {
     };
 
     // Dynamic Trend Bars Calculation
-    const now = new Date();
     let monthsToCalculate = 6;
     let startMonth = new Date(now.getFullYear(), now.getMonth() - 5, 1);
     
@@ -196,7 +202,10 @@ export async function markInvoiceAsPaid(invoiceId: number) {
 export async function getAllMembers() {
   try {
     const members = await prisma.member.findMany({
-      select: { id: true, name: true, room: { select: { room_number: true } } },
+      where: {
+        status: { notIn: ['cancelled', 'past'] }
+      },
+      select: { id: true, name: true, room: { select: { room_number: true } }, status: true },
       orderBy: { name: 'asc' }
     });
     return { success: true, data: members };

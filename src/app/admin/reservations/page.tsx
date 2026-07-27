@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import {
   Bell, Settings, Search, ChevronLeft, ChevronRight,
   Plus, Filter, Download, MoreVertical, Check, X,
-  Calendar, ArrowUpRight, Eye, UserCheck,
+  Calendar, ArrowUpRight, Eye, UserCheck, RefreshCcw,
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 import AdminNavbar from '@/components/AdminNavbar';
@@ -221,7 +221,19 @@ export default function ReservationsPage() {
   const totalPages = Math.ceil(filteredReservations.length / itemsPerPage);
   const paginatedReservations = filteredReservations.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
-  const handleCreateBooking = async (formData: FormData) => {
+  const handleCreateBooking = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    // Validate dates
+    if (!bCheckIn || !bCheckOut) {
+      showToast('Please select both check-in and check-out dates.');
+      return;
+    }
+    if (new Date(bCheckOut) <= new Date(bCheckIn)) {
+      showToast('Check-out date must be after check-in date.');
+      return;
+    }
+    const form = e.currentTarget;
+    const formData = new FormData(form);
     const res = await createReservation(formData);
     if(res.success) {
       showToast('Booking created successfully!');
@@ -279,6 +291,8 @@ export default function ReservationsPage() {
   /* booking form state */
   const [bTenant, setBTenant] = useState('');
   const [bRoom,   setBRoom]   = useState('101');
+  const [bCheckIn,  setBCheckIn]  = useState('');
+  const [bCheckOut, setBCheckOut] = useState('');
 
   /* details modal state */
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
@@ -304,7 +318,7 @@ export default function ReservationsPage() {
               <h3 className="text-base font-bold text-slate-900 dark:text-white">New Booking</h3>
               <button type="button" onClick={() => setBookingModal(false)} className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:text-slate-500 cursor-pointer"><X className="w-5 h-5" /></button>
             </div>
-            <form action={handleCreateBooking}>
+        <form onSubmit={handleCreateBooking}>
                 <div className="mb-3">
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Tenant Name</label>
                   <input type="text" name="tenantName" value={bTenant} onChange={(e) => setBTenant(e.target.value)} required className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-900 placeholder:text-slate-300" placeholder="e.g. John Doe" />
@@ -320,11 +334,30 @@ export default function ReservationsPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Check-in</label>
-                    <input type="date" name="checkIn" defaultValue="2024-10-01" required className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-900" />
+                    <input
+                      type="date"
+                      name="checkIn"
+                      required
+                      value={bCheckIn}
+                      onChange={(e) => {
+                        setBCheckIn(e.target.value);
+                        // Reset checkout if it's now invalid
+                        if (bCheckOut && e.target.value >= bCheckOut) setBCheckOut('');
+                      }}
+                      className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-900"
+                    />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Check-out</label>
-                    <input type="date" name="checkOut" defaultValue="2024-10-31" required className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-900" />
+                    <input
+                      type="date"
+                      name="checkOut"
+                      required
+                      value={bCheckOut}
+                      min={bCheckIn ? (() => { const d = new Date(bCheckIn); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })() : ''}
+                      onChange={(e) => setBCheckOut(e.target.value)}
+                      className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-900"
+                    />
                   </div>
                 </div>
               <div className="flex gap-3 pt-6 justify-end">
@@ -534,9 +567,12 @@ export default function ReservationsPage() {
                         <Check className="w-3.5 h-3.5" />
                         Approve
                       </button>
-                      <button type="button" onClick={() => { setSelectedReservation(a); setDetailsModalOpen(true); }} className="flex-1 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 text-slate-700 dark:text-slate-300 text-xs font-bold py-2 rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5">
-                        <Eye className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                        Details
+                      <button type="button" onClick={() => handleUpdateStatus(a.rawId, 'cancelled')} className="flex-1 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-500 border border-red-200 dark:border-red-900/50 text-xs font-bold py-2 rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                        <X className="w-3.5 h-3.5" />
+                        Refuse
+                      </button>
+                      <button type="button" title="Details" onClick={() => { setSelectedReservation(a); setDetailsModalOpen(true); }} className="flex-none px-3 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 text-slate-700 dark:text-slate-300 text-xs font-bold py-2 rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                        <Eye className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                       </button>
                     </div>
                   )}
@@ -620,6 +656,11 @@ export default function ReservationsPage() {
                         {r.status === 'Confirmed' && (
                           <button type="button" onClick={() => handleUpdateStatus(r.rawId, 'cancelled')} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg cursor-pointer transition-all" title="Cancel">
                             <X className="w-4 h-4" />
+                          </button>
+                        )}
+                        {r.status === 'Cancelled' && (
+                          <button type="button" onClick={() => handleUpdateStatus(r.rawId, 'pending')} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer transition-all" title="Uncancel (Restore to Pending)">
+                            <RefreshCcw className="w-4 h-4" />
                           </button>
                         )}
                         <button type="button" onClick={() => { setSelectedReservation(r); setDetailsModalOpen(true); }} className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-blue-50 rounded-lg cursor-pointer transition-all">

@@ -7,6 +7,7 @@ export async function getAdminMembers() {
     const members = await prisma.member.findMany({
       include: {
         room: true,
+        user: true,
       },
       orderBy: { name: 'asc' }
     });
@@ -15,12 +16,16 @@ export async function getAdminMembers() {
       id: m.id.toString(),
       stId: `#ST-${m.id.toString().padStart(4, '0')}`,
       name: m.name,
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80', // default avatar
+      avatar: (m as any).avatar_url || (m as any).user?.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
       room: m.room ? `Room ${m.room.room_number}` : 'No Room',
       floor: m.room ? `Floor ${m.room.floor}` : '-',
-      email: m.phone, // fallback to phone if no email
+      email: (m as any).user?.email || m.phone,
       phone: m.phone,
-      joinDate: 'Oct 15, 2023', // Hardcode fallback since we don't have join date
+      id_number: (m as any).id_number || '-',
+      preferredRoom: (m as any).preferred_room_name || null,
+      joinDate: m.join_date
+        ? m.join_date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+        : '-',
       leaseEnd: m.due_date ? m.due_date.toISOString().split('T')[0] : 'N/A',
       status: m.status === 'active' ? 'Active' : (m.status === 'pending' ? 'Pending' : 'Past Member')
     }));

@@ -209,6 +209,15 @@ export default function MaintenancePage() {
     return matchQ && matchType && matchPri && matchStatus;
   });
 
+  const totalOpen = requests.filter(r => r.status !== 'Resolved').length;
+  const emergencyIssues = requests.filter(r => r.priority === 'EMERGENCY' && r.status !== 'Resolved').length;
+  const totalAssigned = requests.filter(r => r.status === 'Assigned').length;
+
+  const itemsPerPage = 5;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * itemsPerPage, safePage * itemsPerPage);
+
   const handleTabClick = (tab: string) => {
     setActiveTab(tab);
     if      (tab === 'Dashboard')    router.push('/admin');
@@ -351,7 +360,7 @@ export default function MaintenancePage() {
         </div>
 
         {/* ── KPI Cards ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
 
           {/* Card 1: Total Open */}
           <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-xs hover:shadow-md transition-shadow">
@@ -362,11 +371,11 @@ export default function MaintenancePage() {
               </div>
             </div>
             <div className="flex items-baseline gap-2 mb-3">
-              <span className="text-4xl font-black text-slate-900 dark:text-white">24</span>
-              <span className="text-xs font-bold text-rose-500">+3 today</span>
+              <span className="text-4xl font-black text-slate-900 dark:text-white">{totalOpen.toString().padStart(2, '0')}</span>
+              <span className="text-xs font-bold text-rose-500">Active</span>
             </div>
             <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
-              <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: '60%' }} />
+              <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: requests.length ? `${Math.round((totalOpen / requests.length) * 100)}%` : '0%' }} />
             </div>
           </div>
 
@@ -379,7 +388,7 @@ export default function MaintenancePage() {
               </div>
             </div>
             <div className="flex items-baseline gap-2 mb-2">
-              <span className="text-4xl font-black text-rose-600">04</span>
+              <span className="text-4xl font-black text-rose-600">{emergencyIssues.toString().padStart(2, '0')}</span>
               <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">Critical focus</span>
             </div>
             <div className="flex items-center gap-1.5 mt-3">
@@ -388,24 +397,7 @@ export default function MaintenancePage() {
             </div>
           </div>
 
-          {/* Card 3: Avg. Resolution */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-xs hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Avg. Resolution</span>
-              <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
-                <Timer className="w-4 h-4 text-orange-500" />
-              </div>
-            </div>
-            <div className="flex items-baseline gap-2 mb-2">
-              <span className="text-4xl font-black text-slate-900 dark:text-white">4.2h</span>
-              <span className="text-xs font-bold text-orange-500">-15% from last week</span>
-            </div>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-semibold mt-3">
-              Performance: <span className="text-blue-700 font-bold">Excellent</span>
-            </p>
-          </div>
-
-          {/* Card 4: Assigned Today */}
+          {/* Card 3: Assigned Today */}
           <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-xs hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Assigned Today</span>
@@ -414,8 +406,8 @@ export default function MaintenancePage() {
               </div>
             </div>
             <div className="flex items-baseline gap-2 mb-3">
-              <span className="text-4xl font-black text-slate-900 dark:text-white">12</span>
-              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">8 active technicians</span>
+              <span className="text-4xl font-black text-slate-900 dark:text-white">{totalAssigned.toString().padStart(2, '0')}</span>
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">tickets assigned</span>
             </div>
             {/* Overlapping mini avatars */}
             <div className="flex items-center gap-0">
@@ -499,10 +491,10 @@ export default function MaintenancePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {filtered.length === 0 && (
+                {paginated.length === 0 && (
                   <tr><td colSpan={8} className="text-center py-14 text-sm text-slate-400 dark:text-slate-500 font-semibold">No requests match your filters.</td></tr>
                 )}
-                {filtered.map((r) => (
+                {paginated.map((r) => (
                   <tr key={r.id} onClick={() => setSelectedRow(r)} className="hover:bg-slate-50/70 transition-colors cursor-pointer group">
 
                     {/* ID */}
@@ -571,26 +563,21 @@ export default function MaintenancePage() {
 
           {/* Table footer */}
           <div className="border-t border-slate-100 dark:border-slate-800 px-5 py-4 flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">Showing 1–10 of 124 requests</p>
-            <div className="flex items-center gap-1">
-              <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-                className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${page === 1 ? 'text-slate-200 cursor-not-allowed' : 'text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 cursor-pointer'}`}>
-                <ChevronLeft className="w-4 h-4 stroke-[2]" />
+            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">
+              Showing {(safePage - 1) * itemsPerPage + 1}–{Math.min(safePage * itemsPerPage, filtered.length)} of {filtered.length} requests
+            </p>
+            <div className="flex items-center gap-1.5">
+              <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage === 1} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all ${safePage === 1 ? 'border-slate-100 dark:border-slate-800 text-slate-300 cursor-not-allowed' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 cursor-pointer'}`}>
+                Previous
               </button>
-              {[1, 2, 3].map((n) => (
-                <button key={n} type="button" onClick={() => setPage(n)}
-                  className={`w-7 h-7 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${page === n ? 'bg-blue-900 text-white shadow-xs' : 'text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'}`}>
-                  {n}
-                </button>
-              ))}
-              <span className="text-slate-400 dark:text-slate-500 text-xs font-bold px-1">…</span>
-              <button type="button" onClick={() => setPage(12)}
-                className={`w-7 h-7 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${page === 12 ? 'bg-blue-900 text-white shadow-xs' : 'text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'}`}>
-                12
-              </button>
-              <button type="button" onClick={() => setPage((p) => Math.min(12, p + 1))} disabled={page === 12}
-                className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${page === 12 ? 'text-slate-200 cursor-not-allowed' : 'text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 cursor-pointer'}`}>
-                <ChevronRight className="w-4 h-4 stroke-[2]" />
+              {[...Array(totalPages)].map((_, i) => {
+                const n = i + 1;
+                return (
+                  <button key={n} type="button" onClick={() => setPage(n)} className={`w-8 h-8 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${safePage === n ? 'bg-blue-900 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'}`}>{n}</button>
+                )
+              })}
+              <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={safePage === totalPages || totalPages === 0} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all ${safePage === totalPages || totalPages === 0 ? 'border-slate-100 dark:border-slate-800 text-slate-300 cursor-not-allowed' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 cursor-pointer'}`}>
+                Next
               </button>
             </div>
           </div>

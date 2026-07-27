@@ -34,7 +34,9 @@ export async function GET() {
     })
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      const response = NextResponse.json({ error: 'User not found' }, { status: 404 })
+      response.cookies.delete('auth_token')
+      return response
     }
 
     const uAny = user as any;
@@ -45,12 +47,14 @@ export async function GET() {
       user: {
         id: user.id,
         email: user.email,
-        name: member?.name || payload.name, // Member name if exists
+        name: member?.name || (user as any)?.name || payload.name,
         role: user.role,
         avatar_url: mAny?.avatar_url || uAny?.avatar_url || null,
         memberProfile: member ? {
           id: member.id,
           phone: member.phone,
+          id_number: (member as any)?.id_number || null,
+          preferred_room_name: (member as any)?.preferred_room_name || null,
           avatar_url: mAny?.avatar_url || uAny?.avatar_url || null,
           status: member.status,
           due_date: member.due_date,

@@ -18,11 +18,10 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
       startDate = new Date(now.getFullYear(), 0, 1);
     }
 
-    // 1. Total Revenue (Filtered by date)
+    // 1. Total Income (All-time, ignores date filter)
     const payments = await prisma.payment.findMany({
       where: { 
-        status: 'paid',
-        payment_date: { gte: startDate }
+        status: 'paid'
       }
     });
     const totalRevenue = payments.reduce((acc: number, curr: { amount: number }) => acc + curr.amount, 0);
@@ -112,7 +111,7 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
     const monthlyData = monthlyTotals.map((total, i) => ({
       month: monthNames[i],
       value: Math.round((total / maxMonthly) * 100),
-      amount: '$' + total.toLocaleString(),
+      amount: 'Rp ' + total.toLocaleString('id-ID'),
       highlight: total === maxMonthly && total > 0
     }));
 
@@ -135,7 +134,7 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
       weeklyData.push({
         month: `W${i + 1}`,
         value: Math.round((weeklyTotals[i] / maxWeekly) * 100),
-        amount: '$' + weeklyTotals[i].toLocaleString(),
+        amount: 'Rp ' + weeklyTotals[i].toLocaleString('id-ID'),
         highlight: weeklyTotals[i] === maxWeekly && weeklyTotals[i] > 0
       });
     }

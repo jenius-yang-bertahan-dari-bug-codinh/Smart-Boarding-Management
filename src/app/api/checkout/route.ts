@@ -55,6 +55,7 @@ export async function POST(request: Request) {
           id_number: idNumber,
           status: 'pending',
           due_date: moveInDate ? new Date(moveInDate) : new Date(),
+          join_date: new Date(),
         },
       });
 

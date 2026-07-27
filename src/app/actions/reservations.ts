@@ -100,10 +100,19 @@ export async function updateReservationStatus(id: number, status: string) {
       // NOTE: We no longer auto-update payment to 'completed' or room to 'Occupied' here.
       // That will happen after the user successfully pays via Midtrans in the dashboard.
     } else if (status.toLowerCase() === 'cancelled' || status === 'inactive') {
-      await prisma.room.update({
-        where: { id: member.room_id },
-        data: { status: 'Available' }
-      });
+      if (member.room_id) {
+        await prisma.room.update({
+          where: { id: member.room_id },
+          data: { status: 'Available' }
+        });
+      }
+    } else if (status.toLowerCase() === 'pending') {
+      if (member.room_id) {
+        await prisma.room.update({
+          where: { id: member.room_id },
+          data: { status: 'Booked' }
+        });
+      }
     }
 
     revalidatePath('/');
@@ -147,6 +156,7 @@ export async function createReservation(formData: FormData) {
         phone: 'N/A', // Default fallback
         status: 'pending', // lowercase pending to match the backend mapping logic
         due_date: new Date(checkIn),
+        join_date: new Date(),
         user: { connect: { id: newUser.id } },
         room: { connect: { room_number: roomIdStr } }
       }
