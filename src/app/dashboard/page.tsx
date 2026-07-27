@@ -107,9 +107,13 @@ export default function MemberDashboard() {
   let dueDateText = "Paid";
   let isOverdue = false;
   let nextBillingText = "N/A";
-  if (user?.memberProfile?.due_date) {
+  
+  const pendingPayments = user?.memberProfile?.pendingPayments || [];
+
+  if (pendingPayments.length > 0) {
+    const earliestPayment = [...pendingPayments].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
     const today = new Date();
-    const due = new Date(user.memberProfile.due_date);
+    const due = new Date(earliestPayment.due_date);
     const diffTime = due.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
@@ -121,6 +125,10 @@ export default function MemberDashboard() {
     } else {
       dueDateText = `Due in ${diffDays} days`;
     }
+    nextBillingText = due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } else if (user?.memberProfile?.due_date) {
+    const today = new Date();
+    const due = new Date(user.memberProfile.due_date);
     nextBillingText = due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 
