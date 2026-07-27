@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Settings, CheckCircle, UploadCloud } from 'lucide-react';
+import { Settings, CheckCircle, UploadCloud, User, Lock, Eye, EyeOff } from 'lucide-react';
 import { validateClientImageFile } from '@/lib/file-security';
+import { changePassword } from '@/app/actions/auth';
 
 interface MemberSettingsModalProps {
   isOpen: boolean;
@@ -16,6 +17,12 @@ export default function MemberSettingsModal({ isOpen, onClose, user, onRefresh }
   const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
 
@@ -65,16 +72,46 @@ export default function MemberSettingsModal({ isOpen, onClose, user, onRefresh }
         })
       });
       const data = await res.json();
-      if (data.success) {
-        setToastMsg('Profile updated successfully!');
-        await onRefresh();
-        setTimeout(() => {
-          setToastMsg('');
-          onClose();
-        }, 1500);
-      } else {
+      if (!data.success) {
         alert(data.error || 'Failed to update profile');
+        setIsSaving(false);
+        return;
       }
+
+      // Handle password change if requested
+      if (currentPassword || newPassword || confirmPassword) {
+        if (!currentPassword) {
+          alert('Please enter your current password.');
+          setIsSaving(false);
+          return;
+        }
+        if (newPassword !== confirmPassword) {
+          alert('New passwords do not match.');
+          setIsSaving(false);
+          return;
+        }
+        
+        const resPass = await changePassword({ userId: user.id, currentPassword, newPassword });
+        if (!resPass.success) {
+          alert(resPass.error);
+          setIsSaving(false);
+          return;
+        }
+      }
+
+      setToastMsg('Settings updated successfully!');
+      await onRefresh();
+      
+      // Clear password fields on success
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+
+      setTimeout(() => {
+        setToastMsg('');
+        onClose();
+      }, 1500);
+      
     } catch (err) {
       console.error(err);
       alert('Error saving profile');
@@ -112,14 +149,20 @@ export default function MemberSettingsModal({ isOpen, onClose, user, onRefresh }
             {/* Profile Photo Preview & Secure File Upload Input */}
             <div className="flex flex-col items-center justify-center pb-3 border-b border-slate-100">
               <div className="relative mb-3">
-                <img
-                  src={editAvatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"}
-                  alt="Preview"
-                  className="w-20 h-20 rounded-full object-cover border-4 border-blue-50 shadow-md"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80";
-                  }}
-                />
+                {editAvatar ? (
+                  <img
+                    src={editAvatar}
+                    alt="Preview"
+                    className="w-20 h-20 rounded-full object-cover border-4 border-blue-50 shadow-md bg-white"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+                    }}
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-full border-4 border-slate-100 shadow-md shrink-0 bg-slate-200 flex items-center justify-center text-slate-800">
+                    <User className="w-10 h-10" />
+                  </div>
+                )}
               </div>
               <label className="block text-xs font-bold text-slate-700 w-full mb-1">
                 Custom Profile Picture (JPG, JPEG, PNG only - Max 5 MB)
@@ -180,6 +223,66 @@ export default function MemberSettingsModal({ isOpen, onClose, user, onRefresh }
                   onChange={(e) => setEditPhone(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-slate-800"
                 />
+              </div>
+
+              {/* Security / Change Password Section */}
+              <div className="pt-3 border-t border-slate-100 mt-4 space-y-3.5">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                  <Lock className="w-4 h-4 text-slate-500" />
+                  <span>Change Password</span>
+                </label>
+                <div className="space-y-2">
+                  <div className="relative">
+                    <input
+                      type={showCurrentPassword ? "text" : "password"}
+                      placeholder="Current Password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-slate-800 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      placeholder="New Password (min. 8 characters)"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-slate-800 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Confirm New Password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-slate-800 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 

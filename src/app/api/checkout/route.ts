@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { roomId, fullName, email, phone, idNumber, paymentMethod, totalCost } = body;
+    const { roomId, fullName, email, phone, idNumber, paymentMethod, totalCost, moveInDate } = body;
 
     // Validate inputs
     if (!roomId || !fullName || !email || !phone || !idNumber || !paymentMethod) {
@@ -28,7 +28,12 @@ export async function POST(request: Request) {
       // 1. Find or create the user
       let user = await tx.user.findUnique({
         where: { email },
+        include: { members: true }
       });
+
+      if (user && user.members && user.members.length > 0) {
+        throw new Error('Alamat email ini sudah terdaftar untuk pemesanan kamar lain (1 Akun = 1 Kamar).');
+      }
 
       if (!user) {
         user = await tx.user.create({
@@ -49,6 +54,7 @@ export async function POST(request: Request) {
           phone: phone,
           id_number: idNumber,
           status: 'pending',
+          due_date: moveInDate ? new Date(moveInDate) : new Date(),
         },
       });
 

@@ -29,7 +29,7 @@ export async function getAdminRooms() {
         floor: `Floor ${room.floor}`,
         type: room.type,
         price: `Rp ${Number(room.price).toLocaleString('id-ID')}`,
-        status: activeMember ? 'Active Member' : (room.status === 'Maintenance' ? 'Maintenance' : 'Empty Room'),
+        status: activeMember ? 'Active Member' : (room.status === 'Occupied' || room.status === 'Booked' ? 'Booked' : (room.status === 'Maintenance' ? 'Maintenance' : 'Empty Room')),
         color: activeMember ? 'bg-blue-500' : '',
         member: activeMember ? {
           initials,
@@ -47,7 +47,7 @@ export async function getAdminRooms() {
   }
 }
 
-export async function assignMemberToRoom(memberId: number, roomId: number) {
+export async function assignMemberToRoom(memberId: number, roomId: number, moveInDate?: string) {
   try {
     const room = await prisma.room.findUnique({ 
       where: { id: roomId },
@@ -57,10 +57,17 @@ export async function assignMemberToRoom(memberId: number, roomId: number) {
       return { success: false, error: 'Room is not available' };
     }
 
-    // Assign member to room
+    // Determine due_date
+    const dueDate = moveInDate ? new Date(moveInDate) : new Date();
+
+    // Assign member to room and set them active
     await prisma.member.update({
       where: { id: memberId },
-      data: { room_id: roomId }
+      data: { 
+        room_id: roomId,
+        due_date: dueDate,
+        status: 'active'
+      }
     });
 
     // Update room status
@@ -78,6 +85,40 @@ export async function assignMemberToRoom(memberId: number, roomId: number) {
   } catch (error: any) {
     console.error('Error assigning member to room:', error);
     return { success: false, error: error.message };
+  }
+}
+
+export async function checkOutMember(roomId: number) {
+  try {
+    const room = await prisma.room.findUnique({
+      where: { id: roomId },
+      include: { members: { where: { status: { in: ['active', 'pending'] } } } }
+    });
+
+    if (!room || room.members.length === 0) {
+      return { success: false, error: 'Room has no active resident to check out' };
+    }
+
+    const memberToCheckout = room.members[0];
+
+    // Mark member as inactive instead of deleting or nullifying room_id to keep history
+    await prisma.member.update({
+      where: { id: memberToCheckout.id },
+      data: { status: 'inactive' }
+    });
+
+    // Reset room status
+    await prisma.room.update({
+      where: { id: roomId },
+      data: { status: 'Available' }
+    });
+
+    revalidatePath('/');
+    revalidatePath('/admin/rooms');
+    return { success: true };
+  } catch (error) {
+    console.error('Error checking out member:', error);
+    return { success: false, error: 'Failed to check out member' };
   }
 }
 
@@ -151,6 +192,41 @@ export async function updateRoom(roomId: number, data: { room_number: string, fl
   } catch (error: any) {
     console.error('Error updating room:', error);
     return { success: false, error: error.message };
+  }
+}
+
+export async function deleteRoom(roomId: number) {
+  try {
+    const room = await prisma.room.findUnique({
+      where: { id: roomId },
+      include: { members: { where: { status: 'active' } } }
+    });
+
+    if (!room) {
+      return { success: false, error: 'Room not found' };
+    }
+
+    if (room.members.length > 0) {
+      return { success: false, error: 'Cannot delete an occupied room. Please remove or reassign the resident first.' };
+    }
+
+    // Clean up associated maintenance rooms first to avoid FK constraint error
+    await prisma.maintenanceRoom.deleteMany({
+      where: { room_id: roomId }
+    });
+
+    await prisma.room.delete({
+      where: { id: roomId }
+    });
+
+    revalidatePath('/');
+    revalidatePath('/api/rooms');
+    revalidatePath('/admin/rooms');
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error deleting room:', error);
+    return { success: false, error: 'Failed to delete room. It might be tied to other records.' };
   }
 }
 

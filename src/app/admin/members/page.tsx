@@ -727,12 +727,9 @@ export default function MembersPage() {
             </p>
           </div>
           <div className="flex items-center gap-5">
-            {['Contact Us'].map((link) => (
-              <a key={link} href="#" onClick={(e) => { e.preventDefault(); showToast(`Opening ${link}…`); }}
-                className="text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
-                {link}
+            <a href="mailto:adventurecreature@gmail.com" className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
+                Contact Us
               </a>
-            ))}
           </div>
         </div>
       </footer>

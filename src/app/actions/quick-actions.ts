@@ -4,16 +4,18 @@ import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { revalidatePath } from 'next/cache';
 
-export async function onboardResident(data: { name: string; email: string; phone: string; roomId: number }) {
+export async function onboardResident(data: { name: string; email: string; phone: string; roomId: number; moveInDate: string }) {
   try {
-    const { name, email, phone, roomId } = data;
+    const { name, email, phone, roomId, moveInDate } = data;
 
     // Check if user already exists
     let user = await prisma.user.findUnique({ where: { email } });
     
     if (!user) {
       // Create user with default password
-      const hashedPassword = await bcrypt.hash('password123', 10);
+      const crypto = require('crypto');
+      const rawPassword = crypto.randomBytes(4).toString('hex');
+      const hashedPassword = await bcrypt.hash(rawPassword, 10);
       user = await prisma.user.create({
         data: {
           email,
@@ -39,7 +41,8 @@ export async function onboardResident(data: { name: string; email: string; phone
         room_id: roomId,
         name,
         phone,
-        status: 'active'
+        status: 'active',
+        due_date: new Date(moveInDate)
       }
     });
 
@@ -61,28 +64,45 @@ export async function onboardResident(data: { name: string; email: string; phone
   }
 }
 
-export async function generateMonthlyInvoices(amount: number) {
+export async function syncAutoBilling() {
   try {
     const activeMembers = await prisma.member.findMany({
-      where: { status: 'active' }
+      where: { status: 'active' },
+      include: { room: true }
     });
 
     const payments = [];
+    const now = new Date();
+
     for (const member of activeMembers) {
-      const payment = await prisma.payment.create({
-        data: {
-          member_id: member.id,
-          amount,
-          payment_method: 'Pending',
-          status: 'pending'
-        }
-      });
-      payments.push(payment);
+      if (!member.room || !member.due_date) continue;
+      
+      // If today is past or equal to the due_date
+      if (now >= member.due_date) {
+        const payment = await prisma.payment.create({
+          data: {
+            member_id: member.id,
+            amount: member.room.price,
+            payment_method: 'Pending',
+            status: 'pending'
+          }
+        });
+        payments.push(payment);
+
+        // Advance due_date by 1 month
+        const nextDueDate = new Date(member.due_date);
+        nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+
+        await prisma.member.update({
+          where: { id: member.id },
+          data: { due_date: nextDueDate }
+        });
+      }
     }
 
     return { success: true, count: payments.length };
   } catch (error: any) {
-    console.error('Error generating invoices:', error);
+    console.error('Error syncing auto-billing:', error);
     return { success: false, error: error.message };
   }
 }

@@ -223,36 +223,18 @@ export default function BillingPage() {
         </div>
       )}
 
-      {/* ── Edit Invoice Modal ── */}
+      {/* ── View Invoice Modal ── */}
       {editModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
           <div ref={editModalRef} className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 sm:p-8">
             <div className="flex items-center justify-between mb-5 pb-4 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Edit Invoice {editInvIdStr}</h3>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">View Invoice {editInvIdStr}</h3>
               <button type="button" onClick={() => setEditModal(false)} className="text-slate-400 dark:text-slate-500 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
             </div>
-            <form onSubmit={async (e) => { 
-              e.preventDefault(); 
-              if (!editMemberId || !editAmount || !editDueDate) { showToast('Please fill all required fields.'); return; } 
-              setIsSubmitting(true);
-              const res = await fetch('/api/admin/billing/update', { method: 'POST', body: JSON.stringify({ id: editId, memberId: editMemberId, amount: editAmount, dueDate: editDueDate, status: editStatus, billingMonth: editBillingMonth }) }); // We will actually use the server action directly here. Let's fix that.
-              
-              // Call server action directly
-              const { updateInvoice } = await import('@/app/actions/billing');
-              const actionRes = await updateInvoice(editId as number, { memberId: editMemberId, amount: editAmount, dueDate: editDueDate, status: editStatus, billingMonth: editBillingMonth });
-              
-              setIsSubmitting(false);
-              if (actionRes.success) {
-                showToast(`Invoice updated successfully!`); 
-                setEditModal(false); 
-                refreshData();
-              } else {
-                showToast('Error updating invoice');
-              }
-            }} className="space-y-4">
+            <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Select Member</label>
-                <select required value={editMemberId} onChange={(e) => setEditMemberId(e.target.value)} className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Recipient (Member)</label>
+                <select disabled value={editMemberId} className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-800/50 text-slate-500 cursor-not-allowed">
                   <option value="" disabled>Choose a member...</option>
                   {membersList.map(m => <option key={m.id} value={m.id}>{m.name} {m.room ? `(Room ${m.room.room_number})` : ''}</option>)}
                 </select>
@@ -260,34 +242,29 @@ export default function BillingPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Amount ($)</label>
-                  <input type="number" step="0.01" required value={editAmount} onChange={(e) => setEditAmount(e.target.value)} className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
+                  <input type="text" readOnly value={editAmount} className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-800/50 text-slate-500 cursor-not-allowed" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Status</label>
-                  <select required value={editStatus} onChange={(e) => setEditStatus(e.target.value)} className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300">
-                    <option value="Paid">Paid</option>
-                    <option value="Unpaid">Unpaid</option>
-                    <option value="Overdue">Overdue</option>
-                  </select>
+                  <input type="text" readOnly value={editStatus} className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-800/50 text-slate-500 cursor-not-allowed" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Due Date</label>
-                  <input type="date" required value={editDueDate} onChange={(e) => setEditDueDate(e.target.value)} className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-900 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300" />
+                  <input type="text" readOnly value={editDueDate} className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm bg-slate-50 dark:bg-slate-800/50 text-slate-500 cursor-not-allowed" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">For Month</label>
-                  <input type="text" value={editBillingMonth} onChange={(e) => setEditBillingMonth(e.target.value)} placeholder="e.g. May 2026" className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-900" />
+                  <input type="text" readOnly value={editBillingMonth} className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm bg-slate-50 dark:bg-slate-800/50 text-slate-500 cursor-not-allowed" />
                 </div>
               </div>
-              <div className="flex gap-3 pt-2 justify-end">
-                <button type="button" onClick={() => setEditModal(false)} className="px-4 py-2 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300 cursor-pointer rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800">Cancel</button>
-                <button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-5 py-2 rounded-xl cursor-pointer transition-all shadow-md disabled:opacity-50 flex items-center justify-center min-w-[120px]">
-                  {isSubmitting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Save Changes'}
+              <div className="flex justify-end pt-2">
+                <button type="button" onClick={() => setEditModal(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 dark:text-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 font-bold px-5 py-2 rounded-xl text-sm transition-colors cursor-pointer w-full sm:w-auto">
+                  Close
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
@@ -616,7 +593,7 @@ export default function BillingPage() {
                             <LinkIcon className="w-3.5 h-3.5" />
                           </button>
                         )}
-                        <button type="button" title="Edit invoice" onClick={() => {
+                        <button type="button" title="View invoice" onClick={() => {
                           setEditId(inv.rawId);
                           setEditInvIdStr(inv.id);
                           setEditAmount(inv.amount.replace('$', '').replace(',', ''));
@@ -630,10 +607,6 @@ export default function BillingPage() {
                           
                           setEditModal(true);
                         }}
-                          className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-blue-50 rounded-lg cursor-pointer transition-all">
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button type="button" title="View invoice" onClick={() => showToast(`Invoice ${inv.id} retrieved securely.`)}
                           className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-blue-50 rounded-lg cursor-pointer transition-all">
                           <FileText className="w-3.5 h-3.5" />
                         </button>

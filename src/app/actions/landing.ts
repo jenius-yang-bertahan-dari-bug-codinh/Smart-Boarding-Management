@@ -1,6 +1,7 @@
 'use server';
 
 import prisma from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
 
 export async function getAdminLandingConfig() {
   try {
@@ -46,5 +47,34 @@ export async function getAdminLandingConfig() {
   } catch (error) {
     console.error('Error fetching admin landing config:', error);
     return { success: false, error: 'Failed to fetch config' };
+  }
+}
+
+export async function updateFacilities(facilities: any[]) {
+  try {
+    let profile = await prisma.boardingHouseProfile.findFirst();
+    if (!profile) {
+      profile = await prisma.boardingHouseProfile.create({
+        data: {
+          name: 'PapiKost',
+          description: '',
+          facilities: JSON.stringify(facilities),
+          contact_info: ''
+        }
+      });
+    } else {
+      profile = await prisma.boardingHouseProfile.update({
+        where: { id: profile.id },
+        data: { facilities: JSON.stringify(facilities) }
+      });
+    }
+    
+    revalidatePath('/');
+    revalidatePath('/admin/landing-page');
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating facilities:', error);
+    return { success: false, error: 'Failed to update facilities' };
   }
 }

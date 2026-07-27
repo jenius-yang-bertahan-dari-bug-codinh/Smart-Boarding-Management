@@ -26,7 +26,7 @@ export async function GET() {
               where: { status: { in: ['pending', 'overdue'] } }
             },
             complaints: {
-              where: { status: 'pending' }
+              where: { status: { in: ['pending', 'in_progress'] } }
             }
           }
         }
@@ -53,6 +53,7 @@ export async function GET() {
           phone: member.phone,
           avatar_url: mAny?.avatar_url || uAny?.avatar_url || null,
           status: member.status,
+          due_date: member.due_date,
           room: member.room ? {
             id: member.room.id,
             room_number: member.room.room_number,

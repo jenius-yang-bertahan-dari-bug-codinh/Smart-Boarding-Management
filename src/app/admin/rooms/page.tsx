@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import AdminNavbar from '@/components/AdminNavbar';
-import { getAdminRooms, assignMemberToRoom, addRoom, updateRoom } from '@/app/actions/properties';
+import { getAdminRooms, assignMemberToRoom, addRoom, updateRoom, deleteRoom, checkOutMember } from '@/app/actions/properties';
 import { getAllMembers } from '@/app/actions/billing';
+import { uploadImages } from '@/app/actions/upload';
 import { 
   Building, 
   Search, 
@@ -14,7 +15,9 @@ import {
   Wrench,
   CheckCircle,
   AlertCircle,
-  Pencil
+  Pencil,
+  Trash2,
+  UserMinus
 } from 'lucide-react';
 
 export default function RoomsPage() {
@@ -34,6 +37,7 @@ export default function RoomsPage() {
   const [newRoomType, setNewRoomType] = useState('Standard');
   const [newRoomPrice, setNewRoomPrice] = useState('');
   const [editRoomStatus, setEditRoomStatus] = useState('Available');
+  const [roomImages, setRoomImages] = useState<File[]>([]);
 
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
 
@@ -77,23 +81,56 @@ export default function RoomsPage() {
     }
   };
 
+  const handleCheckOut = async (roomId: string) => {
+    if (!window.confirm('Are you sure you want to remove the resident from this room?')) return;
+    
+    const res = await checkOutMember(parseInt(roomId));
+    if (res.success) {
+      showToast('Resident successfully checked out!', 'success');
+      fetchRooms();
+    } else {
+      showToast(res.error || 'Failed to check out resident', 'error');
+    }
+  };
+
   const handleAddRoom = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRoomNumber || !newRoomFloor || !newRoomType || !newRoomPrice) {
       showToast('Please fill all fields', 'error');
       return;
     }
+    
+    let uploadedUrls: string[] = [];
+    if (roomImages.length > 0) {
+      if (roomImages.length > 3) {
+        showToast('Maximum 3 images allowed', 'error');
+        return;
+      }
+      const formData = new FormData();
+      roomImages.forEach(img => formData.append('images', img));
+      const uploadRes = await uploadImages(formData);
+      if (uploadRes.success && uploadRes.data) {
+        uploadedUrls = uploadRes.data;
+      } else {
+        showToast(uploadRes.error || 'Failed to upload images', 'error');
+        return;
+      }
+    }
+    
+    const imageUrl = uploadedUrls.length > 0 ? JSON.stringify(uploadedUrls) : '["/assets/rooms/room_101.png"]';
+
     const res = await addRoom({
       room_number: newRoomNumber,
       floor: parseInt(newRoomFloor),
       type: newRoomType,
-      price: parseFloat(newRoomPrice)
+      price: parseFloat(newRoomPrice),
+      imageUrl
     });
 
     if (res.success) {
       showToast('Room added successfully!', 'success');
       setActiveModal(null);
-      setNewRoomNumber(''); setNewRoomFloor('1'); setNewRoomType('Standard'); setNewRoomPrice('');
+      setNewRoomNumber(''); setNewRoomFloor('1'); setNewRoomType('Standard'); setNewRoomPrice(''); setRoomImages([]);
       fetchRooms();
     } else {
       showToast(res.error || 'Failed to add room', 'error');
@@ -106,21 +143,58 @@ export default function RoomsPage() {
       showToast('Please fill all fields', 'error');
       return;
     }
+    
+    let uploadedUrls: string[] | undefined = undefined;
+    if (roomImages.length > 0) {
+      if (roomImages.length > 3) {
+        showToast('Maximum 3 images allowed', 'error');
+        return;
+      }
+      const formData = new FormData();
+      roomImages.forEach(img => formData.append('images', img));
+      const uploadRes = await uploadImages(formData);
+      if (uploadRes.success && uploadRes.data) {
+        uploadedUrls = uploadRes.data;
+      } else {
+        showToast(uploadRes.error || 'Failed to upload images', 'error');
+        return;
+      }
+    }
+    
+    const imageUrl = uploadedUrls ? JSON.stringify(uploadedUrls) : undefined;
+
     const res = await updateRoom(parseInt(selectedRoomId), {
       room_number: newRoomNumber,
       floor: parseInt(newRoomFloor),
       type: newRoomType,
       price: parseFloat(newRoomPrice),
-      status: editRoomStatus
+      status: editRoomStatus,
+      ...(imageUrl ? { imageUrl } : {})
     });
 
     if (res.success) {
       showToast('Room updated successfully!', 'success');
       setActiveModal(null);
-      setNewRoomNumber(''); setNewRoomFloor('1'); setNewRoomType('Standard'); setNewRoomPrice('');
+      setNewRoomNumber(''); setNewRoomFloor('1'); setNewRoomType('Standard'); setNewRoomPrice(''); setRoomImages([]);
       fetchRooms();
     } else {
       showToast(res.error || 'Failed to update room', 'error');
+    }
+  };
+
+  const handleDeleteRoom = async (roomId: string, isOccupied: boolean) => {
+    if (isOccupied) {
+      window.alert('This room is currently occupied. Please move or remove the resident before deleting the room.');
+      return;
+    }
+    if (window.confirm('Are you sure you want to delete this available room? This action cannot be undone.')) {
+      const res = await deleteRoom(parseInt(roomId));
+      if (res.success) {
+        showToast('Room deleted successfully!', 'success');
+        fetchRooms();
+      } else {
+        showToast(res.error || 'Failed to delete room', 'error');
+      }
     }
   };
 
@@ -192,8 +266,8 @@ export default function RoomsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredRooms.map(room => {
-              const isEmpty = room.status !== 'Active Member' && room.status !== 'Maintenance';
-              const isOccupied = room.status === 'Active Member';
+              const isEmpty = room.status === 'Empty Room' || room.status === 'Available';
+              const isOccupied = room.status === 'Active Member' || room.status === 'Booked';
               const isMaintenance = room.status === 'Maintenance';
 
               return (
@@ -233,6 +307,26 @@ export default function RoomsPage() {
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
+                      
+                      {isOccupied && (
+                        <button
+                          onClick={() => handleCheckOut(room.id)}
+                          className="p-1 text-slate-400 hover:text-amber-600 transition-colors cursor-pointer"
+                          title="Check Out Resident"
+                        >
+                          <UserMinus className="w-4 h-4" />
+                        </button>
+                      )}
+
+                      {!isOccupied && (
+                        <button
+                          onClick={() => handleDeleteRoom(room.id, isOccupied)}
+                          className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                          title="Delete Room"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                       <span className={`px-2.5 py-1 text-[10px] uppercase tracking-wider font-bold rounded-full ${
                         isEmpty ? 'bg-emerald-100 text-emerald-700' :
                         isOccupied ? 'bg-blue-100 text-blue-700' :
@@ -290,12 +384,9 @@ export default function RoomsPage() {
             </p>
           </div>
           <div className="flex items-center gap-5">
-            {['Contact Us'].map((link) => (
-              <a key={link} href="#" onClick={(e) => { e.preventDefault(); setToast({ message: `Opening ${link}…`, type: 'success' }); }}
-                className="text-xs font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
-                {link}
+            <a href="mailto:adventurecreature@gmail.com" className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-900 transition-colors hover:underline underline-offset-2">
+                Contact Us
               </a>
-            ))}
           </div>
         </div>
       </footer>
@@ -427,6 +518,26 @@ export default function RoomsPage() {
                 </select>
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Room Images (Max 3, PNG/JPG)</label>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/png, image/jpeg, image/jpg"
+                  onChange={(e) => {
+                    if (e.target.files) {
+                      setRoomImages(Array.from(e.target.files).slice(0, 3));
+                    }
+                  }}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+                {roomImages.length > 0 && (
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    {roomImages.length} image(s) selected
+                  </p>
+                )}
+              </div>
+
               <div className="pt-4 flex gap-3">
                 <button
                   type="button"
@@ -517,8 +628,34 @@ export default function RoomsPage() {
                     <option value="VIP">VIP</option>
                   </select>
                 </div>
+
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Status</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Update Images (Max 3, PNG/JPG)</label>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/png, image/jpeg, image/jpg"
+                    onChange={(e) => {
+                      if (e.target.files) {
+                        setRoomImages(Array.from(e.target.files).slice(0, 3));
+                      }
+                    }}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 transition-shadow file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                  {roomImages.length > 0 ? (
+                    <p className="mt-2 text-[10px] text-slate-500 dark:text-slate-400">
+                      {roomImages.length} new image(s) selected (will replace old images)
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-[10px] text-slate-500 dark:text-slate-400">
+                      Leave empty to keep existing images.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Status</label>
                   <select
                     required
                     value={editRoomStatus}
@@ -535,7 +672,6 @@ export default function RoomsPage() {
                     </p>
                   )}
                 </div>
-              </div>
 
               <div className="pt-4 flex gap-3">
                 <button

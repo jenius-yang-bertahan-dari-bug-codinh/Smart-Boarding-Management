@@ -8,7 +8,8 @@ import {
   Wrench, 
   Megaphone, 
   Settings, 
-  LogOut 
+  LogOut,
+  User
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 import MemberSettingsModal from '@/components/MemberSettingsModal';
@@ -56,14 +57,20 @@ export default function MemberSidebar({ activeTab, user, onRefresh }: MemberSide
 
           {/* User Profile Avatar Section */}
           <div className="flex flex-col items-center mb-6 py-4 border-y border-slate-100/60">
-            <img
-              src={user?.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"}
-              alt={user?.name || "Member Avatar"}
-              className="w-16 h-16 rounded-full object-cover border-2 border-slate-100 shadow-sm mb-2"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80";
-              }}
-            />
+            {user?.avatar_url ? (
+              <img
+                src={user.avatar_url}
+                alt={user?.name || "Member Avatar"}
+                className="w-16 h-16 rounded-full object-cover border-2 border-slate-100 shadow-sm mb-2 bg-white"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+                }}
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-full border-2 border-slate-200 shadow-sm mb-2 bg-slate-200 flex items-center justify-center text-slate-800">
+                <User className="w-8 h-8" />
+              </div>
+            )}
             <span className="text-xs font-semibold text-slate-400">Welcome back,</span>
             <span className="text-sm font-bold text-blue-900 mt-0.5">{user?.name || 'Member'}</span>
             <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full mt-1.5 uppercase tracking-wider">

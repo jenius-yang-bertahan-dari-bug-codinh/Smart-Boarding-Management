@@ -10,9 +10,8 @@ interface MemberCalendarModalProps {
 }
 
 export default function MemberCalendarModal({ isOpen, onClose, user }: MemberCalendarModalProps) {
-  // Default to July 2026 (or current month) where our scheduled dates (Jul 20, Jul 22, Jul 25, Jul 28, Jul 30) reside
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 6, 1)); // Month index 6 = July
-  const [selectedDayNumber, setSelectedDayNumber] = useState<number | null>(20); // Default focus on day 20 (AC check)
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDayNumber, setSelectedDayNumber] = useState<number | null>(new Date().getDate());
   const [activeTab, setActiveTab] = useState<'all' | 'personal' | 'building'>('all');
 
   if (!isOpen) return null;
@@ -21,12 +20,13 @@ export default function MemberCalendarModal({ isOpen, onClose, user }: MemberCal
   const roomNumber = room?.room_number || "General Unit";
   const complaints = user?.memberProfile?.complaints || [];
 
-  // Generate personalized events from user complaints/requests + personal unit schedule
+  // Generate personalized events from user complaints/requests
   const personalEvents: any[] = complaints.map((c: any, idx: number) => {
-    const d = c.created_at ? new Date(c.created_at).getDate() : 15;
+    // We don't have created_at in the db, so default to today
+    const d = new Date().getDate(); 
     return {
       id: `req-${c.id || idx}`,
-      title: `${c.category || 'Maintenance Request'} (${c.status})`,
+      title: `${c.category || 'Maintenance Request'} (${c.status.replace('_', ' ')})`,
       day: d,
       time: 'Scheduled by Technician',
       room: `Room ${roomNumber}`,
@@ -36,65 +36,8 @@ export default function MemberCalendarModal({ isOpen, onClose, user }: MemberCal
     };
   });
 
-  // Ensure upcoming quarterly personal unit maintenance events
-  if (personalEvents.length === 0) {
-    personalEvents.push(
-      {
-        id: 'pers-1',
-        title: `AC Unit Deep Inspection & Filter Clean`,
-        day: 20,
-        time: '10:00 AM - 11:30 AM',
-        room: `Room ${roomNumber}`,
-        type: 'personal',
-        status: 'Upcoming',
-        details: `Regular personalized quarterly HVAC check-up scheduled specifically for Room ${roomNumber}.`
-      },
-      {
-        id: 'pers-2',
-        title: `Bathroom Plumbing & Water Pressure Check`,
-        day: 28,
-        time: '02:00 PM - 03:00 PM',
-        room: `Room ${roomNumber}`,
-        type: 'personal',
-        status: 'Upcoming',
-        details: `Routine preventive water pressure verification for Room ${roomNumber}.`
-      }
-    );
-  }
-
-  // General building common area maintenance
-  const buildingEvents = [
-    {
-      id: 'bld-1',
-      title: 'Elevator B Safety & Rope Inspection',
-      day: 22,
-      time: '08:00 AM - 12:00 PM',
-      room: 'Common Area (North Tower)',
-      type: 'building',
-      status: 'Upcoming',
-      details: 'Elevator B will be temporarily out of service during safety rope testing.'
-    },
-    {
-      id: 'bld-2',
-      title: 'Exterior Glass & Facade Pressure Washing',
-      day: 25,
-      time: '09:00 AM - 04:00 PM',
-      room: 'Building Exterior',
-      type: 'building',
-      status: 'Upcoming',
-      details: 'Please keep window curtains closed during external facade cleaning.'
-    },
-    {
-      id: 'bld-3',
-      title: 'Main Generator & Emergency Power Testing',
-      day: 30,
-      time: '01:00 PM - 03:00 PM',
-      room: 'Basement Utility Room',
-      type: 'building',
-      status: 'Upcoming',
-      details: 'Brief 5-minute power fluctuation may occur during switchover testing.'
-    }
-  ];
+  // General building common area maintenance (empty since no db table)
+  const buildingEvents: any[] = [];
 
   const allEvents = [...personalEvents, ...buildingEvents];
 
@@ -170,10 +113,10 @@ export default function MemberCalendarModal({ isOpen, onClose, user }: MemberCal
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-[11px] font-bold tracking-wide uppercase text-blue-200 mb-1.5 border border-white/15">
               <Home className="w-3.5 h-3.5 text-blue-300" />
-              Kalender Maintenance • {room ? `Room ${room.room_number}` : 'Guest View'}
+              Maintenance Calendar • {room ? `Room ${room.room_number}` : 'Guest View'}
             </div>
             <h2 className="text-xl sm:text-2xl font-black tracking-tight">
-              Kalender &amp; Jadwal Perbaikan
+              Calendar &amp; Maintenance Schedule
             </h2>
           </div>
           <button
@@ -195,7 +138,7 @@ export default function MemberCalendarModal({ isOpen, onClose, user }: MemberCal
                 activeTab === 'all' ? 'bg-blue-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Semua ({allEvents.length})
+              All ({allEvents.length})
             </button>
             <button
               type="button"
@@ -205,7 +148,7 @@ export default function MemberCalendarModal({ isOpen, onClose, user }: MemberCal
               }`}
             >
               <span className={`w-2 h-2 rounded-full ${activeTab === 'personal' ? 'bg-white' : 'bg-amber-500'}`} />
-              Kamar Saya ({personalEvents.length})
+              My Room ({personalEvents.length})
             </button>
             <button
               type="button"
@@ -215,7 +158,7 @@ export default function MemberCalendarModal({ isOpen, onClose, user }: MemberCal
               }`}
             >
               <span className={`w-2 h-2 rounded-full ${activeTab === 'building' ? 'bg-white' : 'bg-blue-500'}`} />
-              Gedung ({buildingEvents.length})
+              Building ({buildingEvents.length})
             </button>
           </div>
 
@@ -329,12 +272,12 @@ export default function MemberCalendarModal({ isOpen, onClose, user }: MemberCal
               <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-500" />
                 {selectedDayNumber !== null
-                  ? `Jadwal Tanggal ${selectedDayNumber} ${monthName.split(' ')[0]}`
-                  : 'Pilih Tanggal pada Kalender di Atas'}
+                  ? `Schedule for ${monthName.split(' ')[0]} ${selectedDayNumber}`
+                  : 'Select a Date on the Calendar Above'}
               </h3>
               {selectedDayNumber !== null && (
                 <span className="text-xs font-bold text-slate-500 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
-                  {eventsOnSelectedDay.length} Jadwal Ditemukan
+                  {eventsOnSelectedDay.length} Events Found
                 </span>
               )}
             </div>
@@ -389,12 +332,12 @@ export default function MemberCalendarModal({ isOpen, onClose, user }: MemberCal
               </div>
             ) : selectedDayNumber !== null ? (
               <div className="py-6 text-center text-slate-500">
-                <p className="text-xs font-bold text-slate-600">Tidak ada jadwal perbaikan atau pemeriksaan untuk tanggal {selectedDayNumber} ini.</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">Klik pada tanggal yang memiliki label warna kuning/biru di kotak kalender atas untuk melihat rincian.</p>
+                <p className="text-xs font-bold text-slate-600">No maintenance or inspection scheduled for {monthName.split(' ')[0]} {selectedDayNumber}.</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">Click on a date with a yellow/blue label in the calendar above to view details.</p>
               </div>
             ) : (
               <div className="py-6 text-center text-slate-500 text-xs">
-                Silakan klik salah satu kotak tanggal di kalender di atas untuk melihat detail perawatan.
+                Please click on a date box in the calendar above to view maintenance details.
               </div>
             )}
           </div>
@@ -406,11 +349,11 @@ export default function MemberCalendarModal({ isOpen, onClose, user }: MemberCal
           <div className="flex items-center gap-4 text-xs font-bold text-slate-600">
             <span className="inline-flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-md bg-amber-500 inline-block" />
-              Khusus Kamar Anda ({personalEvents.length})
+              Personal Unit Only ({personalEvents.length})
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-md bg-blue-900 inline-block" />
-              Fasilitas Gedung ({buildingEvents.length})
+              Building Facilities ({buildingEvents.length})
             </span>
           </div>
           <button
@@ -418,7 +361,7 @@ export default function MemberCalendarModal({ isOpen, onClose, user }: MemberCal
             onClick={onClose}
             className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 px-5 rounded-xl transition-colors cursor-pointer"
           >
-            Tutup Kalender
+            Close Calendar
           </button>
         </div>
       </div>

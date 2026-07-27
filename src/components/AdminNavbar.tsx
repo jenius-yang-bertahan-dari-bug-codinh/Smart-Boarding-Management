@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { getNotifications } from '@/app/actions/dashboard';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Bell, Settings } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { Bell, Settings, Moon, Sun } from 'lucide-react';
 import Logo from '@/components/Logo';
 
 interface AdminNavbarProps {
@@ -11,14 +13,19 @@ interface AdminNavbarProps {
 }
 
 export default function AdminNavbar({ activeTab }: AdminNavbarProps) {
+  const { theme, setTheme } = useTheme();
   const router = useRouter();
   
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: 'New Booking Request', message: 'Jane Doe requested Room 201.', time: '5m ago', unread: true },
-    { id: 2, title: 'Maintenance Alert', message: 'AC broken in Room 305.', time: '1h ago', unread: true },
-    { id: 3, title: 'Payment Received', message: 'John Smith paid Rp 1.400.000.', time: '2h ago', unread: false },
-  ]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    getNotifications().then(res => {
+      if (res.success && res.data) {
+        setNotifications(res.data);
+      }
+    });
+  }, []);
 
   const NAV_TABS = ['Dashboard', 'Rooms', 'Reservations', 'Billing', 'Members', 'Maintenance', 'Landing Page'] as const;
 
@@ -111,6 +118,16 @@ export default function AdminNavbar({ activeTab }: AdminNavbarProps) {
                 </div>
               )}
             </div>
+
+            {/* Dark Mode Toggle */}
+            <button 
+              type="button" 
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="p-2 text-slate-500 dark:text-slate-400 hover:text-blue-900 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
+            >
+              <Sun className="w-5 h-5 stroke-[2] hidden dark:block" />
+              <Moon className="w-5 h-5 stroke-[2] block dark:hidden" />
+            </button>
 
             {/* Settings Gear */}
             <button 

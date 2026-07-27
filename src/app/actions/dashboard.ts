@@ -58,24 +58,35 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
       include: { member: { include: { room: true } } }
     });
 
+    const recentMembers = await prisma.member.findMany({
+      take: 3,
+      orderBy: { id: 'desc' },
+      include: { room: true }
+    });
+
     const recentActivities = [
       ...recentPayments.map((p: typeof recentPayments[0]) => ({
         id: `p-${p.id}`,
         type: 'payment',
         title: 'Payment Received',
-        details: `Unit ${p.member?.room?.room_number ?? 'Unknown'}`,
-        amount: p.amount,
-        time: p.payment_date.toISOString().split('T')[0]
+        details: `Unit ${p.member?.room?.room_number ?? 'Unknown'} \u2022 Rp ${p.amount.toLocaleString('id-ID')}`,
+        time: p.payment_date.toISOString()
       })),
-      ...recentComplaints.map((c: typeof recentComplaints[0]) => ({
+      ...recentComplaints.map((c: typeof recentComplaints[0], i) => ({
         id: `c-${c.id}`,
         type: 'maintenance',
         title: 'Maintenance Request',
-        details: c.category,
-        amount: 0,
-        time: 'Recent'
+        details: `Unit ${c.member?.room?.room_number ?? 'Unknown'} \u2022 ${c.category}`,
+        time: new Date(Date.now() - (i + 1) * 1000).toISOString()
+      })),
+      ...recentMembers.map((m: typeof recentMembers[0], i) => ({
+        id: `m-${m.id}`,
+        type: 'member',
+        title: 'New Member Sign-up',
+        details: `${m.name} \u2022 Unit ${m.room?.room_number ?? 'Unknown'}`,
+        time: new Date(Date.now() - (i + 1) * 2000).toISOString()
       }))
-    ].sort((a, b) => b.time.localeCompare(a.time)).slice(0, 5);
+    ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 3);
 
     // Fetch all paid payments for the current year to build the charts
     const currentYear = new Date().getFullYear();
@@ -144,5 +155,65 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
     return { success: false, error: 'Failed to fetch dashboard stats' };
+  }
+}
+
+export async function getNotifications() {
+  try {
+    const complaints = await prisma.complaint.findMany({
+      where: { status: 'pending' },
+      take: 5,
+      orderBy: { id: 'desc' },
+      include: { member: { include: { room: true } } }
+    });
+
+    const recentPayments = await prisma.payment.findMany({
+      where: { status: 'paid' },
+      take: 5,
+      orderBy: { payment_date: 'desc' },
+      include: { member: { include: { room: true } } }
+    });
+
+    type NotificationItem = {
+      id: number;
+      title: string;
+      message: string;
+      time: string;
+      unread: boolean;
+      type: string;
+      timestamp: number;
+    };
+    let notifs: NotificationItem[] = [];
+    let idCounter = 1;
+
+    complaints.forEach(c => {
+      notifs.push({
+        id: idCounter++,
+        title: 'Maintenance Alert',
+        message: `${c.member?.name || 'User'} reported an issue in ${c.member?.room?.room_number || 'a room'}: ${c.category}`,
+        time: 'Recent',
+        unread: true,
+        type: 'complaint',
+        timestamp: Date.now() // fake timestamp for sorting
+      });
+    });
+
+    recentPayments.forEach(p => {
+      notifs.push({
+        id: idCounter++,
+        title: 'Payment Received',
+        message: `${p.member?.name || 'User'} paid Rp ${p.amount.toLocaleString('id-ID')}`,
+        time: p.payment_date ? p.payment_date.toISOString().split('T')[0] : 'Recent',
+        unread: false,
+        type: 'payment',
+        timestamp: p.payment_date ? p.payment_date.getTime() : 0
+      });
+    });
+
+    notifs.sort((a, b) => b.timestamp - a.timestamp);
+    return { success: true, data: notifs.slice(0, 5) };
+  } catch (error) {
+    console.error(error);
+    return { success: false, data: [] };
   }
 }
