@@ -89,6 +89,12 @@ export async function updateReservationStatus(id: number, status: string) {
           role: 'tenant'
         }
       });
+
+      // Auto-generate invoice for the assigned room
+      if (room_id) {
+        const { generateMemberInvoice } = await import('@/app/actions/billing');
+        await generateMemberInvoice(id.toString());
+      }
       
       // Send email to the user if they have a valid user account
       if (member.user && member.user.email && !member.user.email.endsWith('@example.com')) {
