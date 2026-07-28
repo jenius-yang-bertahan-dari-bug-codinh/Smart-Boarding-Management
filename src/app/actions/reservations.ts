@@ -7,9 +7,15 @@ import { sendEmail } from '@/lib/email';
 
 export async function getAdminReservations() {
   try {
+    const rooms = await prisma.room.findMany();
+
     const members = await prisma.member.findMany({
       include: {
         room: true,
+        payments: {
+          orderBy: { id: 'desc' },
+          take: 1
+        }
       },
       orderBy: { id: 'desc' }
     });
@@ -21,22 +27,83 @@ export async function getAdminReservations() {
         initials = parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].substring(0, 2).toUpperCase();
       }
 
+      let paymentStatus = 'Not Billed';
+      if (m.payments && m.payments.length > 0) {
+        const pStatus = m.payments[0].status;
+        if (pStatus === 'paid') paymentStatus = 'Paid';
+        else paymentStatus = 'Unpaid';
+      }
+
+      // Calculate room string and price based on preferred_room_name if room is null
+      let roomStr = 'Unknown Room';
+      let priceStr = 'N/A';
+      
+      if (m.room) {
+        roomStr = `Room ${m.room.room_number}`;
+        // If they have a billed payment, use that amount instead of the base room price
+        if (m.payments && m.payments.length > 0) {
+          priceStr = `Rp ${Number(m.payments[0].amount).toLocaleString('id-ID')}`;
+        } else {
+          priceStr = `Rp ${Number(m.room.price).toLocaleString('id-ID')}`;
+        }
+      } else if (m.preferred_room_name) {
+        roomStr = m.preferred_room_name;
+        // Try to extract room number and duration to calculate price
+        const match = m.preferred_room_name.match(/Room\s+(\d+)/i);
+        const durationMatch = m.preferred_room_name.match(/\((\d+)\s+months?\)/i);
+        const duration = durationMatch ? parseInt(durationMatch[1], 10) : 1;
+        
+        if (match) {
+          const matchedRoom = rooms.find(r => r.room_number === match[1]);
+          if (matchedRoom) {
+            priceStr = `Rp ${Number(matchedRoom.price * duration).toLocaleString('id-ID')}`;
+          }
+        }
+      }
+
       return {
         rawId: m.id,
         id: `#RSV-${m.id.toString().padStart(4, '0')}`,
         tenant: m.name,
         initials,
         color: m.status === 'active' ? 'bg-blue-500' : (m.status === 'approved' ? 'bg-indigo-500' : (m.status === 'pending' ? 'bg-emerald-500' : 'bg-slate-500')),
-        room: m.room ? `Room ${m.room.room_number}` : 'Unknown Room',
+        room: roomStr,
         term: m.due_date ? `Due: ${m.due_date.toISOString().split('T')[0]}` : 'Flexible',
         rawDueDate: m.due_date ? m.due_date.toISOString() : null,
-        amount: m.room ? `Rp ${Number(m.room.price).toLocaleString('id-ID')}` : 'N/A',
-        status: m.status === 'active' ? 'Confirmed' : (m.status === 'approved' ? 'Approved (Unpaid)' : (m.status === 'pending' ? 'Pending' : 'Cancelled'))
+        rawCheckinDate: m.join_date ? m.join_date.toISOString() : null,
+        checkinDate: m.join_date ? m.join_date.toISOString().split('T')[0] : 'N/A',
+        checkoutDate: m.due_date ? m.due_date.toISOString().split('T')[0] : 'N/A',
+        amount: priceStr,
+        status: m.status === 'active' ? 'Confirmed' : (m.status === 'approved' ? 'Approved (Unpaid)' : (m.status === 'pending' ? 'Pending' : 'Cancelled')),
+        paymentStatus
       };
     });
 
-    const rooms = await prisma.room.findMany();
-    return { success: true, data: mappedReservations, rooms };
+    // Separately fetch checkout requests
+    const checkoutRequests = await prisma.member.findMany({
+      where: { status: 'checkout_requested' },
+      include: { room: true },
+      orderBy: { id: 'desc' }
+    });
+
+    const mappedCheckouts = checkoutRequests.map(m => {
+      const parts = m.name ? m.name.split(' ') : ['U'];
+      const initials = parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].substring(0, 2).toUpperCase();
+      return {
+        rawId: m.id,
+        id: `#CHK-${m.id.toString().padStart(4, '0')}`,
+        name: m.name,
+        initials,
+        color: 'bg-rose-500',
+        unit: m.room ? `Room ${m.room.room_number}` : 'Unknown Room',
+        price: m.room ? `Rp ${Number(m.room.price).toLocaleString('id-ID')}` : 'N/A',
+        date: m.due_date ? m.due_date.toISOString().split('T')[0] : 'N/A',
+        type: 'checkout' as const
+      };
+    });
+
+    return { success: true, data: mappedReservations, rooms, checkoutRequests: mappedCheckouts };
+
   } catch (error) {
     console.error('Error fetching admin reservations:', error);
     return { success: false, error: 'Failed to fetch reservations' };
@@ -45,45 +112,81 @@ export async function getAdminReservations() {
 
 export async function updateReservationStatus(id: number, status: string) {
   try {
+    // Fetch current member to check for preferred room
+    const currentMember = await prisma.member.findUnique({
+      where: { id }
+    });
+
+    let room_id = undefined;
+    if (currentMember && currentMember.preferred_room_name) {
+      const match = currentMember.preferred_room_name.match(/Room\s+(\d+)/i);
+      if (match) {
+        const roomNum = match[1];
+        const room = await prisma.room.findFirst({ where: { room_number: roomNum } });
+        if (room) {
+          room_id = room.id;
+          
+          // Mark room as occupied if the status is active/approved
+          if (status === 'active' || status === 'approved') {
+            await prisma.room.update({
+              where: { id: room.id },
+              data: { status: 'Occupied' }
+            });
+          }
+        }
+      }
+    }
+
     const member = await prisma.member.update({
       where: { id },
-      data: { status },
+      data: { 
+        status,
+        ...(room_id ? { room_id } : {})
+      },
       include: {
         user: true // Include user to get the email address
       }
     });
 
     if (status === 'active' || status === 'approved') {
-      // 1. Generate the unique password
-      const crypto = require('crypto');
-      const rawPassword = crypto.randomBytes(4).toString('hex');
-      const hashedPassword = await bcrypt.hash(rawPassword, 10);
-
-      // 2. Upgrade user role and update password
+      // Upgrade user role to tenant
       await prisma.user.update({
         where: { id: member.user_id },
         data: { 
-          role: 'tenant',
-          password: hashedPassword 
+          role: 'tenant'
         }
       });
+
+      // Extract duration from preferred_room_name if present (e.g. "Room 3 - VIP (4 months)")
+      let durationMonths = 1;
+      if (currentMember && currentMember.preferred_room_name) {
+        const durationMatch = currentMember.preferred_room_name.match(/\((\d+)\s+months?\)/i);
+        if (durationMatch) {
+          durationMonths = parseInt(durationMatch[1], 10);
+        }
+      }
+
+      // Auto-generate invoice for the assigned room
+      if (room_id) {
+        const { generateMemberInvoice } = await import('@/app/actions/billing');
+        await generateMemberInvoice(id.toString(), durationMonths);
+      }
+
       
-      // 3. Send email to the user if they have a valid user account
-      if (member.user && member.user.email) {
+      // Send email to the user if they have a valid user account
+      if (member.user && member.user.email && !member.user.email.endsWith('@example.com')) {
         const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login`;
         const emailHtml = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
             <h2 style="color: #1e3a8a;">Welcome to Papikost! 🎉</h2>
             <p style="color: #475569; font-size: 16px;">Hello <strong>${member.name}</strong>,</p>
-            <p style="color: #475569; font-size: 16px;">Good news! Your reservation has been approved by the Admin.</p>
+            <p style="color: #475569; font-size: 16px;">Good news! Your room registration has been approved by the Admin.</p>
             <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
-              <p style="margin: 0 0 10px 0; color: #334155;"><strong>Your Login Credentials:</strong></p>
+              <p style="margin: 0 0 10px 0; color: #334155;"><strong>Login Details:</strong></p>
               <p style="margin: 0 0 5px 0; color: #475569;">Email: <strong>${member.user.email}</strong></p>
-              <p style="margin: 0; color: #475569;">Password: <strong>${rawPassword}</strong></p>
+              <p style="margin: 0; color: #475569;">Password: <em>(The password you created during registration)</em></p>
             </div>
-            <p style="color: #b91c1c; font-size: 14px; font-weight: bold; background-color: #fef2f2; padding: 10px; border-radius: 6px; border-left: 4px solid #ef4444;">
-              ⚠️ SECURITY NOTICE: For your safety, we strongly recommend changing this auto-generated password immediately after your first login via the Profile & Settings menu.
-            </p>
+
             <p style="color: #475569; font-size: 16px;">Please log in to your dashboard and complete your first payment to officially check in and secure your room.</p>
             <a href="${loginUrl}" style="display: inline-block; background-color: #1e3a8a; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; margin-top: 10px;">Login to Dashboard</a>
             <p style="color: #94a3b8; font-size: 12px; margin-top: 30px;">Best regards,<br>Papikost Management</p>
@@ -100,10 +203,19 @@ export async function updateReservationStatus(id: number, status: string) {
       // NOTE: We no longer auto-update payment to 'completed' or room to 'Occupied' here.
       // That will happen after the user successfully pays via Midtrans in the dashboard.
     } else if (status.toLowerCase() === 'cancelled' || status === 'inactive') {
-      await prisma.room.update({
-        where: { id: member.room_id },
-        data: { status: 'Available' }
-      });
+      if (member.room_id) {
+        await prisma.room.update({
+          where: { id: member.room_id },
+          data: { status: 'Available' }
+        });
+      }
+    } else if (status.toLowerCase() === 'pending') {
+      if (member.room_id) {
+        await prisma.room.update({
+          where: { id: member.room_id },
+          data: { status: 'Booked' }
+        });
+      }
     }
 
     revalidatePath('/');
@@ -123,6 +235,7 @@ export async function createReservation(formData: FormData) {
     const tenantName = formData.get('tenantName') as string;
     const roomIdStr = formData.get('roomId') as string;
     const checkIn = formData.get('checkIn') as string;
+    const checkOut = formData.get('checkOut') as string;
     
     if (!tenantName || !roomIdStr) return { success: false, error: 'Missing fields' };
     
@@ -141,12 +254,15 @@ export async function createReservation(formData: FormData) {
       }
     });
 
+    const dueDateValue = checkOut ? new Date(checkOut) : new Date(new Date(checkIn).setMonth(new Date(checkIn).getMonth() + 1));
+
     await prisma.member.create({
       data: {
         name: tenantName,
         phone: 'N/A', // Default fallback
         status: 'pending', // lowercase pending to match the backend mapping logic
-        due_date: new Date(checkIn),
+        due_date: dueDateValue,
+        join_date: new Date(checkIn),
         user: { connect: { id: newUser.id } },
         room: { connect: { room_number: roomIdStr } }
       }

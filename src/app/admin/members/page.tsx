@@ -1,8 +1,9 @@
 // @ts-nocheck
 "use client";
-import { getAdminMembers, updateAdminMember, deleteAdminMember } from '@/app/actions/members';
+import { getAdminMembers, updateAdminMember, deleteAdminMember, createAdminMember, forceCheckout } from '@/app/actions/members';
 import { getAdminRooms } from '@/app/actions/properties';
 import { getMemberInvoices, generateMemberInvoice } from '@/app/actions/billing';
+import { getNotifications } from '@/app/actions/dashboard';
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
@@ -97,6 +98,37 @@ export default function MembersPage() {
     }
   };
 
+  const handleExportCSV = () => {
+    if (membersList.length === 0) {
+      showToast('No members to export.');
+      return;
+    }
+    const headers = ['ID', 'Name', 'Phone', 'Email', 'Room', 'Status', 'Join Date', 'Lease End'];
+    const csvContent = [
+      headers.join(','),
+      ...membersList.map(m => [
+        m.stId,
+        `"${m.name || ''}"`,
+        `"${m.phone || ''}"`,
+        `"${m.email || ''}"`,
+        `"${m.room || ''}"`,
+        `"${m.rawStatus || ''}"`,
+        `"${m.joinDate || ''}"`,
+        `"${m.leaseEnd || ''}"`
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `members_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Members exported to CSV');
+  };
+
   /* nav */
   const [activeTab, setActiveTab] = useState('Members');
   const NAV_TABS = ['Dashboard', 'Properties', 'Reservations', 'Billing', 'Members', 'Maintenance'];
@@ -124,7 +156,9 @@ export default function MembersPage() {
   const [addModal, setAddModal]     = useState(false);
   const [newName, setNewName]       = useState('');
   const [newEmail, setNewEmail]     = useState('');
-  const [newRoom, setNewRoom]       = useState('101');
+  const [newPassword, setNewPassword] = useState('');
+  const [newRoom, setNewRoom] = useState('');
+  const [newPaymentStatus, setNewPaymentStatus] = useState('none');
   const modalRef = useRef<HTMLDivElement>(null);
 
   /* detail drawer */
@@ -142,11 +176,15 @@ export default function MembersPage() {
   /* notifications */
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [viewAllOpen, setViewAllOpen] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: 'New Booking Request', message: 'Jane Doe requested Room 201.', time: '5m ago', unread: true },
-    { id: 2, title: 'Maintenance Alert', message: 'AC broken in Room 305.', time: '1h ago', unread: true },
-    { id: 3, title: 'Payment Received', message: 'John Smith paid Rp 1.400.000.', time: '2h ago', unread: false },
-  ]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    getNotifications().then(res => {
+      if (res.success && res.data) {
+        setNotifications(res.data);
+      }
+    });
+  }, []);
   const notifRef = useRef<HTMLDivElement>(null);
 
   /* close on outside click */
@@ -239,7 +277,27 @@ export default function MembersPage() {
               <h3 className="text-base font-bold text-slate-900 dark:text-white">Add New Resident</h3>
               <button type="button" onClick={() => setAddModal(false)} className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:text-slate-500 cursor-pointer"><X className="w-5 h-5" /></button>
             </div>
-            <form onSubmit={(e) => { e.preventDefault(); if (!newName.trim() || !newEmail.trim()) { showToast('Please fill all fields.'); return; } showToast(`${newName} added to ${newRoom}!`); setAddModal(false); setNewName(''); setNewEmail(''); }} className="space-y-4">
+            <form onSubmit={async (e) => { 
+              e.preventDefault(); 
+              if (!newName.trim() || !newEmail.trim() || !newPassword.trim() || !newRoom) { 
+                showToast('Please fill all fields and select a room.'); 
+                return; 
+              } 
+              const res = await createAdminMember({ name: newName, email: newEmail, password: newPassword, room: newRoom, paymentStatus: newPaymentStatus === 'none' ? undefined : newPaymentStatus });
+              if (res.success) {
+                showToast(`${newName} added successfully!`); 
+                setAddModal(false); 
+                setNewName(''); 
+                setNewEmail(''); 
+                setNewPassword('');
+                setNewRoom('');
+                setNewPaymentStatus('none');
+                // optionally refresh members list
+                getAdminMembers().then(r => { if(r.success && r.data) setMembersList(r.data); });
+              } else {
+                showToast(`Error: ${res.error}`, 'error');
+              }
+            }} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Full Name</label>
                 <input type="text" required value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Enter full name" className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-900" />
@@ -249,15 +307,29 @@ export default function MembersPage() {
                 <input type="email" required value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="Enter email" className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-900" />
               </div>
               <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Set Password</label>
+                <input type="password" required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Enter initial password" className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-900" />
+              </div>
+              <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Assign Room</label>
-                <select value={newRoom} onChange={(e) => setNewRoom(e.target.value)} className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none">
-                  <option value="101">Room 101 – Deluxe Suite (Floor 1)</option>
-                  <option value="215">Room 215 – Studio (Floor 2)</option>
-                  <option value="303">Room 303 – Shared Dorm (Floor 3)</option>
-                  <option value="402B">Room 402B – Executive (Floor 4)</option>
-                  <option value="501">Room 501 – Penthouse (Floor 5)</option>
+                <select value={newRoom} onChange={(e) => setNewRoom(e.target.value)} className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none bg-white dark:bg-slate-900">
+                  <option value="" disabled>Select a room</option>
+                  {allRooms.filter(r => r.status === 'Empty Room').map(room => (
+                    <option key={room.id} value={room.roomNo}>
+                      Room {room.roomNo} – {room.type} ({room.floor})
+                    </option>
+                  ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">1st Month Payment Tracking</label>
+                <select value={newPaymentStatus} onChange={(e) => setNewPaymentStatus(e.target.value)} className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none bg-white dark:bg-slate-900">
+                  <option value="none">Do not generate bill</option>
+                  <option value="paid_offline">Paid Offline (Cash/Transfer)</option>
+                  <option value="unpaid_invoice">Generate Unpaid Invoice</option>
+                </select>
+              </div>
+
               <div className="flex gap-3 pt-2 justify-end">
                 <button type="button" onClick={() => setAddModal(false)} className="px-4 py-2 text-sm font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:text-slate-300 cursor-pointer rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950">Cancel</button>
                 <button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold px-5 py-2 rounded-xl cursor-pointer transition-all shadow-md shadow-orange-500/15">Add Resident</button>
@@ -353,6 +425,10 @@ export default function MembersPage() {
                     <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{selectedMember.phone}</span>
                   </div>
                   <div className="flex flex-col">
+                    <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">NIK (ID Card)</span>
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{selectedMember.id_number || '-'}</span>
+                  </div>
+                  <div className="flex flex-col">
                     <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Emergency Contact</span>
                     <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{selectedMember.emergencyContact || 'Jane Doe (+1 555-9999)'}</span>
                   </div>
@@ -370,8 +446,12 @@ export default function MembersPage() {
                     <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{selectedMember.leaseEnd || '2024-12-31'}</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Balance</span>
-                    <span className="text-sm font-extrabold text-blue-600 dark:text-blue-400">Rp 0</span>
+                    <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Payment Arrears</span>
+                    <span className={`text-sm font-extrabold ${
+                      memberInvoices.some(inv => inv.status !== 'paid') ? 'text-orange-600 dark:text-orange-500' : 'text-emerald-600 dark:text-emerald-500'
+                    }`}>
+                      Rp {memberInvoices.filter(inv => inv.status !== 'paid').reduce((sum, inv) => sum + Number(inv.amount), 0).toLocaleString('id-ID')}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -381,28 +461,6 @@ export default function MembersPage() {
             <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">Billing & Invoices</h4>
-                <button 
-                  type="button" 
-                  onClick={async () => {
-                    setIsGeneratingInvoice(true);
-                    showToast('Generating invoice...');
-                    const res = await generateMemberInvoice(selectedMember.id);
-                    setIsGeneratingInvoice(false);
-                    if (res.success && res.redirect_url) {
-                      navigator.clipboard.writeText(res.redirect_url);
-                      showToast('Invoice generated & link copied!');
-                      // refresh invoices
-                      const invRes = await getMemberInvoices(selectedMember.id);
-                      if(invRes.success && invRes.data) setMemberInvoices(invRes.data);
-                    } else {
-                      showToast(res.error || res.warning || 'Failed', 'error');
-                    }
-                  }}
-                  disabled={isGeneratingInvoice}
-                  className="px-4 py-2 bg-blue-900 hover:bg-blue-950 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2">
-                  <span className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">+</span>
-                  Generate Invoice
-                </button>
               </div>
               
               {memberInvoices.length === 0 ? (
@@ -497,6 +555,26 @@ export default function MembersPage() {
                 <button type="button" onClick={handleDeleteMember} className="w-full border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 text-sm font-bold py-2.5 rounded-xl cursor-pointer transition-all">
                   Delete Member
                 </button>
+                {(selectedMember.rawStatus === 'checkout_requested' || selectedMember.rawStatus === 'active') && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!window.confirm(`Proses check-out untuk ${selectedMember.name}? Kamar akan dibebaskan dan status member akan berubah menjadi Past Member.`)) return;
+                      const res = await forceCheckout(selectedMember.id);
+                      if (res.success) {
+                        showToast(`✅ Check-out berhasil untuk ${selectedMember.name}. Kamar dibebaskan.`);
+                        setSelectedMember(null);
+                        const membersRes = await getAdminMembers();
+                        if (membersRes.success && membersRes.data) setMembersList(membersRes.data);
+                      } else {
+                        showToast('Gagal proses check-out: ' + res.error, 'error');
+                      }
+                    }}
+                    className="w-full border border-rose-300 bg-rose-500 hover:bg-rose-600 text-white text-sm font-bold py-2.5 rounded-xl cursor-pointer transition-all flex items-center justify-center gap-2"
+                  >
+                    🚪 Process Check-Out
+                  </button>
+                )}
               </div>
             </div>
           </aside>
@@ -519,7 +597,7 @@ export default function MembersPage() {
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
-            <button type="button" onClick={() => showToast('Exporting member data as CSV…')}
+            <button type="button" onClick={handleExportCSV}
               className="flex items-center gap-2 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 text-slate-700 dark:text-slate-300 text-sm font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-all shadow-xs">
               <Download className="w-4 h-4 text-slate-500 dark:text-slate-400 dark:text-slate-500" />
               Export Member Data
@@ -650,10 +728,17 @@ export default function MembersPage() {
 
                     {/* Status */}
                     <td className="px-5 py-3.5">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold whitespace-nowrap ${STATUS_STYLES[m.status]}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[m.status]}`} />
-                        {m.status === 'Active' ? '+ Active' : m.status}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold whitespace-nowrap ${STATUS_STYLES[m.status]}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[m.status]}`} />
+                          {m.status === 'Active' ? '+ Active' : m.status}
+                        </span>
+                        {m.rawStatus === 'checkout_requested' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200 whitespace-nowrap">
+                            🚪 Wants to Leave
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Join Date */}

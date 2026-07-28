@@ -19,6 +19,7 @@ export async function GET() {
       include: {
         members: {
           include: {
+            room: true,
             payments: {
               orderBy: { payment_date: 'desc' }
             }
@@ -52,6 +53,8 @@ export async function GET() {
         avatar_url: mAny?.avatar_url || uAny?.avatar_url || null,
         memberProfile: member ? {
           phone: member.phone,
+          status: member.status,
+          room: member.room,
         } : null
       }
     })

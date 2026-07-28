@@ -10,7 +10,12 @@ export async function middleware(request: NextRequest) {
 
   // Define protected routes
   const isProtectedAdminRoute = path.startsWith('/admin');
-  const isProtectedMemberRoute = path.startsWith('/dashboard') || path.startsWith('/announcements') || path.startsWith('/payments') || path.startsWith('/service-requests');
+  // guest and member roles can access member routes
+  const isProtectedMemberRoute =
+    path.startsWith('/dashboard') ||
+    path.startsWith('/announcements') ||
+    path.startsWith('/payments') ||
+    path.startsWith('/service-requests');
   const isAuthRoute = path.startsWith('/login') || path.startsWith('/register');
 
   const token = request.cookies.get('auth_token')?.value;
@@ -20,8 +25,7 @@ export async function middleware(request: NextRequest) {
     try {
       const { payload } = await jwtVerify(token, key, { algorithms: ['HS256'] });
       decodedToken = payload;
-    } catch (error) {
-      // Invalid token
+    } catch {
       decodedToken = null;
     }
   }
@@ -31,24 +35,33 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // (Disabled for debugging) Redirect authenticated users away from login
-  // if (decodedToken && isAuthRoute) {
-  //   if (decodedToken.role === 'admin') {
-  //     return NextResponse.redirect(new URL('/admin', request.url));
-  //   } else {
-  //     return NextResponse.redirect(new URL('/dashboard', request.url));
-  //   }
-  // }
+  // Redirect already-authenticated users away from login/register
+  if (decodedToken && isAuthRoute) {
+    if (decodedToken.role === 'admin') {
+      return NextResponse.redirect(new URL('/admin', request.url));
+    } else {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+  }
 
   // Role-based access control
   if (decodedToken) {
-    // Admin trying to access member routes
+    // Admin trying to access member routes → redirect to admin
     if (decodedToken.role === 'admin' && isProtectedMemberRoute) {
       return NextResponse.redirect(new URL('/admin', request.url));
     }
 
-    // Member trying to access admin routes
-    if (decodedToken.role === 'member' && isProtectedAdminRoute) {
+    // Non-guest member trying to access admin routes → redirect to dashboard
+    if ((decodedToken.role === 'member' || decodedToken.role === 'guest') && isProtectedAdminRoute) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+
+    // Guest trying to access premium pages → redirect to dashboard
+    // (Guests can access /dashboard and /payments)
+    if (
+      decodedToken.role === 'guest' &&
+      (path.startsWith('/service-requests') || path.startsWith('/announcements'))
+    ) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
   }
@@ -59,11 +72,12 @@ export async function middleware(request: NextRequest) {
 // Specify the paths where middleware will run
 export const config = {
   matcher: [
-    '/admin/:path*', 
-    '/dashboard/:path*', 
+    '/admin/:path*',
+    '/dashboard/:path*',
     '/announcements/:path*',
     '/payments/:path*',
     '/service-requests/:path*',
-    '/login'
-  ]
+    '/login',
+    '/register',
+  ],
 };

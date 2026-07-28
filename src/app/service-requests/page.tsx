@@ -27,6 +27,7 @@ import {
 import Logo from '@/components/Logo';
 import MemberSidebar from '@/components/MemberSidebar';
 import { validateClientImageFile } from '@/lib/file-security';
+import { getAvailableRooms } from '@/app/actions/properties';
 
 export default function ServiceRequests() {
   const [category, setCategory] = useState('');
@@ -35,6 +36,8 @@ export default function ServiceRequests() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [showAllHistory, setShowAllHistory] = useState(false);
+  const [availableRooms, setAvailableRooms] = useState<any[]>([]);
+  const [selectedRoom, setSelectedRoom] = useState<string>('');
   
   const [complaints, setComplaints] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
@@ -65,6 +68,11 @@ export default function ServiceRequests() {
 
   useEffect(() => {
     fetchComplaints();
+    getAvailableRooms().then((res) => {
+      if (res.success) {
+        setAvailableRooms(res.data || []);
+      }
+    });
   }, [router]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,20 +96,27 @@ export default function ServiceRequests() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    let finalDescription = description;
+    if (category === 'room_transfer' && selectedRoom) {
+      finalDescription = `[TRANSFER_TO:${selectedRoom}] ${description}`;
+    }
+
     const res = await fetch('/api/complaints', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ category, description, photo_url: photoUrl })
+      body: JSON.stringify({ category, description: finalDescription, photo_url: photoUrl })
     });
     if (res.ok) {
       alert('Request submitted successfully!');
       setCategory('');
       setDescription('');
+      setSelectedRoom('');
       setPhotoUrl(null);
       setFileName(null);
       fetchComplaints();
     } else {
-      alert('Failed to submit request');
+      alert('Failed to submit request.');
     }
   };
 
@@ -159,11 +174,43 @@ export default function ServiceRequests() {
                       <option value="hvac">HVAC / Air Conditioning</option>
                       <option value="electrical">Electrical</option>
                       <option value="appliance">Appliance Maintenance</option>
+                      <option value="room_transfer">Room Transfer Request</option>
                       <option value="other">Other / Complaint</option>
                     </select>
                     <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4.5 h-4.5 pointer-events-none" />
                   </div>
                 </div>
+
+                {category === 'room_transfer' && (
+                  <>
+                    <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl text-xs sm:text-sm">
+                      <p className="font-bold flex items-center gap-2 mb-1"><AlertTriangle className="w-4 h-4" /> Warning</p>
+                      If you transfer to a more expensive room, you must pay the new bill in full. If you transfer to a cheaper room, there will be no refunds. It is highly recommended to transfer only when your current lease term expires!
+                    </div>
+                    <div>
+                      <label htmlFor="selectedRoom" className="block text-slate-700 text-xs sm:text-sm font-semibold mb-1.5">
+                        Destination Room
+                      </label>
+                      <div className="relative">
+                        <select
+                          id="selectedRoom"
+                          required
+                          value={selectedRoom}
+                          onChange={(e) => setSelectedRoom(e.target.value)}
+                          className="w-full appearance-none bg-white border border-slate-200 focus:border-blue-600 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-600 transition-all font-medium pr-10"
+                        >
+                          <option value="">Select a room...</option>
+                          {availableRooms.map((r: any) => (
+                            <option key={r.id} value={r.id}>
+                              Room {r.room_number} - {r.type} (Rp {r.price.toLocaleString('id-ID')})
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4.5 h-4.5 pointer-events-none" />
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {/* Description */}
                 <div>
@@ -176,7 +223,7 @@ export default function ServiceRequests() {
                     rows={4}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Please describe the issue in detail, including location and when it started..."
+                    placeholder={category === 'room_transfer' ? "Please specify the room number you wish to transfer to and the reason for the transfer..." : "Please describe the issue in detail, including location and when it started..."}
                     className="w-full bg-white border border-slate-200 focus:border-blue-600 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-600 transition-all font-medium resize-none"
                   />
                 </div>
@@ -357,7 +404,7 @@ export default function ServiceRequests() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`text-[9px] font-bold uppercase tracking-wider ${c.status === 'resolved' ? 'text-emerald-600' : 'text-orange-600'}`}>
-                      {c.status}
+                      {c.status.replace('_', ' ')}
                     </span>
                     <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-900 transition-colors" />
                   </div>
@@ -423,26 +470,6 @@ export default function ServiceRequests() {
                 </div>
               </div>
 
-              {/* Resolution Info Details */}
-              <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/50 space-y-3.5 text-xs">
-                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
-                  Resolution
-                </h3>
-                <div>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Resolution Date</span>
-                  <span className="font-bold text-slate-800 block mt-0.5">Sep 12, 2023, 2:30 PM</span>
-                </div>
-                <div>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Plumbing Technician</span>
-                  <span className="font-bold text-slate-800 block mt-0.5">Michael R.</span>
-                </div>
-                <div>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Actions Taken</span>
-                  <p className="text-slate-600 font-medium leading-relaxed mt-0.5">
-                    Replaced the worn-out seal on the U-joint. Checked for other leaks and confirmed watertight seal.
-                  </p>
-                </div>
-              </div>
 
               {/* Photo Attachment / Thumbnails */}
               <div className="space-y-2.5">

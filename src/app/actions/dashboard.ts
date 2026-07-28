@@ -18,11 +18,10 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
       startDate = new Date(now.getFullYear(), 0, 1);
     }
 
-    // 1. Total Revenue (Filtered by date)
+    // 1. Total Income (All-time, ignores date filter)
     const payments = await prisma.payment.findMany({
       where: { 
-        status: 'paid',
-        payment_date: { gte: startDate }
+        status: 'paid'
       }
     });
     const totalRevenue = payments.reduce((acc: number, curr: { amount: number }) => acc + curr.amount, 0);
@@ -36,7 +35,19 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
 
     // 3. Active Maintenance / Complaints
     const activeMaintenance = await prisma.complaint.count({
-      where: { status: 'pending' }
+      where: { status: { in: ['pending', 'in_progress'] } }
+    });
+    
+    // Check if category contains words that imply high priority
+    const highPriorityMaintenance = await prisma.complaint.count({
+      where: { 
+        status: { in: ['pending', 'in_progress'] },
+        OR: [
+          { category: { contains: 'leak' } },
+          { category: { contains: 'urgent' } },
+          { category: { contains: 'electrical' } }
+        ]
+      }
     });
 
     // 4. New Reservations (Pending Members)
@@ -72,19 +83,19 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
         details: `Unit ${p.member?.room?.room_number ?? 'Unknown'} \u2022 Rp ${p.amount.toLocaleString('id-ID')}`,
         time: p.payment_date.toISOString()
       })),
-      ...recentComplaints.map((c: typeof recentComplaints[0], i) => ({
+      ...recentComplaints.map((c: typeof recentComplaints[0]) => ({
         id: `c-${c.id}`,
         type: 'maintenance',
         title: 'Maintenance Request',
         details: `Unit ${c.member?.room?.room_number ?? 'Unknown'} \u2022 ${c.category}`,
-        time: new Date(Date.now() - (i + 1) * 1000).toISOString()
+        time: c.created_at ? c.created_at.toISOString() : new Date().toISOString()
       })),
-      ...recentMembers.map((m: typeof recentMembers[0], i) => ({
+      ...recentMembers.map((m: typeof recentMembers[0]) => ({
         id: `m-${m.id}`,
         type: 'member',
         title: 'New Member Sign-up',
         details: `${m.name} \u2022 Unit ${m.room?.room_number ?? 'Unknown'}`,
-        time: new Date(Date.now() - (i + 1) * 2000).toISOString()
+        time: m.join_date ? m.join_date.toISOString() : new Date().toISOString()
       }))
     ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 3);
 
@@ -112,7 +123,7 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
     const monthlyData = monthlyTotals.map((total, i) => ({
       month: monthNames[i],
       value: Math.round((total / maxMonthly) * 100),
-      amount: '$' + total.toLocaleString(),
+      amount: 'Rp ' + total.toLocaleString('id-ID'),
       highlight: total === maxMonthly && total > 0
     }));
 
@@ -135,7 +146,7 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
       weeklyData.push({
         month: `W${i + 1}`,
         value: Math.round((weeklyTotals[i] / maxWeekly) * 100),
-        amount: '$' + weeklyTotals[i].toLocaleString(),
+        amount: 'Rp ' + weeklyTotals[i].toLocaleString('id-ID'),
         highlight: weeklyTotals[i] === maxWeekly && weeklyTotals[i] > 0
       });
     }
@@ -146,6 +157,7 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
         totalRevenue,
         occupancyRate,
         activeMaintenance,
+        highPriorityMaintenance,
         newReservations,
         monthlyData,
         weeklyData,
@@ -191,10 +203,10 @@ export async function getNotifications() {
         id: idCounter++,
         title: 'Maintenance Alert',
         message: `${c.member?.name || 'User'} reported an issue in ${c.member?.room?.room_number || 'a room'}: ${c.category}`,
-        time: 'Recent',
+        time: c.created_at ? c.created_at.toISOString().split('T')[0] : 'Recent',
         unread: true,
         type: 'complaint',
-        timestamp: Date.now() // fake timestamp for sorting
+        timestamp: c.created_at ? c.created_at.getTime() : Date.now()
       });
     });
 

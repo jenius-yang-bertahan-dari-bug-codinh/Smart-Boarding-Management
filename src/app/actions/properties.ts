@@ -47,6 +47,20 @@ export async function getAdminRooms() {
   }
 }
 
+export async function getAvailableRooms() {
+  try {
+    const rooms = await prisma.room.findMany({
+      where: { status: 'Available' },
+      orderBy: { room_number: 'asc' },
+      select: { id: true, room_number: true, type: true, price: true }
+    });
+    return { success: true, data: rooms };
+  } catch (error) {
+    console.error('Error fetching available rooms:', error);
+    return { success: false, error: 'Failed to fetch available rooms' };
+  }
+}
+
 export async function assignMemberToRoom(memberId: number, roomId: number, moveInDate?: string) {
   try {
     const room = await prisma.room.findUnique({ 
@@ -57,8 +71,51 @@ export async function assignMemberToRoom(memberId: number, roomId: number, moveI
       return { success: false, error: 'Room is not available' };
     }
 
-    // Determine due_date
-    const dueDate = moveInDate ? new Date(moveInDate) : new Date();
+    const newRoom = room;
+
+    // Check if member already has a room
+    const member = await prisma.member.findUnique({
+      where: { id: memberId },
+      include: { room: true }
+    });
+
+    if (member && member.room_id) {
+      // Release old room
+      await prisma.room.update({
+        where: { id: member.room_id },
+        data: { status: 'Available' }
+      });
+
+      // Handle billing for transfer (bill full amount if more expensive, reset due date)
+      if (member.room && newRoom.price > member.room.price) {
+        const fullPrice = newRoom.price;
+        const now = new Date();
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const billingMonth = `${monthNames[now.getMonth()]} ${now.getFullYear()} (Room Transfer)`;
+        
+        const paymentDueDate = new Date();
+        paymentDueDate.setDate(paymentDueDate.getDate() + 7);
+
+        await prisma.payment.create({
+          data: {
+            member_id: member.id,
+            amount: fullPrice,
+            payment_method: 'midtrans',
+            status: 'pending',
+            due_date: paymentDueDate,
+            billing_month: billingMonth
+          }
+        });
+
+        // Reset the lease due_date to +1 month because they pay full
+        const newLeaseDate = new Date();
+        newLeaseDate.setMonth(newLeaseDate.getMonth() + 1);
+        moveInDate = newLeaseDate.toISOString(); // Override moveInDate for the logic below
+      }
+    }
+
+    // Determine due_date (lease end date)
+    const dueDate = moveInDate ? new Date(moveInDate) : (member?.due_date || new Date());
 
     // Assign member to room and set them active
     await prisma.member.update({

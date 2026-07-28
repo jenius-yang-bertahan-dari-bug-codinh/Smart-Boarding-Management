@@ -19,6 +19,10 @@ export async function getAdminBilling(trendFilter: string = '6_months') {
       return p.member && p.member.status === 'active';
     });
 
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
     let incomeSum = 0;
     let pendingSum = 0;
     let pendingCount = 0;
@@ -33,7 +37,6 @@ export async function getAdminBilling(trendFilter: string = '6_months') {
       }
 
       // Auto-update to overdue if past due date
-      const now = new Date();
       let currentStatus = p.status;
       
       const pAny = p as any; // Bypass TS check due to missing Prisma typings refresh
@@ -47,7 +50,11 @@ export async function getAdminBilling(trendFilter: string = '6_months') {
 
       // Aggregate metrics
       if (currentStatus === 'paid') {
-        incomeSum += p.amount;
+        const paymentDate = new Date(p.payment_date);
+        // Only sum income for the current month
+        if (paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear) {
+          incomeSum += p.amount;
+        }
       } else if (currentStatus === 'pending') {
         pendingSum += p.amount;
         pendingCount++;
@@ -61,7 +68,7 @@ export async function getAdminBilling(trendFilter: string = '6_months') {
         id: `#INV-${p.id.toString().padStart(6, '0')}`,
         member: p.member?.name || 'Unknown',
         initials,
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
+        avatar: (p.member as any)?.avatar_url || (p.member as any)?.user?.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
         amount: `Rp ${p.amount.toLocaleString('id-ID')}`,
         dueDate: dueDate.toISOString().split('T')[0],
         dueDateRed: currentStatus === 'overdue',
@@ -90,7 +97,6 @@ export async function getAdminBilling(trendFilter: string = '6_months') {
     };
 
     // Dynamic Trend Bars Calculation
-    const now = new Date();
     let monthsToCalculate = 6;
     let startMonth = new Date(now.getFullYear(), now.getMonth() - 5, 1);
     
@@ -136,13 +142,35 @@ export async function getAdminBilling(trendFilter: string = '6_months') {
     return { success: true, data: { invoices: mappedInvoices, trendBars, metrics } };
   } catch (error) {
     console.error('Error fetching admin billing:', error);
-    return { success: false, error: 'Failed to fetch billing' };
+    return { success: false, error: 'Failed to load billing metrics' };
   }
 }
 
-export async function generateInvoices(memberId: number, amount: number, startMonth: string, durationMonths: number) {
+export async function getPaymentById(id: number) {
   try {
-    const startDate = new Date(startMonth + '-01T00:00:00.000Z');
+    const payment = await prisma.payment.findUnique({
+      where: { id },
+      include: {
+        member: {
+          include: {
+            room: true
+          }
+        }
+      }
+    });
+    
+    if (!payment) return { success: false, error: 'Payment not found' };
+    
+    return { success: true, data: payment };
+  } catch (error) {
+    console.error('Error fetching payment by id:', error);
+    return { success: false, error: 'Failed to fetch payment details' };
+  }
+}
+
+export async function generateInvoices(memberId: number, amount: number, startMonth: string, durationMonths: number, description?: string) {
+  try {
+    const startDate = new Date(startMonth);
     const paymentsToCreate = [];
 
     for (let i = 0; i < durationMonths; i++) {
@@ -150,10 +178,10 @@ export async function generateInvoices(memberId: number, amount: number, startMo
       currentMonth.setMonth(startDate.getMonth() + i);
       
       const monthName = currentMonth.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+      const billingDesc = description ? `${description} - ${monthName}` : monthName;
       
-      // Due date is usually the 5th of the month
+      // Due date is set exactly to the calculated currentMonth
       const dueDate = new Date(currentMonth);
-      dueDate.setDate(5);
 
       paymentsToCreate.push({
         member_id: memberId,
@@ -162,7 +190,7 @@ export async function generateInvoices(memberId: number, amount: number, startMo
         status: 'pending',
         payment_date: new Date(),
         due_date: dueDate,
-        billing_month: monthName,
+        billing_month: billingDesc,
         gateway_reference: null
       } as any); // cast to any to bypass Prisma type checks for new schema fields
     }
@@ -181,11 +209,28 @@ export async function generateInvoices(memberId: number, amount: number, startMo
 
 export async function markInvoiceAsPaid(invoiceId: number) {
   try {
-    await prisma.payment.update({
+    const payment = await prisma.payment.update({
       where: { id: invoiceId },
-      data: { status: 'paid' }
+      data: { status: 'paid' },
+      include: { member: { include: { room: true } } }
     });
+    
+    // Update member's due_date dynamically based on amount paid
+    if (payment.member) {
+      const roomPrice = payment.member.room?.price || payment.amount;
+      const monthsPaid = Math.max(1, Math.round(payment.amount / roomPrice));
+
+      const baseDate = payment.member.due_date || payment.member.join_date || new Date();
+      const newDueDate = new Date(baseDate);
+      newDueDate.setMonth(newDueDate.getMonth() + monthsPaid);
+      await prisma.member.update({
+        where: { id: payment.member.id },
+        data: { due_date: newDueDate }
+      });
+    }
+
     revalidatePath('/admin/billing');
+    revalidatePath('/admin/reservations');
     return { success: true };
   } catch (error) {
     console.error('Error approving payment:', error);
@@ -196,7 +241,10 @@ export async function markInvoiceAsPaid(invoiceId: number) {
 export async function getAllMembers() {
   try {
     const members = await prisma.member.findMany({
-      select: { id: true, name: true, room: { select: { room_number: true } } },
+      where: {
+        status: { notIn: ['cancelled', 'past'] }
+      },
+      select: { id: true, name: true, room: { select: { room_number: true } }, status: true },
       orderBy: { name: 'asc' }
     });
     return { success: true, data: members };
@@ -257,7 +305,7 @@ export async function getMemberInvoices(memberId: string) {
   }
 }
 
-export async function generateMemberInvoice(memberId: string) {
+export async function generateMemberInvoice(memberId: string, durationMonths: number = 1) {
   try {
     const member = await prisma.member.findUnique({
       where: { id: Number(memberId) },
@@ -276,7 +324,10 @@ export async function generateMemberInvoice(memberId: string) {
     // Generate for current month
     const now = new Date();
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    const billingMonth = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+    let billingMonth = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+    if (durationMonths > 1) {
+      billingMonth += ` (${durationMonths} months)`;
+    }
 
     // Due date in 7 days
     const dueDate = new Date();
@@ -286,7 +337,7 @@ export async function generateMemberInvoice(memberId: string) {
     const payment = await prisma.payment.create({
       data: {
         member_id: member.id,
-        amount: price,
+        amount: price * durationMonths,
         payment_method: 'midtrans',
         status: 'pending',
         due_date: dueDate,

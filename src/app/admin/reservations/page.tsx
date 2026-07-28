@@ -1,6 +1,7 @@
 // @ts-nocheck
 "use client";
 import { getAdminReservations, updateReservationStatus, createReservation } from '@/app/actions/reservations';
+import { forceCheckout } from '@/app/actions/members';
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
@@ -8,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import {
   Bell, Settings, Search, ChevronLeft, ChevronRight,
   Plus, Filter, Download, MoreVertical, Check, X,
-  Calendar, ArrowUpRight, Eye, UserCheck,
+  Calendar, ArrowUpRight, Eye, UserCheck, RefreshCcw,
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 import AdminNavbar from '@/components/AdminNavbar';
@@ -64,9 +65,16 @@ export default function ReservationsPage() {
           unit: r.room,
           price: r.amount,
           date: r.term,
-          approved: false
+          approved: false,
+          type: 'registration'
         }));
-        setApprovals(pending);
+        // Add checkout requests
+        const checkouts = (res.checkoutRequests || []).map((c: any) => ({
+          ...c,
+          approved: false,
+          type: 'checkout'
+        }));
+        setApprovals([...checkouts, ...pending]); // checkouts appear first
       }
       setIsLoading(false);
     });
@@ -86,13 +94,26 @@ export default function ReservationsPage() {
   const dynamicEvents = React.useMemo(() => {
     const events: CalEvent[] = [];
     reservations.forEach((r: any) => {
-      if (r.rawDueDate && r.status !== 'Cancelled') {
-        const d = new Date(r.rawDueDate);
-        if (d.getMonth() === currentMonth.getMonth() && d.getFullYear() === currentMonth.getFullYear()) {
+      if (r.status === 'Cancelled') return;
+
+      if (r.rawCheckinDate) {
+        const dIn = new Date(r.rawCheckinDate);
+        if (dIn.getMonth() === currentMonth.getMonth() && dIn.getFullYear() === currentMonth.getFullYear()) {
           events.push({
-            day: d.getDate(),
-            label: `${r.status === 'Confirmed' ? 'Payment Due' : 'Check-in'}: ${r.room.replace('Room ', 'R-')}`,
-            variant: r.status === 'Confirmed' ? 'orange' : 'blue'
+            day: dIn.getDate(),
+            label: `Check-in: ${r.room.replace('Room ', 'R-')}`,
+            variant: 'blue'
+          });
+        }
+      }
+
+      if (r.rawDueDate) {
+        const dOut = new Date(r.rawDueDate);
+        if (dOut.getMonth() === currentMonth.getMonth() && dOut.getFullYear() === currentMonth.getFullYear()) {
+          events.push({
+            day: dOut.getDate(),
+            label: `Payment Due: ${r.room.replace('Room ', 'R-')}`,
+            variant: 'orange'
           });
         }
       }
@@ -176,11 +197,11 @@ export default function ReservationsPage() {
       showToast('No reservations to export');
       return;
     }
-    const headers = ['Reservation ID', 'Tenant Name', 'Room #', 'Lease Term', 'Amount', 'Status'];
+    const headers = ['Reservation ID', 'Tenant Name', 'Room #', 'Check-in', 'Check-out', 'Amount', 'Status'];
     const csvContent = [
       headers.join(','),
       ...reservations.map(r => 
-        [r.id, `"${r.tenant}"`, `"${r.room}"`, `"${r.term}"`, `"${r.amount}"`, r.status].join(',')
+        [r.id, `"${r.tenant}"`, `"${r.room}"`, `"${r.checkinDate}"`, `"${r.checkoutDate}"`, `"${r.amount}"`, r.status].join(',')
       )
     ].join('\n');
 
@@ -205,7 +226,8 @@ export default function ReservationsPage() {
       'Reservation ID': r.id,
       'Tenant Name': r.tenant,
       'Room #': r.room,
-      'Lease Term': r.term,
+      'Check-in': r.checkinDate,
+      'Check-out': r.checkoutDate,
       'Amount': r.amount,
       'Status': r.status
     }));
@@ -221,7 +243,19 @@ export default function ReservationsPage() {
   const totalPages = Math.ceil(filteredReservations.length / itemsPerPage);
   const paginatedReservations = filteredReservations.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
-  const handleCreateBooking = async (formData: FormData) => {
+  const handleCreateBooking = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    // Validate dates
+    if (!bCheckIn || !bCheckOut) {
+      showToast('Please select both check-in and check-out dates.');
+      return;
+    }
+    if (new Date(bCheckOut) <= new Date(bCheckIn)) {
+      showToast('Check-out date must be after check-in date.');
+      return;
+    }
+    const form = e.currentTarget;
+    const formData = new FormData(form);
     const res = await createReservation(formData);
     if(res.success) {
       showToast('Booking created successfully!');
@@ -279,6 +313,8 @@ export default function ReservationsPage() {
   /* booking form state */
   const [bTenant, setBTenant] = useState('');
   const [bRoom,   setBRoom]   = useState('101');
+  const [bCheckIn,  setBCheckIn]  = useState('');
+  const [bCheckOut, setBCheckOut] = useState('');
 
   /* details modal state */
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
@@ -304,7 +340,7 @@ export default function ReservationsPage() {
               <h3 className="text-base font-bold text-slate-900 dark:text-white">New Booking</h3>
               <button type="button" onClick={() => setBookingModal(false)} className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:text-slate-500 cursor-pointer"><X className="w-5 h-5" /></button>
             </div>
-            <form action={handleCreateBooking}>
+        <form onSubmit={handleCreateBooking}>
                 <div className="mb-3">
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Tenant Name</label>
                   <input type="text" name="tenantName" value={bTenant} onChange={(e) => setBTenant(e.target.value)} required className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-900 placeholder:text-slate-300" placeholder="e.g. John Doe" />
@@ -320,11 +356,30 @@ export default function ReservationsPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Check-in</label>
-                    <input type="date" name="checkIn" defaultValue="2024-10-01" required className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-900" />
+                    <input
+                      type="date"
+                      name="checkIn"
+                      required
+                      value={bCheckIn}
+                      onChange={(e) => {
+                        setBCheckIn(e.target.value);
+                        // Reset checkout if it's now invalid
+                        if (bCheckOut && e.target.value >= bCheckOut) setBCheckOut('');
+                      }}
+                      className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-900"
+                    />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Check-out</label>
-                    <input type="date" name="checkOut" defaultValue="2024-10-31" required className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-900" />
+                    <input
+                      type="date"
+                      name="checkOut"
+                      required
+                      value={bCheckOut}
+                      min={bCheckIn ? (() => { const d = new Date(bCheckIn); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })() : ''}
+                      onChange={(e) => setBCheckOut(e.target.value)}
+                      className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-900"
+                    />
                   </div>
                 </div>
               <div className="flex gap-3 pt-6 justify-end">
@@ -510,8 +565,15 @@ export default function ReservationsPage() {
             </div>
 
             <div className="space-y-4 flex-grow">
+              {approvals.length === 0 && (
+                <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-xs font-semibold">No pending approvals</div>
+              )}
               {approvals.map((a) => (
-                <div key={a.id} className={`border rounded-2xl p-4 transition-all ${a.approved ? 'border-emerald-100 bg-emerald-50/30' : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900'}`}>
+                <div key={a.id} className={`border rounded-2xl p-4 transition-all ${
+                  a.approved ? 'border-emerald-100 bg-emerald-50/30' :
+                  a.type === 'checkout' ? 'border-rose-200 bg-rose-50/30' :
+                  'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900'
+                }`}>
                   <div className="flex items-start gap-3 mb-3">
                     <div className={`w-10 h-10 rounded-full ${a.color} text-white text-sm font-extrabold flex items-center justify-center shrink-0 shadow-sm`}>
                       {a.initials}
@@ -521,22 +583,52 @@ export default function ReservationsPage() {
                         <p className="text-sm font-bold text-slate-900 dark:text-white">{a.name}</p>
                         {a.approved
                           ? <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Approved</span>
-                          : <span className="text-[10px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">New Request</span>
+                          : a.type === 'checkout'
+                            ? <span className="text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">🚪 Wants to Leave</span>
+                            : <span className="text-[10px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">New Request</span>
                         }
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 font-semibold mt-0.5">{a.unit} &bull; {a.price}</p>
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">Requested: {a.date}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">{a.unit} • {a.price}</p>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
+                        {a.type === 'checkout' ? `Due: ${a.date}` : `Requested: ${a.date}`}
+                      </p>
                     </div>
                   </div>
-                  {!a.approved && (
+                  {!a.approved && a.type === 'checkout' && (
+                    <div className="flex gap-2">
+                      <button type="button" onClick={async () => {
+                        if (!window.confirm(`Proses check-out untuk ${a.name}? Kamar akan dibebaskan.`)) return;
+                        const res = await forceCheckout(String(a.rawId));
+                        if (res.success) {
+                          setApprovals(prev => prev.filter(x => x.rawId !== a.rawId));
+                        }
+                      }} className="flex-1 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold py-2 rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                        <Check className="w-3.5 h-3.5" />
+                        Process Check-Out
+                      </button>
+                      <button type="button" onClick={async () => {
+                        // Cancel checkout request — restore to active
+                        const { updateAdminMember } = await import('@/app/actions/members');
+                        await updateAdminMember(String(a.rawId), { name: a.name, phone: '-', email: '', status: 'Active', room: '' });
+                        setApprovals(prev => prev.filter(x => x.rawId !== a.rawId));
+                      }} className="flex-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold py-2 rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                        <X className="w-3.5 h-3.5" />
+                        Cancel Request
+                      </button>
+                    </div>
+                  )}
+                  {!a.approved && a.type !== 'checkout' && (
                     <div className="flex gap-2">
                       <button type="button" onClick={() => handleUpdateStatus(a.rawId, 'active')} className="flex-1 bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold py-2 rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-sm">
                         <Check className="w-3.5 h-3.5" />
                         Approve
                       </button>
-                      <button type="button" onClick={() => { setSelectedReservation(a); setDetailsModalOpen(true); }} className="flex-1 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 text-slate-700 dark:text-slate-300 text-xs font-bold py-2 rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5">
-                        <Eye className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                        Details
+                      <button type="button" onClick={() => handleUpdateStatus(a.rawId, 'cancelled')} className="flex-1 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-500 border border-red-200 dark:border-red-900/50 text-xs font-bold py-2 rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                        <X className="w-3.5 h-3.5" />
+                        Refuse
+                      </button>
+                      <button type="button" title="Details" onClick={() => { setSelectedReservation(a); setDetailsModalOpen(true); }} className="flex-none px-3 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 text-slate-700 dark:text-slate-300 text-xs font-bold py-2 rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                        <Eye className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                       </button>
                     </div>
                   )}
@@ -580,7 +672,7 @@ export default function ReservationsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800">
-                  {['Reservation ID', 'Tenant Name', 'Room #', 'Lease Term', 'Amount', 'Status', 'Actions'].map((h) => (
+                  {['Reservation ID', 'Tenant Name', 'Room #', 'Check-in', 'Check-out', 'Amount', 'Status', 'Payment', 'Actions'].map((h) => (
                     <th key={h} className="px-5 py-3.5 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -597,12 +689,22 @@ export default function ReservationsPage() {
                         <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">{r.tenant}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-sm font-medium text-slate-600 dark:text-slate-400 dark:text-slate-500 whitespace-nowrap">{r.room}</td>
-                    <td className="px-5 py-4 text-sm font-medium text-slate-600 dark:text-slate-400 dark:text-slate-500 whitespace-nowrap">{r.term}</td>
+                    <td className="px-5 py-4 text-sm font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">{r.room}</td>
+                    <td className="px-5 py-4 text-sm font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">{r.checkinDate}</td>
+                    <td className="px-5 py-4 text-sm font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">{r.checkoutDate}</td>
                     <td className="px-5 py-4 text-sm font-extrabold text-slate-800 dark:text-slate-200">{r.amount}</td>
                     <td className="px-5 py-4">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${STATUS_STYLES[r.status]}`}>
                         • {r.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                        r.paymentStatus === 'Paid' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
+                        r.paymentStatus === 'Unpaid' ? 'bg-orange-50 text-orange-600 border border-orange-200' :
+                        'bg-slate-50 text-slate-500 border border-slate-200'
+                      }`}>
+                        {r.paymentStatus}
                       </span>
                     </td>
                     <td className="px-5 py-4">
@@ -620,6 +722,11 @@ export default function ReservationsPage() {
                         {r.status === 'Confirmed' && (
                           <button type="button" onClick={() => handleUpdateStatus(r.rawId, 'cancelled')} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg cursor-pointer transition-all" title="Cancel">
                             <X className="w-4 h-4" />
+                          </button>
+                        )}
+                        {r.status === 'Cancelled' && (
+                          <button type="button" onClick={() => handleUpdateStatus(r.rawId, 'pending')} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer transition-all" title="Uncancel (Restore to Pending)">
+                            <RefreshCcw className="w-4 h-4" />
                           </button>
                         )}
                         <button type="button" onClick={() => { setSelectedReservation(r); setDetailsModalOpen(true); }} className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-blue-900 hover:bg-blue-50 rounded-lg cursor-pointer transition-all">

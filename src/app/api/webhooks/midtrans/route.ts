@@ -52,13 +52,8 @@ export async function POST(req: Request) {
 
     // Update the payment record in the database
     if (finalStatus === 'paid') {
-      await prisma.payment.update({
-        where: { id: paymentId },
-        data: {
-          status: 'paid',
-          payment_date: new Date() // Mark the actual payment date
-        }
-      });
+      const { markInvoiceAsPaid } = await import('@/app/actions/billing');
+      await markInvoiceAsPaid(paymentId);
       console.log(`Midtrans Webhook: Payment #${paymentId} marked as PAID`);
     } else if (finalStatus === 'failed') {
       // If it failed/expired, clear gateway_reference so user can retry

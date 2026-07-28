@@ -2,14 +2,14 @@
 "use client";
 import { getAdminBilling, generateInvoices, markInvoiceAsPaid, getAllMembers } from '@/app/actions/billing';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Bell, Settings, Search, ChevronDown, Plus,
   Wallet, ClipboardList, AlertTriangle, TrendingUp,
   Wifi, FileText, Mail, Filter, Download,
-  ChevronLeft, ChevronRight, Check, X, Shield, Pencil, Link as LinkIcon
+  ChevronLeft, ChevronRight, Check, X, Shield, Pencil, Link as LinkIcon, Printer
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 import AdminNavbar from '@/components/AdminNavbar';
@@ -74,6 +74,39 @@ export default function BillingPage() {
     });
   }, []);
 
+  // Check payment status from Midtrans API and refresh data
+  const checkPaymentStatus = useCallback(async () => {
+    const pendingWithGateway = invoices.filter(
+      (p: any) => (p.status === 'Unpaid' || p.status === 'Overdue') && p.gatewayReference
+    );
+    if (pendingWithGateway.length === 0) return;
+
+    try {
+      const res = await fetch('/api/payments/admin-check-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentIds: pendingWithGateway.map((p: any) => p.rawId)
+        })
+      });
+      const data = await res.json();
+      if (data.updated && data.updated.length > 0) {
+        refreshData(); // Refresh table if there are changes
+      }
+    } catch (err) {
+      console.error('Error checking payment status:', err);
+    }
+  }, [invoices, trendFilter]);
+
+  // Auto-check payment status when user returns to tab
+  useEffect(() => {
+    const handleFocus = () => {
+      checkPaymentStatus();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [checkPaymentStatus]);
+
 
 
   /* nav */
@@ -101,7 +134,8 @@ export default function BillingPage() {
   const [invoiceModal, setInvoiceModal] = useState(false);
   const [invMemberId, setInvMemberId] = useState('');
   const [invAmount, setInvAmount] = useState('');
-  const [startMonth, setStartMonth] = useState(() => new Date().toISOString().substring(0, 7));
+  const [startMonth, setStartMonth] = useState(() => new Date().toISOString().substring(0, 10));
+  const [description, setDescription] = useState('');
   const [durationMonths, setDurationMonths] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -178,13 +212,14 @@ export default function BillingPage() {
               e.preventDefault(); 
               if (!invMemberId || !invAmount || !startMonth) { showToast('Please fill all required fields.'); return; } 
               setIsSubmitting(true);
-              const res = await generateInvoices(Number(invMemberId), parseFloat(invAmount), startMonth, durationMonths);
+              const res = await generateInvoices(Number(invMemberId), parseFloat(invAmount), startMonth, durationMonths, description);
               setIsSubmitting(false);
               if (res.success) {
                 showToast(`Generated ${durationMonths} invoice(s) successfully!`); 
                 setInvoiceModal(false); 
                 setInvMemberId(''); 
                 setInvAmount(''); 
+                setDescription('');
                 setDurationMonths(1);
                 refreshData();
               } else {
@@ -200,17 +235,23 @@ export default function BillingPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Monthly Rent ($)</label>
-                  <input type="number" step="0.01" required value={invAmount} onChange={(e) => setInvAmount(e.target.value)} placeholder="e.g. 250" className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Monthly Rent (Rp)</label>
+                  <input type="number" step="0.01" required value={invAmount} onChange={(e) => setInvAmount(e.target.value)} placeholder="e.g. 1500000" className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Duration (Months)</label>
                   <input type="number" min="1" max="60" required value={durationMonths} onChange={(e) => setDurationMonths(parseInt(e.target.value) || 1)} className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Start Month</label>
-                <input type="month" required value={startMonth} onChange={(e) => setStartMonth(e.target.value)} className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-900 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Start Date</label>
+                  <input type="date" required value={startMonth} onChange={(e) => setStartMonth(e.target.value)} className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-900 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Description (Optional)</label>
+                  <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Sewa Bulan Agustus" className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-900 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300" />
+                </div>
               </div>
               <div className="flex gap-3 pt-2 justify-end">
                 <button type="button" onClick={() => setInvoiceModal(false)} className="px-4 py-2 text-sm font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:text-slate-300 cursor-pointer rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950">Cancel</button>
@@ -241,7 +282,7 @@ export default function BillingPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Amount ($)</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Amount (Rp)</label>
                   <input type="text" readOnly value={editAmount} className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-800/50 text-slate-500 cursor-not-allowed" />
                 </div>
                 <div>
@@ -496,7 +537,29 @@ export default function BillingPage() {
                   </div>
                 )}
               </div>
-              <button type="button" onClick={() => showToast('Downloading invoice report…')}
+              <button type="button" onClick={() => {
+                if (!invoices.length) {
+                  showToast('No invoices to export');
+                  return;
+                }
+                const headers = ['Invoice ID', 'Member', 'Amount', 'For Month', 'Due Date', 'Status'];
+                const csvContent = [
+                  headers.join(','),
+                  ...invoices.map((inv: any) => 
+                    [inv.id, `"${inv.member}"`, `"${inv.amount}"`, `"${inv.billingMonth}"`, `"${inv.dueDate}"`, inv.status].join(',')
+                  )
+                ].join('\n');
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `invoice_report_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showToast('Exporting CSV...');
+              }}
                 className="p-2 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 text-slate-500 dark:text-slate-400 dark:text-slate-500 rounded-xl cursor-pointer transition-all">
                 <Download className="w-4 h-4" />
               </button>
@@ -557,7 +620,7 @@ export default function BillingPage() {
                     {/* Actions */}
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                        {inv.status === 'Unpaid' && (
+                        {(inv.status === 'Unpaid' || inv.status === 'Overdue') && (
                           <button type="button" title="Approve Payment" onClick={async () => {
                             showToast(`Approving invoice ${inv.id}...`);
                             const { markInvoiceAsPaid } = await import('@/app/actions/billing');
@@ -593,10 +656,15 @@ export default function BillingPage() {
                             <LinkIcon className="w-3.5 h-3.5" />
                           </button>
                         )}
-                        <button type="button" title="View invoice" onClick={() => {
+                        {inv.status === 'Paid' && (
+                          <a href={`/receipt/${inv.rawId}`} target="_blank" rel="noopener noreferrer" title="Download Receipt" className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg cursor-pointer transition-all">
+                            <Printer className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                        <button type="button" title="View Details" onClick={() => {
                           setEditId(inv.rawId);
                           setEditInvIdStr(inv.id);
-                          setEditAmount(inv.amount.replace('$', '').replace(',', ''));
+                          setEditAmount(inv.amount.replace('Rp ', '').replace(/\./g, '').replace(',', ''));
                           setEditStatus(inv.status);
                           setEditDueDate(inv.dueDate);
                           setEditBillingMonth(inv.billingMonth);

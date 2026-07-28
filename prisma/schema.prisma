@@ -11,7 +11,10 @@ model User {
   id                 Int       @id @default(autoincrement())
   email              String    @unique
   password           String
-  role               String    @default("guest") // e.g., admin, guest, etc
+  role               String    @default("guest") // e.g., admin, guest, member
+  name               String?
+  phone              String?
+  id_number          String?
   avatar_url         String?
   reset_token        String?
   reset_token_expiry DateTime?
@@ -32,19 +35,21 @@ model Room {
 }
 
 model Member {
-  id         Int        @id @default(autoincrement())
-  user_id    Int
-  user       User       @relation(fields: [user_id], references: [id])
-  room_id    Int
-  room       Room       @relation(fields: [room_id], references: [id])
-  name       String
-  phone      String
-  status     String     @default("active")
-  due_date   DateTime?
-  id_number  String?
-  avatar_url String?
-  complaints Complaint[]
-  payments   Payment[]
+  id                  Int        @id @default(autoincrement())
+  user_id             Int
+  user                User       @relation(fields: [user_id], references: [id])
+  room_id             Int?
+  room                Room?      @relation(fields: [room_id], references: [id])
+  name                String
+  phone               String
+  status              String     @default("pending") // pending, active, past
+  due_date            DateTime?
+  join_date           DateTime?
+  id_number           String?
+  avatar_url          String?
+  preferred_room_name String?    // Room requested by user during self-registration
+  complaints          Complaint[]
+  payments            Payment[]
 }
 
 model Complaint {
@@ -57,6 +62,7 @@ model Complaint {
   photo_url      String?
   status         String   @default("pending")
   admin_response String?
+  created_at     DateTime @default(now())
 }
 
 model Payment {
