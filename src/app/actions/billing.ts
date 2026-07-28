@@ -209,11 +209,25 @@ export async function generateInvoices(memberId: number, amount: number, startMo
 
 export async function markInvoiceAsPaid(invoiceId: number) {
   try {
-    await prisma.payment.update({
+    const payment = await prisma.payment.update({
       where: { id: invoiceId },
-      data: { status: 'paid' }
+      data: { status: 'paid' },
+      include: { member: true }
     });
+    
+    // Update member's due_date (extend by 1 month)
+    if (payment.member) {
+      const baseDate = payment.member.due_date || payment.member.join_date || new Date();
+      const newDueDate = new Date(baseDate);
+      newDueDate.setMonth(newDueDate.getMonth() + 1);
+      await prisma.member.update({
+        where: { id: payment.member.id },
+        data: { due_date: newDueDate }
+      });
+    }
+
     revalidatePath('/admin/billing');
+    revalidatePath('/admin/reservations');
     return { success: true };
   } catch (error) {
     console.error('Error approving payment:', error);

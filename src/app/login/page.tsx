@@ -167,13 +167,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Register Link */}
-        <p className="text-center text-xs text-slate-500 font-medium mt-6">
-          Don't have an account?{' '}
-          <Link href="/register" className="text-blue-700 hover:text-blue-900 font-bold hover:underline transition-colors">
-            Register as Resident
-          </Link>
-        </p>
+
 
       </div>
 
