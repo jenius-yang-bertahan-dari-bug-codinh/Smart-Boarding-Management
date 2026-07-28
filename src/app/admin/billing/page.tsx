@@ -9,7 +9,7 @@ import {
   Bell, Settings, Search, ChevronDown, Plus,
   Wallet, ClipboardList, AlertTriangle, TrendingUp,
   Wifi, FileText, Mail, Filter, Download,
-  ChevronLeft, ChevronRight, Check, X, Shield, Pencil, Link as LinkIcon
+  ChevronLeft, ChevronRight, Check, X, Shield, Pencil, Link as LinkIcon, Printer
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 import AdminNavbar from '@/components/AdminNavbar';
@@ -615,7 +615,12 @@ export default function BillingPage() {
                             <LinkIcon className="w-3.5 h-3.5" />
                           </button>
                         )}
-                        <button type="button" title="View invoice" onClick={() => {
+                        {inv.status === 'Paid' && (
+                          <a href={`/receipt/${inv.rawId}`} target="_blank" rel="noopener noreferrer" title="Download Receipt" className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg cursor-pointer transition-all">
+                            <Printer className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                        <button type="button" title="View Details" onClick={() => {
                           setEditId(inv.rawId);
                           setEditInvIdStr(inv.id);
                           setEditAmount(inv.amount.replace('Rp ', '').replace(/\./g, '').replace(',', ''));

@@ -142,7 +142,29 @@ export async function getAdminBilling(trendFilter: string = '6_months') {
     return { success: true, data: { invoices: mappedInvoices, trendBars, metrics } };
   } catch (error) {
     console.error('Error fetching admin billing:', error);
-    return { success: false, error: 'Failed to fetch billing' };
+    return { success: false, error: 'Failed to load billing metrics' };
+  }
+}
+
+export async function getPaymentById(id: number) {
+  try {
+    const payment = await prisma.payment.findUnique({
+      where: { id },
+      include: {
+        member: {
+          include: {
+            room: true
+          }
+        }
+      }
+    });
+    
+    if (!payment) return { success: false, error: 'Payment not found' };
+    
+    return { success: true, data: payment };
+  } catch (error) {
+    console.error('Error fetching payment by id:', error);
+    return { success: false, error: 'Failed to fetch payment details' };
   }
 }
 
