@@ -48,12 +48,7 @@ const STATUS_STYLES: Record<ReqStatus, string> = {
   'Resolved':    'bg-sky-400    text-white',
 };
 
-const MINI_AVATARS = [
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=facearea&facepad=2&w=64&q=80',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=facearea&facepad=2&w=64&q=80',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=facearea&facepad=2&w=64&q=80',
-];
-
+const MINI_INITIALS = ['TS', 'RJ', 'MH'];
 /* ══════════════════════════════════════════════════════ */
 export default function MaintenancePage() {
   const router = useRouter();
@@ -411,10 +406,12 @@ export default function MaintenancePage() {
             </div>
             {/* Overlapping mini avatars */}
             <div className="flex items-center gap-0">
-              {MINI_AVATARS.map((src, i) => (
-                <img key={i} src={src} alt="" className="w-6 h-6 rounded-full border-2 border-white object-cover -ml-1 first:ml-0 shadow-xs" />
+              {MINI_INITIALS.map((initial, i) => (
+                <div key={i} className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-bold flex items-center justify-center border-2 border-white dark:border-slate-900 -ml-1 first:ml-0 shadow-xs">
+                  {initial}
+                </div>
               ))}
-              <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 dark:text-slate-400 dark:text-slate-500 text-[9px] font-extrabold flex items-center justify-center border-2 border-white -ml-1 shadow-xs">+5</span>
+              <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 dark:text-slate-400 text-[9px] font-extrabold flex items-center justify-center border-2 border-white dark:border-slate-900 -ml-1 shadow-xs">+5</span>
             </div>
           </div>
         </div>

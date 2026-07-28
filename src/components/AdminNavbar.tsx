@@ -141,11 +141,9 @@ export default function AdminNavbar({ activeTab }: AdminNavbarProps) {
 
           {/* User Profile Avatar */}
           <div className="flex items-center gap-4 border-l border-slate-200 dark:border-slate-700 pl-4">
-            <img
-              src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-              alt="Admin Profile"
-              className="w-9 h-9 rounded-full object-cover border border-slate-200 dark:border-slate-700"
-            />
+            <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center border border-blue-200 dark:border-blue-800">
+              A
+            </div>
           </div>
         </div>
       </div>

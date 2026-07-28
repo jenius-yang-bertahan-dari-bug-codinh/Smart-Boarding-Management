@@ -3,6 +3,7 @@
 import { getAdminMembers, updateAdminMember, deleteAdminMember } from '@/app/actions/members';
 import { getAdminRooms } from '@/app/actions/properties';
 import { getMemberInvoices, generateMemberInvoice } from '@/app/actions/billing';
+import { getNotifications } from '@/app/actions/dashboard';
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
@@ -142,11 +143,15 @@ export default function MembersPage() {
   /* notifications */
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [viewAllOpen, setViewAllOpen] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: 'New Booking Request', message: 'Jane Doe requested Room 201.', time: '5m ago', unread: true },
-    { id: 2, title: 'Maintenance Alert', message: 'AC broken in Room 305.', time: '1h ago', unread: true },
-    { id: 3, title: 'Payment Received', message: 'John Smith paid Rp 1.400.000.', time: '2h ago', unread: false },
-  ]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    getNotifications().then(res => {
+      if (res.success && res.data) {
+        setNotifications(res.data);
+      }
+    });
+  }, []);
   const notifRef = useRef<HTMLDivElement>(null);
 
   /* close on outside click */
