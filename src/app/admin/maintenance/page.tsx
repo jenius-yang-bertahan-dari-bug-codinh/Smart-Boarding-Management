@@ -1,7 +1,7 @@
 // @ts-nocheck
 "use client";
-import { getAdminMaintenance, resolveMaintenanceTicket, updateMaintenanceStatus, deleteMaintenanceTicket } from '@/app/actions/maintenance';
-
+import { getAdminMaintenance, resolveMaintenanceTicket, updateMaintenanceStatus, deleteMaintenanceTicket, createAdminMaintenance } from '@/app/actions/maintenance';
+import { getAdminMembers } from '@/app/actions/members';
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -54,10 +54,23 @@ export default function MaintenancePage() {
   const router = useRouter();
 
   const [requests, setRequests] = useState<any[]>([]);
+  const [membersList, setMembersList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  useEffect(() => {
+
+  /* add modal state */
+  const [addModal, setAddModal] = useState(false);
+  const [newTicket, setNewTicket] = useState({ member_id: '', category: 'General', description: '' });
+
+  const fetchMaintenance = () => {
     getAdminMaintenance().then(res => {
       if(res.success && res.data) setRequests(res.data);
+    });
+  };
+
+  useEffect(() => {
+    Promise.all([getAdminMaintenance(), getAdminMembers()]).then(([maintRes, memRes]) => {
+      if(maintRes.success && maintRes.data) setRequests(maintRes.data);
+      if(memRes.success && memRes.data) setMembersList(memRes.data.filter((m: any) => m.status === 'active' || m.status === 'Active'));
       setIsLoading(false);
     });
   }, []);
@@ -275,6 +288,9 @@ export default function MaintenancePage() {
             <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1 text-sm font-medium">Manage property health and resident satisfaction requests.</p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
+            <button type="button" onClick={() => setAddModal(true)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-all shadow-md shadow-blue-500/20">
+              <Plus className="w-4 h-4" /> New Ticket
+            </button>
             <button type="button" onClick={handleExportCSV} className="flex items-center gap-2 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 text-slate-700 dark:text-slate-300 text-sm font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-all shadow-xs">
               <Download className="w-4 h-4 text-slate-500" /> CSV
             </button>
@@ -475,6 +491,68 @@ export default function MaintenancePage() {
             </div>
           </div>
         </div>
+        {/* ── Add Ticket Modal ── */}
+        {addModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 sm:p-8 relative">
+              <div className="flex items-center justify-between mb-5 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">New Ticket</h3>
+                <button type="button" onClick={() => setAddModal(false)} className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:text-slate-500 cursor-pointer">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                if (!newTicket.member_id || !newTicket.description) {
+                  showToast('Please fill all fields');
+                  return;
+                }
+                const res = await createAdminMaintenance({
+                  member_id: parseInt(newTicket.member_id),
+                  category: newTicket.category,
+                  description: newTicket.description
+                });
+                if (res.success) {
+                  showToast('Ticket created successfully!');
+                  setAddModal(false);
+                  setNewTicket({ member_id: '', category: 'General', description: '' });
+                  fetchMaintenance();
+                } else {
+                  showToast(`Error: ${res.error}`, 'error');
+                }
+              }} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Resident</label>
+                  <select required value={newTicket.member_id} onChange={(e) => setNewTicket({...newTicket, member_id: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none bg-white dark:bg-slate-900">
+                    <option value="" disabled>Select resident</option>
+                    {membersList.map(m => (
+                      <option key={m.id} value={m.id}>{m.name} ({m.room})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Category</label>
+                  <select required value={newTicket.category} onChange={(e) => setNewTicket({...newTicket, category: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none bg-white dark:bg-slate-900">
+                    <option value="General">General Maintenance</option>
+                    <option value="Electrical">Electrical</option>
+                    <option value="Plumbing">Plumbing</option>
+                    <option value="room_transfer">Room Transfer</option>
+                    <option value="Complaint">Complaint</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Description</label>
+                  <textarea required value={newTicket.description} onChange={(e) => setNewTicket({...newTicket, description: e.target.value})} placeholder="Describe the issue..." rows={3} className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none resize-none"></textarea>
+                </div>
+                <div className="flex justify-end gap-3 pt-2">
+                  <button type="button" onClick={() => setAddModal(false)} className="px-4 py-2 text-sm font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 cursor-pointer">Cancel</button>
+                  <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-5 py-2 rounded-xl cursor-pointer shadow-md">Create Ticket</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
       </main>
 
       {/* ══════ GLOBAL FOOTER ══════ */}

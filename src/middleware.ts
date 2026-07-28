@@ -56,11 +56,11 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
-    // Guest trying to access payment/service-requests pages → redirect to dashboard
-    // (they can still access /dashboard and /announcements)
+    // Guest trying to access premium pages → redirect to dashboard
+    // (Guests can access /dashboard and /payments)
     if (
       decodedToken.role === 'guest' &&
-      (path.startsWith('/payments') || path.startsWith('/service-requests'))
+      (path.startsWith('/service-requests') || path.startsWith('/announcements'))
     ) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }

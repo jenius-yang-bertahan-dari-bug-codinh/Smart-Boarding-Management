@@ -75,11 +75,11 @@ export default function MemberSidebar({ activeTab, user, onRefresh }: MemberSide
             <span className="text-sm font-bold text-blue-900 mt-0.5">{user?.name || 'Member'}</span>
             {user?.memberProfile?.status === 'active' && user?.memberProfile?.room ? (
               <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full mt-1.5 uppercase tracking-wider">
-                Premium Member
+                Resident
               </span>
             ) : (
               <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full mt-1.5 uppercase tracking-wider border border-slate-200">
-                Normal Member
+                Guest
               </span>
             )}
           </div>
@@ -87,9 +87,10 @@ export default function MemberSidebar({ activeTab, user, onRefresh }: MemberSide
           {/* Navigation Links */}
           <nav className="space-y-1">
             {navItems.map((item) => {
-              // Hide premium features if not active
-              const isPremiumFeature = item.name === 'Payments' || item.name === 'Service Requests';
               const isActiveMember = user?.memberProfile?.status === 'active' && user?.memberProfile?.room;
+              
+              // Guests (non-active members) shouldn't see Service Requests and Announcements
+              const isPremiumFeature = item.name === 'Service Requests' || item.name === 'Announcements';
               
               if (isPremiumFeature && !isActiveMember) {
                 return null;

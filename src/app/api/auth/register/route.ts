@@ -62,6 +62,7 @@ export async function POST(request: Request) {
         id_number: id_number.trim(),
         status: 'pending',
         join_date: new Date(join_date),
+        due_date: new Date(join_date),
         ...(preferred_room_name ? { preferred_room_name: preferred_room_name.trim() } : {}),
       },
     })

@@ -1,6 +1,7 @@
 // @ts-nocheck
 "use client";
 import { getAdminReservations, updateReservationStatus, createReservation } from '@/app/actions/reservations';
+import { forceCheckout } from '@/app/actions/members';
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
@@ -64,9 +65,16 @@ export default function ReservationsPage() {
           unit: r.room,
           price: r.amount,
           date: r.term,
-          approved: false
+          approved: false,
+          type: 'registration'
         }));
-        setApprovals(pending);
+        // Add checkout requests
+        const checkouts = (res.checkoutRequests || []).map((c: any) => ({
+          ...c,
+          approved: false,
+          type: 'checkout'
+        }));
+        setApprovals([...checkouts, ...pending]); // checkouts appear first
       }
       setIsLoading(false);
     });
@@ -86,13 +94,26 @@ export default function ReservationsPage() {
   const dynamicEvents = React.useMemo(() => {
     const events: CalEvent[] = [];
     reservations.forEach((r: any) => {
-      if (r.rawDueDate && r.status !== 'Cancelled') {
-        const d = new Date(r.rawDueDate);
-        if (d.getMonth() === currentMonth.getMonth() && d.getFullYear() === currentMonth.getFullYear()) {
+      if (r.status === 'Cancelled') return;
+
+      if (r.rawCheckinDate) {
+        const dIn = new Date(r.rawCheckinDate);
+        if (dIn.getMonth() === currentMonth.getMonth() && dIn.getFullYear() === currentMonth.getFullYear()) {
           events.push({
-            day: d.getDate(),
-            label: `${r.status === 'Confirmed' ? 'Payment Due' : 'Check-in'}: ${r.room.replace('Room ', 'R-')}`,
-            variant: r.status === 'Confirmed' ? 'orange' : 'blue'
+            day: dIn.getDate(),
+            label: `Check-in: ${r.room.replace('Room ', 'R-')}`,
+            variant: 'blue'
+          });
+        }
+      }
+
+      if (r.rawDueDate) {
+        const dOut = new Date(r.rawDueDate);
+        if (dOut.getMonth() === currentMonth.getMonth() && dOut.getFullYear() === currentMonth.getFullYear()) {
+          events.push({
+            day: dOut.getDate(),
+            label: `Payment Due: ${r.room.replace('Room ', 'R-')}`,
+            variant: 'orange'
           });
         }
       }
@@ -544,8 +565,15 @@ export default function ReservationsPage() {
             </div>
 
             <div className="space-y-4 flex-grow">
+              {approvals.length === 0 && (
+                <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-xs font-semibold">No pending approvals</div>
+              )}
               {approvals.map((a) => (
-                <div key={a.id} className={`border rounded-2xl p-4 transition-all ${a.approved ? 'border-emerald-100 bg-emerald-50/30' : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900'}`}>
+                <div key={a.id} className={`border rounded-2xl p-4 transition-all ${
+                  a.approved ? 'border-emerald-100 bg-emerald-50/30' :
+                  a.type === 'checkout' ? 'border-rose-200 bg-rose-50/30' :
+                  'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900'
+                }`}>
                   <div className="flex items-start gap-3 mb-3">
                     <div className={`w-10 h-10 rounded-full ${a.color} text-white text-sm font-extrabold flex items-center justify-center shrink-0 shadow-sm`}>
                       {a.initials}
@@ -555,14 +583,41 @@ export default function ReservationsPage() {
                         <p className="text-sm font-bold text-slate-900 dark:text-white">{a.name}</p>
                         {a.approved
                           ? <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Approved</span>
-                          : <span className="text-[10px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">New Request</span>
+                          : a.type === 'checkout'
+                            ? <span className="text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">🚪 Wants to Leave</span>
+                            : <span className="text-[10px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">New Request</span>
                         }
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 font-semibold mt-0.5">{a.unit} &bull; {a.price}</p>
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">Requested: {a.date}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">{a.unit} • {a.price}</p>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
+                        {a.type === 'checkout' ? `Due: ${a.date}` : `Requested: ${a.date}`}
+                      </p>
                     </div>
                   </div>
-                  {!a.approved && (
+                  {!a.approved && a.type === 'checkout' && (
+                    <div className="flex gap-2">
+                      <button type="button" onClick={async () => {
+                        if (!window.confirm(`Proses check-out untuk ${a.name}? Kamar akan dibebaskan.`)) return;
+                        const res = await forceCheckout(String(a.rawId));
+                        if (res.success) {
+                          setApprovals(prev => prev.filter(x => x.rawId !== a.rawId));
+                        }
+                      }} className="flex-1 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold py-2 rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                        <Check className="w-3.5 h-3.5" />
+                        Process Check-Out
+                      </button>
+                      <button type="button" onClick={async () => {
+                        // Cancel checkout request — restore to active
+                        const { updateAdminMember } = await import('@/app/actions/members');
+                        await updateAdminMember(String(a.rawId), { name: a.name, phone: '-', email: '', status: 'Active', room: '' });
+                        setApprovals(prev => prev.filter(x => x.rawId !== a.rawId));
+                      }} className="flex-1 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold py-2 rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                        <X className="w-3.5 h-3.5" />
+                        Cancel Request
+                      </button>
+                    </div>
+                  )}
+                  {!a.approved && a.type !== 'checkout' && (
                     <div className="flex gap-2">
                       <button type="button" onClick={() => handleUpdateStatus(a.rawId, 'active')} className="flex-1 bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold py-2 rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-sm">
                         <Check className="w-3.5 h-3.5" />
@@ -617,7 +672,7 @@ export default function ReservationsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800">
-                  {['Reservation ID', 'Tenant Name', 'Room #', 'Check-in', 'Check-out', 'Amount', 'Status', 'Actions'].map((h) => (
+                  {['Reservation ID', 'Tenant Name', 'Room #', 'Check-in', 'Check-out', 'Amount', 'Status', 'Payment', 'Actions'].map((h) => (
                     <th key={h} className="px-5 py-3.5 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -641,6 +696,15 @@ export default function ReservationsPage() {
                     <td className="px-5 py-4">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${STATUS_STYLES[r.status]}`}>
                         • {r.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                        r.paymentStatus === 'Paid' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
+                        r.paymentStatus === 'Unpaid' ? 'bg-orange-50 text-orange-600 border border-orange-200' :
+                        'bg-slate-50 text-slate-500 border border-slate-200'
+                      }`}>
+                        {r.paymentStatus}
                       </span>
                     </td>
                     <td className="px-5 py-4">

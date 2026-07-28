@@ -111,13 +111,8 @@ export async function POST(req: Request) {
         // 'pending' stays pending — no update needed
 
         if (newStatus === 'paid') {
-          await prisma.payment.update({
-            where: { id: payment.id },
-            data: {
-              status: 'paid',
-              payment_date: new Date()
-            }
-          });
+          const { markInvoiceAsPaid } = await import('@/app/actions/billing');
+          await markInvoiceAsPaid(payment.id);
 
           // Check-in Trigger: If this was the first payment and member was only 'approved'
           if (member.status === 'approved') {
