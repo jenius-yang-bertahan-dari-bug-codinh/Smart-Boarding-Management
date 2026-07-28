@@ -212,10 +212,10 @@ export default function MemberDashboard() {
               )}
               <div>
                 <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                  Selamat datang, {user.name?.split(' ')[0] || 'Pendaftar'}!
+                  Welcome, {user.name?.split(' ')[0] || 'Guest'}!
                 </h1>
                 <p className="text-slate-500 mt-1 text-sm sm:text-base font-medium">
-                  Pendaftaran Anda sedang dalam proses review admin.
+                  Your registration is currently under admin review.
                 </p>
               </div>
             </div>
@@ -233,9 +233,9 @@ export default function MemberDashboard() {
                 <CheckCircle className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs font-bold text-emerald-600 mb-0.5">Selesai</p>
-                <p className="text-sm font-extrabold text-slate-800">Pendaftaran Akun</p>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">Data Anda berhasil tersimpan</p>
+                <p className="text-xs font-bold text-emerald-600 mb-0.5">Completed</p>
+                <p className="text-sm font-extrabold text-slate-800">Account Registration</p>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">Your data has been saved successfully</p>
               </div>
             </div>
 
@@ -245,9 +245,9 @@ export default function MemberDashboard() {
                 <ClipboardList className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs font-bold text-amber-600 mb-0.5">Sedang Berlangsung</p>
-                <p className="text-sm font-extrabold text-slate-800">Verifikasi Admin</p>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">Admin sedang memproses data Anda</p>
+                <p className="text-xs font-bold text-amber-600 mb-0.5">In Progress</p>
+                <p className="text-sm font-extrabold text-slate-800">Admin Verification</p>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">Admin is processing your data</p>
               </div>
             </div>
 
