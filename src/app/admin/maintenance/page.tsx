@@ -1,6 +1,6 @@
 // @ts-nocheck
 "use client";
-import { getAdminMaintenance } from '@/app/actions/maintenance';
+import { getAdminMaintenance, resolveMaintenanceTicket, updateMaintenanceStatus, deleteMaintenanceTicket } from '@/app/actions/maintenance';
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
@@ -82,37 +82,7 @@ export default function MaintenancePage() {
   /* pagination */
   const [page, setPage] = useState(1);
 
-  /* new request modal */
-  const [newModal, setNewModal] = useState(false);
-  const [reqType,  setReqType]  = useState<RequestType>('Maintenance');
-  const [reqMember, setReqMember] = useState('');
-  const [reqSummary, setReqSummary] = useState('');
-  const [reqPriority, setReqPriority] = useState<Priority>('LOW');
-  const modalRef = useRef<HTMLDivElement>(null);
-
-  const handleNewRequest = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reqMember.trim() || !reqSummary.trim()) { showToast('Fill all fields.'); return; }
-    
-    const newReq = {
-      id: `#MT-${Math.floor(1000 + Math.random() * 9000)}`,
-      date: new Date().toLocaleDateString(),
-      member: reqMember,
-      unit: 'Unknown Unit',
-      type: reqType,
-      summary: reqSummary,
-      priority: reqPriority,
-      technician: null,
-      status: 'New'
-    };
-
-    setRequests([newReq, ...requests]);
-    showToast(`${reqType} request filed for ${reqMember}!`);
-    setNewModal(false);
-    setReqMember('');
-    setReqSummary('');
-    setReqPriority('LOW');
-  };
+  // New Request UI has been removed as per requirements
 
   const handleExportCSV = () => {
     const headers = ['ID', 'Date', 'Member', 'Unit', 'Type', 'Summary', 'Priority', 'Status'];
@@ -154,29 +124,38 @@ export default function MaintenancePage() {
     showToast('Excel Exported!');
   };
 
-  const handleAssignTechnician = (id: string) => {
-    setRequests(requests.map(r => r.id === id ? { ...r, status: 'Assigned', technician: 'Alex (Tech)' } : r));
-    showToast(`Assigned technician for ${id}`);
-    setSelectedRow(null);
-  };
-
-  const handleMarkInProgress = (id: string) => {
-    setRequests(requests.map(r => r.id === id ? { ...r, status: 'In Progress' } : r));
-    showToast(`${id} is now In Progress`);
-    setSelectedRow(null);
-  };
-
-  const handleMarkResolved = (id: string) => {
-    setRequests(requests.map(r => r.id === id ? { ...r, status: 'Resolved' } : r));
-    showToast(`${id} marked Resolved!`);
-    setSelectedRow(null);
-  };
-
-  const handleDeleteRequest = (id: string) => {
-    if (window.confirm(`Are you sure you want to delete request ${id}?`)) {
-      setRequests(requests.filter(r => r.id !== id));
-      showToast(`${id} deleted successfully.`);
+  const handleMarkInProgress = async (id: string) => {
+    const res = await updateMaintenanceStatus(id, 'in_progress');
+    if (res.success) {
+      setRequests(requests.map(r => r.id === id ? { ...r, status: 'In Progress' } : r));
+      showToast(`${id} is now In Progress`);
       setSelectedRow(null);
+    } else {
+      showToast(`Error: ${res.error}`);
+    }
+  };
+
+  const handleMarkResolved = async (id: string) => {
+    const res = await resolveMaintenanceTicket(id);
+    if (res.success) {
+      setRequests(requests.map(r => r.id === id ? { ...r, status: 'Resolved' } : r));
+      showToast(`${id} marked Resolved!`);
+      setSelectedRow(null);
+    } else {
+      showToast(`Error: ${res.error}`);
+    }
+  };
+
+  const handleDeleteRequest = async (id: string) => {
+    if (window.confirm(`Are you sure you want to delete request ${id}?`)) {
+      const res = await deleteMaintenanceTicket(id);
+      if (res.success) {
+        setRequests(requests.filter(r => r.id !== id));
+        showToast(`${id} deleted successfully.`);
+        setSelectedRow(null);
+      } else {
+        showToast(`Error: ${res.error}`);
+      }
     }
   };
 
@@ -188,7 +167,6 @@ export default function MaintenancePage() {
     const h = (e: MouseEvent) => {
       if (priorityRef.current && !priorityRef.current.contains(e.target as Node)) setPriorityOpen(false);
       if (statusRef.current   && !statusRef.current.contains(e.target as Node))   setStatusOpen(false);
-      if (modalRef.current    && !modalRef.current.contains(e.target as Node))     setNewModal(false);
     };
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
@@ -235,49 +213,6 @@ export default function MaintenancePage() {
         </div>
       )}
 
-      {/* ── New Request Modal ── */}
-      {newModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div ref={modalRef} className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-sm w-full p-6 sm:p-8">
-            <div className="flex items-center justify-between mb-5 pb-4 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">New Request</h3>
-              <button type="button" onClick={() => setNewModal(false)} className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:text-slate-500 cursor-pointer"><X className="w-5 h-5" /></button>
-            </div>
-            <form onSubmit={handleNewRequest} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Request Type</label>
-                <div className="flex gap-2">
-                  {(['Maintenance', 'Complaint'] as RequestType[]).map((t) => (
-                    <button key={t} type="button" onClick={() => setReqType(t)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-bold border cursor-pointer transition-all ${reqType === t ? 'bg-blue-900 text-white border-blue-900' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600'}`}>
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Member / Unit</label>
-                <input type="text" required value={reqMember} onChange={(e) => setReqMember(e.target.value)} placeholder="e.g. Marcus Thompson / Unit 402-B" className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-900" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Issue Summary</label>
-                <textarea required value={reqSummary} onChange={(e) => setReqSummary(e.target.value)} placeholder="Describe the issue..." rows={3} className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-900 resize-none" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Priority</label>
-                <select value={reqPriority} onChange={(e) => setReqPriority(e.target.value as Priority)} className="w-full border border-slate-200 dark:border-slate-700 focus:border-blue-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none">
-                  {['LOW', 'MEDIUM', 'HIGH', 'EMERGENCY'].map((p) => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </div>
-              <div className="flex gap-3 pt-2 justify-end">
-                <button type="button" onClick={() => setNewModal(false)} className="px-4 py-2 text-sm font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:text-slate-300 cursor-pointer rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950">Cancel</button>
-                <button type="submit" className="bg-blue-900 hover:bg-blue-950 text-white text-sm font-bold px-5 py-2 rounded-xl cursor-pointer transition-all shadow-sm">Submit Request</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* ── Detail Drawer ── */}
       {selectedRow && (
         <div className="fixed inset-0 z-50 flex justify-end">
@@ -310,7 +245,6 @@ export default function MaintenancePage() {
                   { label: 'Member',     value: selectedRow.member },
                   { label: 'Unit',       value: selectedRow.unit },
                   { label: 'Type',       value: selectedRow.type },
-                  { label: 'Technician', value: selectedRow.technician || 'Unassigned' },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between py-2.5 border-b border-slate-50">
                     <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{label}</span>
@@ -319,7 +253,6 @@ export default function MaintenancePage() {
                 ))}
               </div>
               <div className="space-y-2 pt-2">
-                <button type="button" onClick={() => handleAssignTechnician(selectedRow.id)} className="w-full bg-blue-900 hover:bg-blue-950 text-white text-sm font-bold py-2.5 rounded-xl cursor-pointer transition-all">Assign Technician</button>
                 <button type="button" onClick={() => handleMarkInProgress(selectedRow.id)} className="w-full border border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-700 text-sm font-bold py-2.5 rounded-xl cursor-pointer transition-all">Mark In Progress</button>
                 <button type="button" onClick={() => handleMarkResolved(selectedRow.id)} className="w-full border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 text-slate-700 dark:text-slate-300 text-sm font-bold py-2.5 rounded-xl cursor-pointer transition-all">Mark Resolved</button>
                 <button type="button" onClick={() => handleDeleteRequest(selectedRow.id)} className="w-full border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-sm font-bold py-2.5 rounded-xl cursor-pointer transition-all mt-4">Delete Request</button>
@@ -342,9 +275,6 @@ export default function MaintenancePage() {
             <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1 text-sm font-medium">Manage property health and resident satisfaction requests.</p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
-            <button type="button" onClick={() => setNewModal(true)} className="bg-blue-900 hover:bg-blue-950 text-white font-bold text-sm px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm cursor-pointer transition-all">
-              <Plus className="w-4 h-4 stroke-[2.5]" /> New Request
-            </button>
             <button type="button" onClick={handleExportCSV} className="flex items-center gap-2 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950 text-slate-700 dark:text-slate-300 text-sm font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-all shadow-xs">
               <Download className="w-4 h-4 text-slate-500" /> CSV
             </button>
@@ -392,28 +322,6 @@ export default function MaintenancePage() {
             </div>
           </div>
 
-          {/* Card 3: Assigned Today */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-xs hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Assigned Today</span>
-              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                <Wrench className="w-4 h-4 text-blue-700" />
-              </div>
-            </div>
-            <div className="flex items-baseline gap-2 mb-3">
-              <span className="text-4xl font-black text-slate-900 dark:text-white">{totalAssigned.toString().padStart(2, '0')}</span>
-              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">tickets assigned</span>
-            </div>
-            {/* Overlapping mini avatars */}
-            <div className="flex items-center gap-0">
-              {MINI_INITIALS.map((initial, i) => (
-                <div key={i} className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-bold flex items-center justify-center border-2 border-white dark:border-slate-900 -ml-1 first:ml-0 shadow-xs">
-                  {initial}
-                </div>
-              ))}
-              <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 dark:text-slate-400 text-[9px] font-extrabold flex items-center justify-center border-2 border-white dark:border-slate-900 -ml-1 shadow-xs">+5</span>
-            </div>
-          </div>
         </div>
 
         {/* ── Filter Bar ── */}
@@ -463,7 +371,7 @@ export default function MaintenancePage() {
             </button>
             {statusOpen && (
               <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl shadow-lg z-30 p-1">
-                {['Status: All', 'Status: New', 'Status: In Progress', 'Status: Assigned', 'Status: Resolved'].map((o) => (
+                {['Status: All', 'Status: New', 'Status: In Progress', 'Status: Resolved'].map((o) => (
                   <button key={o} type="button" onClick={() => { setStatusFilter(o); setStatusOpen(false); }}
                     className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg cursor-pointer transition-all ${statusFilter === o ? 'bg-blue-50 text-blue-900' : 'text-slate-600 dark:text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-950'}`}>
                     {o}
@@ -482,7 +390,7 @@ export default function MaintenancePage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800">
-                  {['Request ID', 'Date', 'Member / Unit', 'Category', 'Summary', 'Priority', 'Technician', 'Status'].map((h) => (
+                  {['Request ID', 'Date', 'Member / Unit', 'Category', 'Summary', 'Priority', 'Status'].map((h) => (
                     <th key={h} className="px-4 py-3.5 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -533,18 +441,6 @@ export default function MaintenancePage() {
                       </span>
                     </td>
 
-                    {/* Technician */}
-                    <td className="px-4 py-4">
-                      {r.technician && r.techAvatar
-                        ? (
-                          <div className="flex items-center gap-2">
-                            <img src={r.techAvatar} alt={r.technician} className="w-6 h-6 rounded-full object-cover border border-slate-100 dark:border-slate-800" />
-                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">{r.technician}</span>
-                          </div>
-                        )
-                        : <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 italic">Unassigned</span>
-                      }
-                    </td>
 
                     {/* Status */}
                     <td className="px-4 py-4">

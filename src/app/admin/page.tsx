@@ -454,7 +454,7 @@ export default function AdminDashboard() {
               </span>
               <div className="mt-2.5 flex items-center gap-1.5">
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-200/40">
-                  3 Priority
+                  {dashboardData ? dashboardData.highPriorityMaintenance : 0} Priority
                 </span>
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">unresolved tasks</span>
               </div>

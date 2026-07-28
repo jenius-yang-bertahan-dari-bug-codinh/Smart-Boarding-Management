@@ -39,7 +39,9 @@ export async function getAdminMaintenance() {
         type: c.category,
         summary: summary,
         photo_url: c.photo_url,
-        status: c.status === 'pending' ? 'In Progress' : (c.status === 'resolved' ? 'Resolved' : 'Pending'),
+        status: c.status === 'assigned' ? 'Assigned' : 
+                c.status === 'in_progress' ? 'In Progress' : 
+                c.status === 'resolved' ? 'Resolved' : 'New',
         priority: c.category.toLowerCase().includes('leak') || c.category.toLowerCase().includes('urgent') ? 'High' : 'Normal',
         initials,
         avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
@@ -89,6 +91,63 @@ export async function resolveMaintenanceTicket(trackingId: string) {
   } catch (error) {
     console.error('Error resolving maintenance ticket:', error);
     return { success: false, error: 'Failed to resolve ticket' };
+  }
+}
+
+export async function updateMaintenanceStatus(trackingId: string, status: string) {
+  try {
+    let complaint = await prisma.complaint.findUnique({
+      where: { tracking_id: trackingId }
+    });
+
+    if (!complaint && trackingId.startsWith('#MT-')) {
+      const idNum = parseInt(trackingId.replace('#MT-', ''), 10);
+      if (!isNaN(idNum)) {
+        complaint = await prisma.complaint.findUnique({ where: { id: idNum } });
+      }
+    }
+
+    if (!complaint) return { success: false, error: 'Ticket not found' };
+
+    await prisma.complaint.update({
+      where: { id: complaint.id },
+      data: { status: status.toLowerCase() } // 'pending', 'in progress', 'assigned', 'resolved'
+    });
+    
+    revalidatePath('/admin');
+    revalidatePath('/admin/maintenance');
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating maintenance status:', error);
+    return { success: false, error: 'Failed to update ticket status' };
+  }
+}
+
+export async function deleteMaintenanceTicket(trackingId: string) {
+  try {
+    let complaint = await prisma.complaint.findUnique({
+      where: { tracking_id: trackingId }
+    });
+
+    if (!complaint && trackingId.startsWith('#MT-')) {
+      const idNum = parseInt(trackingId.replace('#MT-', ''), 10);
+      if (!isNaN(idNum)) {
+        complaint = await prisma.complaint.findUnique({ where: { id: idNum } });
+      }
+    }
+
+    if (!complaint) return { success: false, error: 'Ticket not found' };
+
+    await prisma.complaint.delete({
+      where: { id: complaint.id }
+    });
+    
+    revalidatePath('/admin');
+    revalidatePath('/admin/maintenance');
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting maintenance ticket:', error);
+    return { success: false, error: 'Failed to delete ticket' };
   }
 }
 

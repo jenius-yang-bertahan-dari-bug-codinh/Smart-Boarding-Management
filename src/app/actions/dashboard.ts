@@ -35,7 +35,19 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
 
     // 3. Active Maintenance / Complaints
     const activeMaintenance = await prisma.complaint.count({
-      where: { status: 'pending' }
+      where: { status: { in: ['pending', 'in_progress'] } }
+    });
+    
+    // Check if category contains words that imply high priority
+    const highPriorityMaintenance = await prisma.complaint.count({
+      where: { 
+        status: { in: ['pending', 'in_progress'] },
+        OR: [
+          { category: { contains: 'leak' } },
+          { category: { contains: 'urgent' } },
+          { category: { contains: 'electrical' } }
+        ]
+      }
     });
 
     // 4. New Reservations (Pending Members)
@@ -145,6 +157,7 @@ export async function getDashboardStats(filter: string = 'Last 30 Days') {
         totalRevenue,
         occupancyRate,
         activeMaintenance,
+        highPriorityMaintenance,
         newReservations,
         monthlyData,
         weeklyData,

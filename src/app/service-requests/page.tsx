@@ -404,7 +404,7 @@ export default function ServiceRequests() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`text-[9px] font-bold uppercase tracking-wider ${c.status === 'resolved' ? 'text-emerald-600' : 'text-orange-600'}`}>
-                      {c.status}
+                      {c.status.replace('_', ' ')}
                     </span>
                     <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-900 transition-colors" />
                   </div>
@@ -470,26 +470,6 @@ export default function ServiceRequests() {
                 </div>
               </div>
 
-              {/* Resolution Info Details */}
-              <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/50 space-y-3.5 text-xs">
-                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
-                  Resolution
-                </h3>
-                <div>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Resolution Date</span>
-                  <span className="font-bold text-slate-800 block mt-0.5">Sep 12, 2023, 2:30 PM</span>
-                </div>
-                <div>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Plumbing Technician</span>
-                  <span className="font-bold text-slate-800 block mt-0.5">Michael R.</span>
-                </div>
-                <div>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Actions Taken</span>
-                  <p className="text-slate-600 font-medium leading-relaxed mt-0.5">
-                    Replaced the worn-out seal on the U-joint. Checked for other leaks and confirmed watertight seal.
-                  </p>
-                </div>
-              </div>
 
               {/* Photo Attachment / Thumbnails */}
               <div className="space-y-2.5">
