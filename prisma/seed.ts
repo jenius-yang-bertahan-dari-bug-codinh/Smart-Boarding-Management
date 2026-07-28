@@ -1,5 +1,5 @@
 // AUTO-GENERATED SEED FILE
-// Generated on 2026-07-28T04:37:07.452Z
+// Generated on 2026-07-28T08:33:06.036Z
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -8,7 +8,7 @@ async function main() {
   console.log('Inserting records...');
 
   // 1. BoardingHouseProfile
-  const profiles = [
+  const profiles: any[] = [
   {
     "id": 1,
     "name": "PapiKost",
@@ -23,7 +23,7 @@ async function main() {
   }
 
   // 2. Users
-  const users = [
+  const users: any[] = [
   {
     "id": 1,
     "email": "papikost123@gmail.com",
@@ -54,7 +54,7 @@ async function main() {
   }
 
   // 3. Rooms
-  const rooms = [
+  const rooms: any[] = [
   {
     "id": 1,
     "room_number": "101",
@@ -121,7 +121,7 @@ async function main() {
   }
 
   // 4. Members
-  const members = [
+  const members: any[] = [
   {
     "id": 7,
     "user_id": 8,
@@ -141,7 +141,7 @@ async function main() {
   }
 
   // 5. Complaints
-  const complaints = [
+  const complaints: any[] = [
   {
     "id": 3,
     "tracking_id": "REQ-4743",
@@ -170,7 +170,7 @@ async function main() {
   }
 
   // 6. Payments
-  const payments = [
+  const payments: any[] = [
   {
     "id": 24,
     "member_id": 7,
@@ -222,7 +222,7 @@ async function main() {
   }
 
   // 9. Announcements
-  const announcements = [
+  const announcements: any[] = [
   {
     "id": 1,
     "title": "Jadwal Pemadaman Listrik",

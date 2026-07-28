@@ -33,37 +33,37 @@ async function main() {
   console.log('Inserting records...');
 
   // 1. BoardingHouseProfile
-  const profiles = ${serializeArray(profiles)};
+  const profiles: any[] = ${serializeArray(profiles)};
   for (const p of profiles) {
     await prisma.boardingHouseProfile.create({ data: p });
   }
 
   // 2. Users
-  const users = ${serializeArray(users)};
+  const users: any[] = ${serializeArray(users)};
   for (const u of users) {
     await prisma.user.create({ data: u });
   }
 
   // 3. Rooms
-  const rooms = ${serializeArray(rooms)};
+  const rooms: any[] = ${serializeArray(rooms)};
   for (const r of rooms) {
     await prisma.room.create({ data: r });
   }
 
   // 4. Members
-  const members = ${serializeArray(members)};
+  const members: any[] = ${serializeArray(members)};
   for (const m of members) {
     await prisma.member.create({ data: m });
   }
 
   // 5. Complaints
-  const complaints = ${serializeArray(complaints)};
+  const complaints: any[] = ${serializeArray(complaints)};
   for (const c of complaints) {
     await prisma.complaint.create({ data: c });
   }
 
   // 6. Payments
-  const payments = ${serializeArray(payments)};
+  const payments: any[] = ${serializeArray(payments)};
   for (const p of payments) {
     await prisma.payment.create({ data: p });
   }
@@ -81,7 +81,7 @@ async function main() {
   }
 
   // 9. Announcements
-  const announcements = ${serializeArray(announcements)};
+  const announcements: any[] = ${serializeArray(announcements)};
   for (const a of announcements) {
     await prisma.announcement.create({ data: a });
   }
