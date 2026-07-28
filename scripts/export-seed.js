@@ -69,13 +69,13 @@ async function main() {
   }
 
   // 7. MaintenanceSchedules
-  const maintenanceSchedules = ${serializeArray(maintenanceSchedules)};
+  const maintenanceSchedules: any[] = ${serializeArray(maintenanceSchedules)};
   for (const ms of maintenanceSchedules) {
     await prisma.maintenanceSchedule.create({ data: ms });
   }
 
   // 8. MaintenanceRooms
-  const maintenanceRooms = ${serializeArray(maintenanceRooms)};
+  const maintenanceRooms: any[] = ${serializeArray(maintenanceRooms)};
   for (const mr of maintenanceRooms) {
     await prisma.maintenanceRoom.create({ data: mr });
   }
