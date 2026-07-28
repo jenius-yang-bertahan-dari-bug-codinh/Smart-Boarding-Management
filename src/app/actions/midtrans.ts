@@ -40,6 +40,9 @@ export async function generatePaymentLink(paymentId: number) {
         first_name: payment.member.name,
         email: payment.member.user_id ? `user${payment.member.user_id}@example.com` : 'tenant@papikost.com', // fallback
         phone: payment.member.phone
+      },
+      callbacks: {
+        finish: process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/dashboard` : 'http://localhost:3000/dashboard'
       }
     };
 

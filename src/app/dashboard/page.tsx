@@ -22,15 +22,21 @@ import {
   ClipboardList,
   ArrowRight,
   HelpCircle,
+  Calendar,
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 import MemberSidebar from '@/components/MemberSidebar';
+import { requestRoom, requestCheckout } from '@/app/actions/members';
 
 export default function MemberDashboard() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isPaying, setIsPaying] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState('Room 101');
+  const [isRequesting, setIsRequesting] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [checkoutDone, setCheckoutDone] = useState(false);
 
   const router = useRouter();
 
@@ -130,6 +136,29 @@ export default function MemberDashboard() {
     const today = new Date();
     const due = new Date(user.memberProfile.due_date);
     nextBillingText = due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  let remainingDaysText = "N/A";
+  let isRemainingCritical = false;
+  let remainingDaysValue = 999;
+  if (user?.memberProfile?.due_date) {
+    const today = new Date();
+    const due = new Date(user.memberProfile.due_date);
+    const diffTime = due.getTime() - today.getTime();
+    remainingDaysValue = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (remainingDaysValue > 7) {
+      remainingDaysText = `${remainingDaysValue} Days`;
+    } else if (remainingDaysValue > 0) {
+      remainingDaysText = `${remainingDaysValue} Days`;
+      isRemainingCritical = true;
+    } else if (remainingDaysValue === 0) {
+      remainingDaysText = "Last Day";
+      isRemainingCritical = true;
+    } else {
+      remainingDaysText = `Overdue ${Math.abs(remainingDaysValue)} Days`;
+      isRemainingCritical = true;
+    }
   }
 
   if (loading) {
@@ -271,6 +300,7 @@ export default function MemberDashboard() {
               View Rooms <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
+
 
           {/* Profile Summary */}
           <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs">
@@ -465,6 +495,21 @@ export default function MemberDashboard() {
                 <Wrench className="w-5 h-5 stroke-[2]" />
               </div>
             </div>
+
+            {/* Card 3: Remaining Days */}
+            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs flex items-center justify-between flex-grow">
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Time Remaining
+                </span>
+                <span className={`text-lg font-extrabold block mt-0.5 ${isRemainingCritical ? 'text-red-600' : 'text-slate-800'}`}>
+                  {remainingDaysText}
+                </span>
+              </div>
+              <div className={`w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0 ${isRemainingCritical ? 'bg-red-50 text-red-600 border-red-100/80' : 'bg-indigo-50 text-indigo-600 border-indigo-100/80'}`}>
+                <Calendar className="w-5 h-5 stroke-[2]" />
+              </div>
+            </div>
           </div>
 
         </div>
@@ -536,6 +581,38 @@ export default function MemberDashboard() {
                 Request Maintenance
               </span>
             </button>
+
+            {/* Request Check-Out */}
+            {remainingDaysValue <= 5 && (
+              <button
+                type="button"
+                disabled={isCheckingOut || checkoutDone || ['checkout_requested', 'checkout_approved'].includes(user?.memberProfile?.status)}
+                onClick={async () => {
+                  if (!window.confirm('Apakah Anda yakin ingin mengajukan Check-Out? Admin akan memproses permintaan Anda.')) return;
+                  setIsCheckingOut(true);
+                  const res = await requestCheckout(user.id);
+                  setIsCheckingOut(false);
+                  if (res.success) {
+                    setCheckoutDone(true);
+                    await fetchDashboard();
+                  } else {
+                    alert('Gagal mengajukan check-out: ' + res.error);
+                  }
+                }}
+                className="bg-white border border-rose-100 hover:border-rose-300 rounded-2xl p-6 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col items-center justify-center text-center cursor-pointer group disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                  <LogOut className="w-6 h-6 stroke-[1.8]" />
+                </div>
+                <span className="text-sm font-bold text-slate-800">
+                  {user?.memberProfile?.status === 'checkout_approved'
+                    ? 'Check-Out Approved ✓'
+                    : (user?.memberProfile?.status === 'checkout_requested' || checkoutDone
+                      ? 'Check-Out Requested ✓'
+                      : isCheckingOut ? 'Sending...' : 'Request Check-Out')}
+                </span>
+              </button>
+            )}
 
             {/* Community Board */}
             <button

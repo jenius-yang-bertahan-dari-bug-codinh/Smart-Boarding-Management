@@ -38,6 +38,14 @@ function RegisterForm() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [durationMonths, setDurationMonths] = useState(1);
+
+  // Parse room price as number for calculation
+  // selectedRoomPrice may be like "Rp 800.000/mo" — dots are thousands separators in Indonesian
+  const roomPriceNum = selectedRoomPrice
+    ? parseInt(selectedRoomPrice.replace(/[^0-9]/g, ''), 10)
+    : 0;
+  const totalPrice = roomPriceNum * durationMonths;
 
   const updateForm = (field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -90,9 +98,9 @@ function RegisterForm() {
           phone: form.phone.trim(),
           id_number: form.id_number.replace(/\s/g, ''),
           join_date: form.join_date,
-          // Pass preferred room so admin can see which room user wants
+          // Pass preferred room so admin can see which room user wants, along with duration
           preferred_room_id: selectedRoomId ? parseInt(selectedRoomId) : null,
-          preferred_room_name: selectedRoomName || null,
+          preferred_room_name: selectedRoomName ? `${selectedRoomName} (${durationMonths} months)` : null,
         }),
       });
 
@@ -287,10 +295,44 @@ function RegisterForm() {
                   className={`${inputClass}`}
                 />
               </div>
-              <p className="text-[10px] text-slate-500 mt-1">
-                Select the date you plan to start occupying the room.
-              </p>
             </div>
+
+            <div>
+              <label className="block text-slate-700 text-xs font-semibold mb-1.5">Duration (Months)</label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDurationMonths(m => Math.max(1, m - 1))}
+                  className="w-10 h-10 shrink-0 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl font-bold text-slate-600 text-lg flex items-center justify-center cursor-pointer transition-colors"
+                >−</button>
+                <div className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-center text-sm font-extrabold text-slate-800">
+                  {durationMonths} {durationMonths === 1 ? 'Month' : 'Months'}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDurationMonths(m => Math.min(24, m + 1))}
+                  className="w-10 h-10 shrink-0 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl font-bold text-slate-600 text-lg flex items-center justify-center cursor-pointer transition-colors"
+                >+</button>
+              </div>
+            </div>
+
+            {selectedRoomPrice && (
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                <div className="flex justify-between items-center text-xs text-slate-500 font-semibold mb-1">
+                  <span>Monthly Rent</span>
+                  <span>Rp {roomPriceNum.toLocaleString('id-ID')}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs text-slate-500 font-semibold mb-2">
+                  <span>Duration</span>
+                  <span>× {durationMonths} {durationMonths === 1 ? 'month' : 'months'}</span>
+                </div>
+                <div className="border-t border-blue-200 pt-2 flex justify-between items-center">
+                  <span className="text-sm font-extrabold text-blue-900">Estimated Total</span>
+                  <span className="text-base font-extrabold text-blue-900">Rp {totalPrice.toLocaleString('id-ID')}</span>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1.5">*Billing will be processed monthly by admin</p>
+              </div>
+            )}
             <div className="flex gap-3">
               <button
                 type="button"
@@ -393,6 +435,8 @@ function RegisterForm() {
                 { label: 'Phone Number', value: form.phone, icon: <Phone className="w-3.5 h-3.5" /> },
                 { label: 'ID Card Number', value: form.id_number, icon: <CreditCard className="w-3.5 h-3.5" /> },
                 { label: 'Check-in Date', value: form.join_date, icon: <HomeIcon className="w-3.5 h-3.5" /> },
+                { label: 'Duration', value: `${durationMonths} ${durationMonths === 1 ? 'Month' : 'Months'}`, icon: <Tag className="w-3.5 h-3.5" /> },
+                ...(totalPrice > 0 ? [{ label: 'Estimated Total', value: `Rp ${totalPrice.toLocaleString('id-ID')}`, icon: <Tag className="w-3.5 h-3.5" /> }] : []),
               ].map((item, idx) => (
                 <div key={item.label} className="flex items-center gap-3">
                   <div className="w-6 h-6 rounded-md bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
@@ -435,9 +479,9 @@ function RegisterForm() {
 
         {/* Login link */}
         <p className="text-center text-xs text-slate-500 font-medium mt-6">
-          Sudah punya akun?{' '}
+          Already have an account?{' '}
           <Link href="/login" className="text-blue-700 hover:text-blue-900 font-bold hover:underline transition-colors">
-            Masuk di sini
+            Sign in here
           </Link>
         </p>
       </div>

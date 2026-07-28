@@ -191,3 +191,25 @@ export async function approveRoomTransfer(trackingId: string, roomId: number) {
     return { success: false, error: 'Failed to approve room transfer' };
   }
 }
+
+export async function createAdminMaintenance(data: { member_id: number, category: string, description: string }) {
+  try {
+    const tracking_id = `MT-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+
+    await prisma.complaint.create({
+      data: {
+        member_id: data.member_id,
+        tracking_id,
+        category: data.category,
+        description: data.description,
+        status: 'pending'
+      }
+    });
+
+    revalidatePath('/admin/maintenance');
+    return { success: true };
+  } catch (error) {
+    console.error('Error creating maintenance ticket:', error);
+    return { success: false, error: 'Failed to create ticket' };
+  }
+}
