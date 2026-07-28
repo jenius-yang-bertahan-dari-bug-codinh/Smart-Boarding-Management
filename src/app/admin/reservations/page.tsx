@@ -176,11 +176,11 @@ export default function ReservationsPage() {
       showToast('No reservations to export');
       return;
     }
-    const headers = ['Reservation ID', 'Tenant Name', 'Room #', 'Lease Term', 'Amount', 'Status'];
+    const headers = ['Reservation ID', 'Tenant Name', 'Room #', 'Check-in', 'Check-out', 'Amount', 'Status'];
     const csvContent = [
       headers.join(','),
       ...reservations.map(r => 
-        [r.id, `"${r.tenant}"`, `"${r.room}"`, `"${r.term}"`, `"${r.amount}"`, r.status].join(',')
+        [r.id, `"${r.tenant}"`, `"${r.room}"`, `"${r.checkinDate}"`, `"${r.checkoutDate}"`, `"${r.amount}"`, r.status].join(',')
       )
     ].join('\n');
 
@@ -205,7 +205,8 @@ export default function ReservationsPage() {
       'Reservation ID': r.id,
       'Tenant Name': r.tenant,
       'Room #': r.room,
-      'Lease Term': r.term,
+      'Check-in': r.checkinDate,
+      'Check-out': r.checkoutDate,
       'Amount': r.amount,
       'Status': r.status
     }));
@@ -616,7 +617,7 @@ export default function ReservationsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800">
-                  {['Reservation ID', 'Tenant Name', 'Room #', 'Lease Term', 'Amount', 'Status', 'Actions'].map((h) => (
+                  {['Reservation ID', 'Tenant Name', 'Room #', 'Check-in', 'Check-out', 'Amount', 'Status', 'Actions'].map((h) => (
                     <th key={h} className="px-5 py-3.5 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -633,8 +634,9 @@ export default function ReservationsPage() {
                         <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">{r.tenant}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-sm font-medium text-slate-600 dark:text-slate-400 dark:text-slate-500 whitespace-nowrap">{r.room}</td>
-                    <td className="px-5 py-4 text-sm font-medium text-slate-600 dark:text-slate-400 dark:text-slate-500 whitespace-nowrap">{r.term}</td>
+                    <td className="px-5 py-4 text-sm font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">{r.room}</td>
+                    <td className="px-5 py-4 text-sm font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">{r.checkinDate}</td>
+                    <td className="px-5 py-4 text-sm font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">{r.checkoutDate}</td>
                     <td className="px-5 py-4 text-sm font-extrabold text-slate-800 dark:text-slate-200">{r.amount}</td>
                     <td className="px-5 py-4">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${STATUS_STYLES[r.status]}`}>

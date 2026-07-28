@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 
-const steps = ['Akun', 'Identitas', 'Konfirmasi'];
+const steps = ['Akun', 'Kamar & Tanggal', 'Identitas', 'Konfirmasi'];
 
 // Inner component that uses useSearchParams (must be wrapped in Suspense)
 function RegisterForm() {
@@ -33,6 +33,7 @@ function RegisterForm() {
     confirmPassword: '',
     phone: '',
     id_number: '',
+    join_date: '',
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -52,6 +53,9 @@ function RegisterForm() {
       if (form.password !== form.confirmPassword) return 'Konfirmasi password tidak cocok.';
     }
     if (step === 1) {
+      if (!form.join_date) return 'Tanggal masuk wajib diisi.';
+    }
+    if (step === 2) {
       if (!form.phone.trim()) return 'Nomor HP wajib diisi.';
       if (!/^[0-9+\-\s]{8,15}$/.test(form.phone.trim())) return 'Format nomor HP tidak valid.';
       if (!form.id_number.trim()) return 'Nomor KTP wajib diisi.';
@@ -85,6 +89,7 @@ function RegisterForm() {
           password: form.password,
           phone: form.phone.trim(),
           id_number: form.id_number.replace(/\s/g, ''),
+          join_date: form.join_date,
           // Pass preferred room so admin can see which room user wants
           preferred_room_id: selectedRoomId ? parseInt(selectedRoomId) : null,
           preferred_room_name: selectedRoomName || null,
@@ -136,27 +141,6 @@ function RegisterForm() {
             Isi data di bawah untuk memulai proses pendaftaran kos
           </p>
         </div>
-
-        {/* Room Selection Banner — shown only when coming from Book Now */}
-        {selectedRoomName && (
-          <div className="mb-6 bg-gradient-to-r from-blue-900 to-blue-800 rounded-xl p-4 flex items-center gap-3.5 text-white shadow-md shadow-blue-900/20">
-            <div className="w-10 h-10 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center shrink-0">
-              <HomeIcon className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex-grow min-w-0">
-              <p className="text-[10px] font-bold text-blue-200 uppercase tracking-wider mb-0.5">Kamar yang Dipilih</p>
-              <p className="text-sm font-extrabold text-white truncate">{selectedRoomName}</p>
-              {selectedRoomPrice && (
-                <p className="text-xs text-blue-200 font-semibold mt-0.5 flex items-center gap-1">
-                  <Tag className="w-3 h-3" /> {selectedRoomPrice}
-                </p>
-              )}
-            </div>
-            <span className="shrink-0 bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap">
-              ✓ Dipilih
-            </span>
-          </div>
-        )}
 
         {/* Step Indicator */}
         <div className="flex items-center justify-center gap-2 mb-7">
@@ -332,8 +316,8 @@ function RegisterForm() {
           </div>
         )}
 
-        {/* ── Step 2: Konfirmasi ── */}
-        {step === 2 && (
+        {/* ── Step 3: Konfirmasi ── */}
+        {step === 3 && (
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Room selection summary — only show if came from Book Now */}
             {selectedRoomName && (
@@ -354,7 +338,8 @@ function RegisterForm() {
                 { label: 'Email', value: form.email, icon: <Mail className="w-3.5 h-3.5" /> },
                 { label: 'Nomor HP', value: form.phone, icon: <Phone className="w-3.5 h-3.5" /> },
                 { label: 'Nomor KTP', value: form.id_number, icon: <CreditCard className="w-3.5 h-3.5" /> },
-              ].map(item => (
+                { label: 'Tanggal Masuk', value: form.join_date, icon: <HomeIcon className="w-3.5 h-3.5" /> },
+              ].map((item, idx) => (
                 <div key={item.label} className="flex items-center gap-3">
                   <div className="w-6 h-6 rounded-md bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
                     {item.icon}

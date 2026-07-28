@@ -30,6 +30,9 @@ export async function getAdminReservations() {
         room: m.room ? `Room ${m.room.room_number}` : 'Unknown Room',
         term: m.due_date ? `Due: ${m.due_date.toISOString().split('T')[0]}` : 'Flexible',
         rawDueDate: m.due_date ? m.due_date.toISOString() : null,
+        rawCheckinDate: m.join_date ? m.join_date.toISOString() : null,
+        checkinDate: m.join_date ? m.join_date.toISOString().split('T')[0] : 'N/A',
+        checkoutDate: m.due_date ? m.due_date.toISOString().split('T')[0] : 'N/A',
         amount: m.room ? `Rp ${Number(m.room.price).toLocaleString('id-ID')}` : 'N/A',
         status: m.status === 'active' ? 'Confirmed' : (m.status === 'approved' ? 'Approved (Unpaid)' : (m.status === 'pending' ? 'Pending' : 'Cancelled'))
       };
