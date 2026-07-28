@@ -184,8 +184,8 @@ export default function ServiceRequests() {
                 {category === 'room_transfer' && (
                   <>
                     <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl text-xs sm:text-sm">
-                      <p className="font-bold flex items-center gap-2 mb-1"><AlertTriangle className="w-4 h-4" /> Warning / Peringatan</p>
-                      Jika kamu pindah ke ruangan yang lebih mahal, maka harus membayar penuh tagihan baru. Jika ruangan lebih murah, maka tidak ada pengembalian dana ke member. Disarankan pindah pada saat kontrak kos sudah habis!
+                      <p className="font-bold flex items-center gap-2 mb-1"><AlertTriangle className="w-4 h-4" /> Warning</p>
+                      If you transfer to a more expensive room, you must pay the new bill in full. If you transfer to a cheaper room, there will be no refunds. It is highly recommended to transfer only when your current lease term expires!
                     </div>
                     <div>
                       <label htmlFor="selectedRoom" className="block text-slate-700 text-xs sm:text-sm font-semibold mb-1.5">

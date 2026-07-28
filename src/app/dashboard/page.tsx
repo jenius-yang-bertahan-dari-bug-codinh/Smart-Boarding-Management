@@ -235,19 +235,19 @@ export default function MemberDashboard() {
               }`}>
                 <HomeIcon className="w-5 h-5" />
               </div>
-              <div className="min-w-0">
-                <p className={`text-xs font-bold mb-0.5 ${
+              <div className="flex-grow min-w-0">
+                <p className={`text-[10px] font-bold uppercase tracking-wider mb-0.5 ${
                   user.memberProfile?.preferred_room_name ? 'text-blue-600' : 'text-slate-400'
-                }`}>Menunggu</p>
+                }`}>Pending</p>
                 <p className="text-sm font-extrabold text-slate-800 truncate">
                   {user.memberProfile?.preferred_room_name
                     ? user.memberProfile.preferred_room_name
-                    : 'Kamar Diassign'}
+                    : 'Room Assignment'}
                 </p>
                 <p className="text-xs text-slate-500 font-medium mt-0.5">
                   {user.memberProfile?.preferred_room_name
-                    ? 'Kamar yang Anda minta'
-                    : 'Admin akan menentukan kamar Anda'}
+                    ? 'Your requested room'
+                    : 'Admin will assign your room'}
                 </p>
               </div>
             </div>
@@ -259,31 +259,31 @@ export default function MemberDashboard() {
               <HelpCircle className="w-7 h-7 text-white" />
             </div>
             <div className="flex-grow">
-              <h2 className="text-base font-extrabold mb-1">Apa yang terjadi selanjutnya?</h2>
+              <h2 className="text-base font-extrabold mb-1">What happens next?</h2>
               <p className="text-sm text-blue-100 leading-relaxed">
-                Admin kami akan mereview data registrasi Anda dan mengassign kamar yang sesuai. Anda akan mendapat notifikasi setelah kamar berhasil diassign. Proses biasanya memakan waktu <strong className="text-white">1–2 hari kerja</strong>.
+                Our admin will review your registration and assign a suitable room. You will be notified once a room is assigned. This process typically takes <strong className="text-white">1–2 business days</strong>.
               </p>
             </div>
             <Link
               href="/#rooms"
               className="shrink-0 bg-white/15 hover:bg-white/25 border border-white/30 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap"
             >
-              Lihat Kamar <ArrowRight className="w-3.5 h-3.5" />
+              View Rooms <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
           {/* Profile Summary */}
           <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-sm font-extrabold text-slate-800">Data Pendaftaran Anda</h2>
-              <span className="text-xs text-slate-400 font-semibold">Disimpan secara aman</span>
+              <h2 className="text-sm font-extrabold text-slate-800">Your Registration Data</h2>
+              <span className="text-xs text-slate-400 font-semibold">Securely stored</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
-                { label: 'Nama Lengkap', value: user.name || '-' },
+                { label: 'Full Name', value: user.name || '-' },
                 { label: 'Email', value: user.email },
-                { label: 'Nomor HP', value: user.memberProfile?.phone || '-' },
-                { label: 'Nomor KTP', value: user.memberProfile?.id_number
+                { label: 'Phone Number', value: user.memberProfile?.phone || '-' },
+                { label: 'ID Card Number', value: user.memberProfile?.id_number
                   ? `****${user.memberProfile.id_number.slice(-4)}`
                   : '-' },
               ].map(item => (
@@ -297,11 +297,11 @@ export default function MemberDashboard() {
                 <div className="col-span-full bg-blue-50 rounded-xl p-4 border border-blue-100 flex items-center gap-3">
                   <HomeIcon className="w-4 h-4 text-blue-600 shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-0.5">Kamar yang Diminta</p>
+                    <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-0.5">Requested Room</p>
                     <p className="text-sm font-extrabold text-blue-900 truncate">{user.memberProfile.preferred_room_name}</p>
                   </div>
                   <span className="ml-auto shrink-0 bg-amber-100 text-amber-700 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-200">
-                    Menunggu Konfirmasi
+                    Waiting Confirmation
                   </span>
                 </div>
               )}
