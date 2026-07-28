@@ -130,8 +130,8 @@ export default function MemberSettingsModal({ isOpen, onClose, user, onRefresh }
       )}
 
       <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in">
-        <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden animate-scale-up">
-          <div className="px-6 py-5 bg-slate-900 text-white flex items-center justify-between">
+        <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden animate-scale-up flex flex-col max-h-[90vh]">
+          <div className="px-6 py-5 bg-slate-900 text-white flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
               <Settings className="w-5 h-5 text-blue-400" />
               <h3 className="font-extrabold text-base">Profile & Account Settings</h3>
@@ -145,7 +145,7 @@ export default function MemberSettingsModal({ isOpen, onClose, user, onRefresh }
             </button>
           </div>
 
-          <form onSubmit={handleSave} className="p-6 space-y-4">
+          <form onSubmit={handleSave} className="p-6 space-y-4 overflow-y-auto">
             {/* Profile Photo Preview & Secure File Upload Input */}
             <div className="flex flex-col items-center justify-center pb-3 border-b border-slate-100">
               <div className="relative mb-3">
