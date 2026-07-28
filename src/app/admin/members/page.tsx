@@ -3,6 +3,7 @@
 import { getAdminMembers, updateAdminMember, deleteAdminMember } from '@/app/actions/members';
 import { getAdminRooms } from '@/app/actions/properties';
 import { getMemberInvoices, generateMemberInvoice } from '@/app/actions/billing';
+import { getNotifications } from '@/app/actions/dashboard';
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
@@ -142,11 +143,15 @@ export default function MembersPage() {
   /* notifications */
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [viewAllOpen, setViewAllOpen] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: 'New Booking Request', message: 'Jane Doe requested Room 201.', time: '5m ago', unread: true },
-    { id: 2, title: 'Maintenance Alert', message: 'AC broken in Room 305.', time: '1h ago', unread: true },
-    { id: 3, title: 'Payment Received', message: 'John Smith paid Rp 1.400.000.', time: '2h ago', unread: false },
-  ]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    getNotifications().then(res => {
+      if (res.success && res.data) {
+        setNotifications(res.data);
+      }
+    });
+  }, []);
   const notifRef = useRef<HTMLDivElement>(null);
 
   /* close on outside click */
@@ -381,28 +386,6 @@ export default function MembersPage() {
             <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">Billing & Invoices</h4>
-                <button 
-                  type="button" 
-                  onClick={async () => {
-                    setIsGeneratingInvoice(true);
-                    showToast('Generating invoice...');
-                    const res = await generateMemberInvoice(selectedMember.id);
-                    setIsGeneratingInvoice(false);
-                    if (res.success && res.redirect_url) {
-                      navigator.clipboard.writeText(res.redirect_url);
-                      showToast('Invoice generated & link copied!');
-                      // refresh invoices
-                      const invRes = await getMemberInvoices(selectedMember.id);
-                      if(invRes.success && invRes.data) setMemberInvoices(invRes.data);
-                    } else {
-                      showToast(res.error || res.warning || 'Failed', 'error');
-                    }
-                  }}
-                  disabled={isGeneratingInvoice}
-                  className="px-4 py-2 bg-blue-900 hover:bg-blue-950 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2">
-                  <span className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">+</span>
-                  Generate Invoice
-                </button>
               </div>
               
               {memberInvoices.length === 0 ? (

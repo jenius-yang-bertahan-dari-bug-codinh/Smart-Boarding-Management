@@ -142,7 +142,29 @@ export async function getAdminBilling(trendFilter: string = '6_months') {
     return { success: true, data: { invoices: mappedInvoices, trendBars, metrics } };
   } catch (error) {
     console.error('Error fetching admin billing:', error);
-    return { success: false, error: 'Failed to fetch billing' };
+    return { success: false, error: 'Failed to load billing metrics' };
+  }
+}
+
+export async function getPaymentById(id: number) {
+  try {
+    const payment = await prisma.payment.findUnique({
+      where: { id },
+      include: {
+        member: {
+          include: {
+            room: true
+          }
+        }
+      }
+    });
+    
+    if (!payment) return { success: false, error: 'Payment not found' };
+    
+    return { success: true, data: payment };
+  } catch (error) {
+    console.error('Error fetching payment by id:', error);
+    return { success: false, error: 'Failed to fetch payment details' };
   }
 }
 
@@ -187,11 +209,25 @@ export async function generateInvoices(memberId: number, amount: number, startMo
 
 export async function markInvoiceAsPaid(invoiceId: number) {
   try {
-    await prisma.payment.update({
+    const payment = await prisma.payment.update({
       where: { id: invoiceId },
-      data: { status: 'paid' }
+      data: { status: 'paid' },
+      include: { member: true }
     });
+    
+    // Update member's due_date (extend by 1 month)
+    if (payment.member) {
+      const baseDate = payment.member.due_date || payment.member.join_date || new Date();
+      const newDueDate = new Date(baseDate);
+      newDueDate.setMonth(newDueDate.getMonth() + 1);
+      await prisma.member.update({
+        where: { id: payment.member.id },
+        data: { due_date: newDueDate }
+      });
+    }
+
     revalidatePath('/admin/billing');
+    revalidatePath('/admin/reservations');
     return { success: true };
   } catch (error) {
     console.error('Error approving payment:', error);

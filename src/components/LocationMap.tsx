@@ -28,7 +28,7 @@ const LocationMap: React.FC = () => {
 
             {/* Email Card - Clickable direct to Gmail Compose */}
             <a 
-              href="https://mail.google.com/mail/?view=cm&fs=1&to=papikost123456@gmail.com&su=Inquiry%20Papikost" 
+              href="https://mail.google.com/mail/?view=cm&fs=1&to=papikosrt123@gmail.com&su=Inquiry%20Papikost" 
               target="_blank" 
               rel="noopener noreferrer"
               className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-xs border border-slate-100/80 dark:border-slate-700 flex items-center gap-4 hover:shadow-md hover:border-blue-500/30 transition-all duration-200 group cursor-pointer block"
@@ -40,7 +40,7 @@ const LocationMap: React.FC = () => {
                 <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   Email Address
                 </div>
-                <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors break-all">papikost123456@gmail.com</div>
+                <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors break-all">papikosrt123@gmail.com</div>
               </div>
             </a>
           </div>

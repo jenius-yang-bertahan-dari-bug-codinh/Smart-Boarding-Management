@@ -21,7 +21,8 @@ import {
   ArrowRight,
   ShieldCheck,
   CircleDot,
-  X
+  X,
+  Printer
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 import MemberSidebar from '@/components/MemberSidebar';
@@ -316,6 +317,11 @@ export default function FinancialHub() {
                               Pay
                             </button>
                           )}
+                          {tx.status === 'paid' && (
+                            <a href={`/receipt/${tx.id}`} target="_blank" rel="noopener noreferrer" className="text-[10px] bg-slate-100 text-slate-600 hover:bg-slate-200 px-2 py-0.5 rounded-md font-bold transition-colors cursor-pointer flex items-center gap-1">
+                              <Printer className="w-3 h-3" /> Receipt
+                            </a>
+                          )}
                           <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                             <CircleDot className={`w-2.5 h-2.5 ${tx.status === 'pending' ? 'text-orange-500 fill-orange-500/10' : 'text-emerald-500 fill-emerald-500/10'}`} />
                             {tx.status}
@@ -401,6 +407,11 @@ export default function FinancialHub() {
                           >
                             Pay
                           </button>
+                        )}
+                        {tx.status === 'paid' && (
+                          <a href={`/receipt/${tx.id}`} target="_blank" rel="noopener noreferrer" className="text-[10px] bg-slate-100 text-slate-600 hover:bg-slate-200 px-2 py-0.5 rounded-md font-bold transition-colors cursor-pointer flex items-center gap-1">
+                            <Printer className="w-3 h-3" /> Receipt
+                          </a>
                         )}
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                           <CircleDot className={`w-2.5 h-2.5 ${tx.status === 'pending' ? 'text-orange-500 fill-orange-500/10' : 'text-emerald-500 fill-emerald-500/10'}`} />

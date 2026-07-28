@@ -6,10 +6,10 @@ import { encrypt } from '@/lib/auth'
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { name, email, password, phone, id_number, preferred_room_name } = body
+    const { name, email, password, phone, id_number, preferred_room_name, join_date } = body
 
     // Validate required fields
-    if (!name || !email || !password || !phone || !id_number) {
+    if (!name || !email || !password || !phone || !id_number || !join_date) {
       return NextResponse.json(
         { error: 'Semua field wajib diisi.' },
         { status: 400 }
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
         phone: phone.trim(),
         id_number: id_number.trim(),
         status: 'pending',
-        join_date: new Date(),
+        join_date: new Date(join_date),
         ...(preferred_room_name ? { preferred_room_name: preferred_room_name.trim() } : {}),
       },
     })

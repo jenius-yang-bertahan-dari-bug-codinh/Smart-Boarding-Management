@@ -167,13 +167,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Register Link */}
-        <p className="text-center text-xs text-slate-500 font-medium mt-6">
-          Belum punya akun?{' '}
-          <Link href="/register" className="text-blue-700 hover:text-blue-900 font-bold hover:underline transition-colors">
-            Daftar sebagai Resident
-          </Link>
-        </p>
+
 
       </div>
 

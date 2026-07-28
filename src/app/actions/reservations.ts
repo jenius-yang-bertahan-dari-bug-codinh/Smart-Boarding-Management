@@ -30,6 +30,9 @@ export async function getAdminReservations() {
         room: m.room ? `Room ${m.room.room_number}` : 'Unknown Room',
         term: m.due_date ? `Due: ${m.due_date.toISOString().split('T')[0]}` : 'Flexible',
         rawDueDate: m.due_date ? m.due_date.toISOString() : null,
+        rawCheckinDate: m.join_date ? m.join_date.toISOString() : null,
+        checkinDate: m.join_date ? m.join_date.toISOString().split('T')[0] : 'N/A',
+        checkoutDate: m.due_date ? m.due_date.toISOString().split('T')[0] : 'N/A',
         amount: m.room ? `Rp ${Number(m.room.price).toLocaleString('id-ID')}` : 'N/A',
         status: m.status === 'active' ? 'Confirmed' : (m.status === 'approved' ? 'Approved (Unpaid)' : (m.status === 'pending' ? 'Pending' : 'Cancelled'))
       };
@@ -45,45 +48,71 @@ export async function getAdminReservations() {
 
 export async function updateReservationStatus(id: number, status: string) {
   try {
+    // Fetch current member to check for preferred room
+    const currentMember = await prisma.member.findUnique({
+      where: { id }
+    });
+
+    let room_id = undefined;
+    if (currentMember && currentMember.preferred_room_name) {
+      const match = currentMember.preferred_room_name.match(/Room\s+(\d+)/i);
+      if (match) {
+        const roomNum = match[1];
+        const room = await prisma.room.findFirst({ where: { room_number: roomNum } });
+        if (room) {
+          room_id = room.id;
+          
+          // Mark room as occupied if the status is active/approved
+          if (status === 'active' || status === 'approved') {
+            await prisma.room.update({
+              where: { id: room.id },
+              data: { status: 'Occupied' }
+            });
+          }
+        }
+      }
+    }
+
     const member = await prisma.member.update({
       where: { id },
-      data: { status },
+      data: { 
+        status,
+        ...(room_id ? { room_id } : {})
+      },
       include: {
         user: true // Include user to get the email address
       }
     });
 
     if (status === 'active' || status === 'approved') {
-      // 1. Generate the unique password
-      const crypto = require('crypto');
-      const rawPassword = crypto.randomBytes(4).toString('hex');
-      const hashedPassword = await bcrypt.hash(rawPassword, 10);
-
-      // 2. Upgrade user role and update password
+      // Upgrade user role to tenant
       await prisma.user.update({
         where: { id: member.user_id },
         data: { 
-          role: 'tenant',
-          password: hashedPassword 
+          role: 'tenant'
         }
       });
+
+      // Auto-generate invoice for the assigned room
+      if (room_id) {
+        const { generateMemberInvoice } = await import('@/app/actions/billing');
+        await generateMemberInvoice(id.toString());
+      }
       
-      // 3. Send email to the user if they have a valid user account
-      if (member.user && member.user.email) {
+      // Send email to the user if they have a valid user account
+      if (member.user && member.user.email && !member.user.email.endsWith('@example.com')) {
         const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login`;
         const emailHtml = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
             <h2 style="color: #1e3a8a;">Welcome to Papikost! 🎉</h2>
             <p style="color: #475569; font-size: 16px;">Hello <strong>${member.name}</strong>,</p>
-            <p style="color: #475569; font-size: 16px;">Good news! Your reservation has been approved by the Admin.</p>
+            <p style="color: #475569; font-size: 16px;">Good news! Your room registration has been approved by the Admin.</p>
             <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
-              <p style="margin: 0 0 10px 0; color: #334155;"><strong>Your Login Credentials:</strong></p>
+              <p style="margin: 0 0 10px 0; color: #334155;"><strong>Login Details:</strong></p>
               <p style="margin: 0 0 5px 0; color: #475569;">Email: <strong>${member.user.email}</strong></p>
-              <p style="margin: 0; color: #475569;">Password: <strong>${rawPassword}</strong></p>
+              <p style="margin: 0; color: #475569;">Password: <em>(The password you created during registration)</em></p>
             </div>
-            <p style="color: #b91c1c; font-size: 14px; font-weight: bold; background-color: #fef2f2; padding: 10px; border-radius: 6px; border-left: 4px solid #ef4444;">
-              ⚠️ SECURITY NOTICE: For your safety, we strongly recommend changing this auto-generated password immediately after your first login via the Profile & Settings menu.
-            </p>
+
             <p style="color: #475569; font-size: 16px;">Please log in to your dashboard and complete your first payment to officially check in and secure your room.</p>
             <a href="${loginUrl}" style="display: inline-block; background-color: #1e3a8a; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; margin-top: 10px;">Login to Dashboard</a>
             <p style="color: #94a3b8; font-size: 12px; margin-top: 30px;">Best regards,<br>Papikost Management</p>

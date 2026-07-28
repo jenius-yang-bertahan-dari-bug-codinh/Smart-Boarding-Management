@@ -155,8 +155,20 @@ export default function LeaseAgreementModal({ isOpen, onClose, user }: LeaseAgre
             {/* Section 5 */}
             <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-2.5">
               <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-purple-100 text-purple-800 text-xs font-black flex items-center justify-center">5</span>
-                <span>Section 5: House Rules & Compliance</span>
+                <span className="w-6 h-6 rounded-lg bg-teal-100 text-teal-800 text-xs font-black flex items-center justify-center">5</span>
+                <span>Section 5: Room Transfer Policy</span>
+              </h3>
+              <ul className="text-xs sm:text-sm text-slate-600 leading-relaxed pl-8 space-y-1.5 list-decimal">
+                <li>Tenants may request a room transfer via the Service Requests menu. Room moves are subject to management approval and availability.</li>
+                <li>If the new room has a higher rental rate, a prorated invoice for the price difference will be generated and must be paid. If the new room has a lower rental rate, no refund will be issued for the current billing cycle.</li>
+              </ul>
+            </div>
+
+            {/* Section 6 */}
+            <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-2.5">
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-purple-100 text-purple-800 text-xs font-black flex items-center justify-center">6</span>
+                <span>Section 6: House Rules & Compliance</span>
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed pl-8 font-medium">
                 The Resident confirms having read, understood, and agreed to abide by the <span className="font-bold text-blue-900">Papikost House Rules & Regulations</span>, which form an integral part of this contract.

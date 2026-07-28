@@ -62,6 +62,7 @@ model Complaint {
   photo_url      String?
   status         String   @default("pending")
   admin_response String?
+  created_at     DateTime @default(now())
 }
 
 model Payment {

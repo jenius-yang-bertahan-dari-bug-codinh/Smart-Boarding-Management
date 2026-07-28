@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 
-const steps = ['Akun', 'Identitas', 'Konfirmasi'];
+const steps = ['Account', 'Room & Date', 'Identity', 'Confirmation'];
 
 // Inner component that uses useSearchParams (must be wrapped in Suspense)
 function RegisterForm() {
@@ -33,6 +33,7 @@ function RegisterForm() {
     confirmPassword: '',
     phone: '',
     id_number: '',
+    join_date: '',
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -45,17 +46,20 @@ function RegisterForm() {
 
   const validateStep = () => {
     if (step === 0) {
-      if (!form.name.trim()) return 'Nama lengkap wajib diisi.';
-      if (!form.email.trim()) return 'Email wajib diisi.';
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return 'Format email tidak valid.';
-      if (form.password.length < 8) return 'Password minimal 8 karakter.';
-      if (form.password !== form.confirmPassword) return 'Konfirmasi password tidak cocok.';
+      if (!form.name.trim()) return 'Full name is required.';
+      if (!form.email.trim()) return 'Email is required.';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return 'Invalid email format.';
+      if (form.password.length < 8) return 'Password must be at least 8 characters.';
+      if (form.password !== form.confirmPassword) return 'Passwords do not match.';
     }
     if (step === 1) {
-      if (!form.phone.trim()) return 'Nomor HP wajib diisi.';
-      if (!/^[0-9+\-\s]{8,15}$/.test(form.phone.trim())) return 'Format nomor HP tidak valid.';
-      if (!form.id_number.trim()) return 'Nomor KTP wajib diisi.';
-      if (form.id_number.replace(/\s/g, '').length < 16) return 'Nomor KTP harus 16 digit.';
+      if (!form.join_date) return 'Check-in date is required.';
+    }
+    if (step === 2) {
+      if (!form.phone.trim()) return 'Phone number is required.';
+      if (!/^[0-9+\-\s]{8,15}$/.test(form.phone.trim())) return 'Invalid phone number format.';
+      if (!form.id_number.trim()) return 'ID Card number is required.';
+      if (form.id_number.replace(/\s/g, '').length < 16) return 'ID Card number must be 16 digits.';
     }
     return null;
   };
@@ -85,6 +89,7 @@ function RegisterForm() {
           password: form.password,
           phone: form.phone.trim(),
           id_number: form.id_number.replace(/\s/g, ''),
+          join_date: form.join_date,
           // Pass preferred room so admin can see which room user wants
           preferred_room_id: selectedRoomId ? parseInt(selectedRoomId) : null,
           preferred_room_name: selectedRoomName || null,
@@ -96,11 +101,11 @@ function RegisterForm() {
       if (res.ok) {
         router.push('/dashboard');
       } else {
-        setError(data.error || 'Terjadi kesalahan. Silakan coba lagi.');
+        setError(data.error || 'Something went wrong. Please try again.');
         setLoading(false);
       }
     } catch {
-      setError('Koneksi gagal. Silakan coba lagi.');
+      setError('Connection failed. Please try again.');
       setLoading(false);
     }
   };
@@ -121,7 +126,7 @@ function RegisterForm() {
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-slate-200/80 shadow-sm hover:shadow text-xs sm:text-sm font-semibold text-slate-700 hover:text-blue-600 hover:border-blue-300 transition-all duration-200 group cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:-translate-x-0.5 transition-all" />
-          <span>{selectedRoomId ? 'Kembali ke Daftar Kamar' : 'Kembali ke Login'}</span>
+          <span>{selectedRoomId ? 'Back to Room List' : 'Back to Login'}</span>
         </Link>
       </div>
 
@@ -131,32 +136,11 @@ function RegisterForm() {
         {/* Header */}
         <div className="text-center mb-6 flex flex-col items-center">
           <Logo size={44} className="mb-3" />
-          <h1 className="text-2xl font-extrabold text-blue-900 tracking-tight">Daftar Sebagai Resident</h1>
+          <h1 className="text-2xl font-extrabold text-blue-900 tracking-tight">Register as Resident</h1>
           <p className="text-sm font-medium text-slate-500 mt-1.5">
-            Isi data di bawah untuk memulai proses pendaftaran kos
+            Fill in the details below to start the registration process
           </p>
         </div>
-
-        {/* Room Selection Banner — shown only when coming from Book Now */}
-        {selectedRoomName && (
-          <div className="mb-6 bg-gradient-to-r from-blue-900 to-blue-800 rounded-xl p-4 flex items-center gap-3.5 text-white shadow-md shadow-blue-900/20">
-            <div className="w-10 h-10 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center shrink-0">
-              <HomeIcon className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex-grow min-w-0">
-              <p className="text-[10px] font-bold text-blue-200 uppercase tracking-wider mb-0.5">Kamar yang Dipilih</p>
-              <p className="text-sm font-extrabold text-white truncate">{selectedRoomName}</p>
-              {selectedRoomPrice && (
-                <p className="text-xs text-blue-200 font-semibold mt-0.5 flex items-center gap-1">
-                  <Tag className="w-3 h-3" /> {selectedRoomPrice}
-                </p>
-              )}
-            </div>
-            <span className="shrink-0 bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap">
-              ✓ Dipilih
-            </span>
-          </div>
-        )}
 
         {/* Step Indicator */}
         <div className="flex items-center justify-center gap-2 mb-7">
@@ -189,17 +173,17 @@ function RegisterForm() {
           </div>
         )}
 
-        {/* ── Step 0: Akun ── */}
+        {/* ── Step 0: Account ── */}
         {step === 0 && (
           <div className="space-y-4">
             <div>
-              <label className="block text-slate-700 text-xs font-semibold mb-1.5">Nama Lengkap</label>
+              <label className="block text-slate-700 text-xs font-semibold mb-1.5">Full Name</label>
               <div className="relative">
                 <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   id="reg-name"
                   type="text"
-                  placeholder="Masukkan nama lengkap"
+                  placeholder="Enter full name"
                   value={form.name}
                   onChange={e => updateForm('name', e.target.value)}
                   className={`${inputClass} pl-10`}
@@ -213,7 +197,7 @@ function RegisterForm() {
                 <input
                   id="reg-email"
                   type="email"
-                  placeholder="email@contoh.com"
+                  placeholder="email@example.com"
                   value={form.email}
                   onChange={e => updateForm('email', e.target.value)}
                   className={`${inputClass} pl-10`}
@@ -227,7 +211,7 @@ function RegisterForm() {
                 <input
                   id="reg-password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Min. 8 karakter"
+                  placeholder="Min. 8 characters"
                   value={form.password}
                   onChange={e => updateForm('password', e.target.value)}
                   className={`${inputClass} pl-10 pr-11`}
@@ -242,13 +226,13 @@ function RegisterForm() {
               </div>
             </div>
             <div>
-              <label className="block text-slate-700 text-xs font-semibold mb-1.5">Konfirmasi Password</label>
+              <label className="block text-slate-700 text-xs font-semibold mb-1.5">Confirm Password</label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   id="reg-confirm"
                   type={showConfirm ? 'text' : 'password'}
-                  placeholder="Ulangi password"
+                  placeholder="Repeat password"
                   value={form.confirmPassword}
                   onChange={e => updateForm('confirmPassword', e.target.value)}
                   className={`${inputClass} pl-10 pr-11`}
@@ -267,22 +251,76 @@ function RegisterForm() {
               onClick={handleNext}
               className="w-full mt-2 bg-blue-900 hover:bg-blue-950 text-white font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-md cursor-pointer text-sm"
             >
-              Lanjut <ArrowRight className="w-4 h-4" />
+              Next <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         )}
 
-        {/* ── Step 1: Identitas ── */}
+        {/* ── Step 1: Room & Check-in Date ── */}
         {step === 1 && (
           <div className="space-y-4">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-center gap-3.5 text-slate-800">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                <HomeIcon className="w-5 h-5" />
+              </div>
+              <div className="flex-grow min-w-0">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Selected Room</p>
+                <p className="text-sm font-extrabold text-slate-900 truncate">
+                  {selectedRoomName || "No room selected"}
+                </p>
+                {selectedRoomPrice && (
+                  <p className="text-xs text-slate-600 font-semibold mt-0.5 flex items-center gap-1">
+                    <Tag className="w-3 h-3" /> {selectedRoomPrice}
+                  </p>
+                )}
+              </div>
+            </div>
+
             <div>
-              <label className="block text-slate-700 text-xs font-semibold mb-1.5">Nomor HP / WhatsApp</label>
+              <label className="block text-slate-700 text-xs font-semibold mb-1.5">Check-in Date</label>
+              <div className="relative">
+                <input
+                  id="reg-join-date"
+                  type="date"
+                  value={form.join_date}
+                  onChange={e => updateForm('join_date', e.target.value)}
+                  className={`${inputClass}`}
+                />
+              </div>
+              <p className="text-[10px] text-slate-500 mt-1">
+                Select the date you plan to start occupying the room.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setStep(prev => prev - 1)}
+                className="w-12 h-12 shrink-0 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                className="flex-1 bg-blue-900 hover:bg-blue-950 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer text-sm"
+              >
+                Next <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 2: Identity ── */}
+        {step === 2 && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-slate-700 text-xs font-semibold mb-1.5">Phone Number</label>
               <div className="relative">
                 <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   id="reg-phone"
                   type="tel"
-                  placeholder="contoh: 08123456789"
+                  placeholder="e.g. 08123456789"
                   value={form.phone}
                   onChange={e => updateForm('phone', e.target.value)}
                   className={`${inputClass} pl-10`}
@@ -291,7 +329,7 @@ function RegisterForm() {
             </div>
             <div>
               <label className="block text-slate-700 text-xs font-semibold mb-1.5">
-                Nomor KTP <span className="text-orange-500">(16 digit)</span>
+                ID Card Number (KTP) <span className="text-orange-500">(16 digits)</span>
               </label>
               <div className="relative">
                 <CreditCard className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -310,37 +348,37 @@ function RegisterForm() {
                 />
               </div>
               <p className="text-[10px] text-slate-400 font-medium mt-1.5 ml-0.5">
-                Data KTP digunakan untuk verifikasi identitas oleh admin.
+                KTP data is used for admin identity verification.
               </p>
             </div>
             <div className="flex gap-3 mt-2">
               <button
                 type="button"
-                onClick={() => { setStep(0); setError(''); }}
-                className="flex-1 border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold py-3 rounded-xl text-sm transition-all cursor-pointer"
+                onClick={() => setStep(prev => prev - 1)}
+                className="w-12 h-12 shrink-0 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl flex items-center justify-center transition-colors cursor-pointer"
               >
-                Kembali
+                <ArrowLeft className="w-4 h-4" />
               </button>
               <button
                 type="button"
                 onClick={handleNext}
                 className="flex-1 bg-blue-900 hover:bg-blue-950 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer text-sm"
               >
-                Lanjut <ArrowRight className="w-4 h-4" />
+                Next <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
         )}
 
-        {/* ── Step 2: Konfirmasi ── */}
-        {step === 2 && (
+        {/* ── Step 3: Confirmation ── */}
+        {step === 3 && (
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Room selection summary — only show if came from Book Now */}
             {selectedRoomName && (
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-3.5 flex items-center gap-3">
                 <HomeIcon className="w-4 h-4 text-blue-700 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">Kamar Pilihan</p>
+                  <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">Selected Room</p>
                   <p className="text-xs font-extrabold text-blue-900 truncate">{selectedRoomName}</p>
                 </div>
                 <span className="ml-auto text-xs font-bold text-blue-700 shrink-0">{selectedRoomPrice}</span>
@@ -348,13 +386,14 @@ function RegisterForm() {
             )}
 
             <div className="bg-slate-50 rounded-xl border border-slate-100 p-4 space-y-3">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Ringkasan Data</h3>
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Data Summary</h3>
               {[
-                { label: 'Nama Lengkap', value: form.name, icon: <User className="w-3.5 h-3.5" /> },
+                { label: 'Full Name', value: form.name, icon: <User className="w-3.5 h-3.5" /> },
                 { label: 'Email', value: form.email, icon: <Mail className="w-3.5 h-3.5" /> },
-                { label: 'Nomor HP', value: form.phone, icon: <Phone className="w-3.5 h-3.5" /> },
-                { label: 'Nomor KTP', value: form.id_number, icon: <CreditCard className="w-3.5 h-3.5" /> },
-              ].map(item => (
+                { label: 'Phone Number', value: form.phone, icon: <Phone className="w-3.5 h-3.5" /> },
+                { label: 'ID Card Number', value: form.id_number, icon: <CreditCard className="w-3.5 h-3.5" /> },
+                { label: 'Check-in Date', value: form.join_date, icon: <HomeIcon className="w-3.5 h-3.5" /> },
+              ].map((item, idx) => (
                 <div key={item.label} className="flex items-center gap-3">
                   <div className="w-6 h-6 rounded-md bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
                     {item.icon}
@@ -369,7 +408,7 @@ function RegisterForm() {
 
             <div className="bg-orange-50 border border-orange-100 rounded-xl p-3.5">
               <p className="text-xs text-orange-700 font-medium leading-relaxed">
-                📋 Setelah mendaftar, akun Anda akan berstatus <strong>Pending</strong>. Admin akan memverifikasi data dan mengassign kamar untuk Anda
+                📋 After registering, your account status will be <strong>Pending</strong>. Admin will verify your data and assign the room for you
                 {selectedRoomName ? <> (<strong>{selectedRoomName}</strong>)</> : ''}.
               </p>
             </div>
@@ -377,18 +416,18 @@ function RegisterForm() {
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => { setStep(1); setError(''); }}
-                className="flex-1 border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold py-3 rounded-xl text-sm transition-all cursor-pointer"
+                onClick={() => setStep(prev => prev - 1)}
+                className="w-12 h-12 shrink-0 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl flex items-center justify-center transition-colors cursor-pointer"
+                disabled={loading}
               >
-                Kembali
+                <ArrowLeft className="w-4 h-4" />
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-orange-500/20 cursor-pointer disabled:opacity-70 text-sm"
+                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-orange-500/20 active:translate-y-0.5 cursor-pointer disabled:opacity-85 text-sm"
               >
-                {loading ? 'Mendaftarkan...' : 'Daftar Sekarang'}
-                {!loading && <ArrowRight className="w-4 h-4" />}
+                {loading ? 'Processing...' : 'Complete Registration'} {!loading && <CheckCircle2 className="w-4 h-4" />}
               </button>
             </div>
           </form>
